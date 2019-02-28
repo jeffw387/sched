@@ -23,7 +23,7 @@ pub struct Employee {
     pub id: i32,
     pub first: String,
     pub last: String,
-    pub phonenumber: Option<String>,
+    pub phone_number: Option<String>,
 }
 
 use super::schema::employees;
@@ -33,15 +33,15 @@ use super::schema::employees;
 pub struct NewEmployee<'a> {
     pub first: &'a str,
     pub last: &'a str,
-    pub phonenumber: &'a str,
+    pub phone_number: &'a str,
 }
 
 impl<'a> NewEmployee<'a> {
     pub fn new(
         first: &'a str,
         last: &'a str,
-        phonenumber: &'a str,
+        phone_number: &'a str,
     ) -> NewEmployee<'a> {
-        NewEmployee { first, last, phonenumber }
+        NewEmployee { first, last, phone_number }
     }
 }

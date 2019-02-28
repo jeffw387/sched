@@ -3,6 +3,6 @@ table! {
         id -> Int4,
         first -> Varchar,
         last -> Varchar,
-        phonenumber -> Nullable<Varchar>,
+        phone_number -> Nullable<Varchar>,
     }
 }
