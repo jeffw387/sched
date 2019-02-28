@@ -1,0 +1,10 @@
+[package]
+name = "sched"
+version = "0.1.0"
+authors = ["Jeff Wright <jeffw387@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+chrono = "0.4"
+diesel = { version = "1.0.0", features = ["postgres", "chrono"]}
+dotenv = "0.9.0"
