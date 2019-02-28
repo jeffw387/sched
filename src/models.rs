@@ -33,14 +33,14 @@ use super::schema::employees;
 pub struct NewEmployee<'a> {
     pub first: &'a str,
     pub last: &'a str,
-    pub phone_number: &'a str,
+    pub phone_number: Option<&'a str>,
 }
 
 impl<'a> NewEmployee<'a> {
     pub fn new(
         first: &'a str,
         last: &'a str,
-        phone_number: &'a str,
+        phone_number: Option<&'a str>,
     ) -> NewEmployee<'a> {
         NewEmployee { first, last, phone_number }
     }

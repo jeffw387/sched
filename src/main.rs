@@ -33,7 +33,7 @@ fn main() {
         NewEmployee::new(
             "Jeff",
             "Foxworthy",
-            "222-123-4567",
+            Some("222-123-4567"),
         ),
     );
 
