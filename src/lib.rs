@@ -12,7 +12,10 @@ use diesel::associations::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
-use std::env;
+use std::{
+    env,
+    result,
+};
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
