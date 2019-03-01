@@ -54,6 +54,9 @@ pub enum EmployeeError {
     UnknownError,
 }
 
+pub type EmployeeResult =
+    result::Result<Employee, EmployeeError>;
+
 pub fn add_employee<'a>(
     conn: &PgConnection,
     new_employee: NewEmployee<'a>,
