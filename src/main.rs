@@ -35,11 +35,16 @@ fn main() {
         ),
     );
 
-    let mes = employees
-        .filter(first.eq("Jeff"))
-        .load::<Employee>(&connection)
-        .expect("Error loading me");
-    for me in mes {
-        println!("Me = {} {}", me.first, me.last);
+    let employees = sched::get_employees(&connection);
+    match employees {
+        Ok(employees) => {
+            for employee in employees {
+                println!(
+                    "Employee: {} {}",
+                    employee.first, employee.last
+                );
+            }
+        }
+        Err(e) => println!("Error: {:?}", e),
     }
 }
