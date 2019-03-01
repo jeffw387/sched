@@ -106,4 +106,9 @@ pub fn get_employee(
     }
 }
 
+pub fn get_employees(
+    conn: &PgConnection,
+) -> QueryResult<Vec<Employee>> {
+    use schema::employees::dsl::*;
+    employees.load::<Employee>(conn)
 }
