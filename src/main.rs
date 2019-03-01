@@ -2,16 +2,13 @@ use chrono::{
     self,
     NaiveDate,
 };
-// use chrono::prelude::*;
+
 use sched;
 use sched::models::{
-    Employee,
     NewEmployee,
     Shift,
 };
 
-extern crate diesel;
-use self::diesel::prelude::*;
 
 fn main() {
     let s1_start =
