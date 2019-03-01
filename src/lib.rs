@@ -15,6 +15,7 @@ use dotenv::dotenv;
 use std::{
     env,
     result,
+    fmt::{Display, Formatter, Error}
 };
 
 pub fn establish_connection() -> PgConnection {
