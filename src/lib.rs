@@ -60,11 +60,22 @@ pub type EmployeeResult =
 pub fn add_employee<'a>(
     conn: &PgConnection,
     new_employee: NewEmployee<'a>,
-) -> Employee {
+) -> EmployeeResult {
     use schema::employees::dsl::*;
+    let employee_result = get_employee(
+        conn,
+        new_employee.first,
+        new_employee.last,
+    );
+    match employee_result {
+        Err(EmployeeError::NotFound) => (),
+        _ => return employee_result,
+    }
 
     diesel::insert_into(employees::table())
         .values(&new_employee)
         .get_result(conn)
-        .expect("Error adding employee!")
+        .or(Err(EmployeeError::UnknownError))
+}
+
 }
