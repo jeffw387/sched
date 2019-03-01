@@ -29,8 +29,8 @@ fn main() {
     let _new_fox = sched::add_employee(
         &connection,
         NewEmployee::new(
-            "Jeff",
-            "Foxworthy",
+            "Bob",
+            "Jones",
             Some("222-123-4567"),
         ),
     );
