@@ -24,8 +24,6 @@ fn main() {
         s1.duration.num_hours()
     );
 
-    use sched::schema::employees::dsl::*;
-
     let connection = sched::establish_connection();
 
     let _new_fox = sched::add_employee(
