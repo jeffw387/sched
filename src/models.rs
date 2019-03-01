@@ -18,7 +18,7 @@ impl Shift {
     }
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Identifiable, Debug, Clone)]
 pub struct Employee {
     pub id: i32,
     pub first: String,
