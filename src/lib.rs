@@ -27,6 +27,33 @@ pub fn establish_connection() -> PgConnection {
         .expect(&format!("Error connecting to {}", db_url))
 }
 
+pub struct DuplicateExists;
+impl Display for DuplicateExists {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "An employee with that name already exists")
+    }
+}
+
+pub struct UnknownError;
+impl Display for UnknownError {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "An unknown error occurred while adding an employee")
+    }
+}
+
+pub struct NotFound;
+impl Display for NotFound {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "An employee with that name is not found")
+    }
+}
+
+pub enum EmployeeError {
+    DuplicateExists,
+    NotFound,
+    UnknownError,
+}
+
 pub fn add_employee<'a>(
     conn: &PgConnection,
     new_employee: NewEmployee<'a>,
