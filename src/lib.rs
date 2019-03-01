@@ -78,4 +78,32 @@ pub fn add_employee<'a>(
         .or(Err(EmployeeError::UnknownError))
 }
 
+pub fn get_employee(
+    conn: &PgConnection,
+    first_name: &str,
+    last_name: &str,
+) -> EmployeeResult {
+    use schema::employees::dsl::*;
+    match employees
+        .filter(first.eq(first_name))
+        .filter(last.eq(last_name))
+        .load::<Employee>(conn)
+    {
+        Ok(existing) => {
+            match existing.len().cmp(&1) {
+                std::cmp::Ordering::Equal => {
+                    Ok(existing[0].clone())
+                }
+                std::cmp::Ordering::Greater => {
+                    Err(EmployeeError::DuplicateExists)
+                }
+                std::cmp::Ordering::Less => {
+                    Err(EmployeeError::NotFound)
+                }
+            }
+        }
+        _ => Err(EmployeeError::UnknownError),
+    }
+}
+
 }
