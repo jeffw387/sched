@@ -78,6 +78,11 @@ pub fn add_employee<'a>(
         .get_result(conn)
         .or(Err(EmployeeError::UnknownError))
 }
+use diesel::dsl::{
+    And,
+    Eq,
+    Filter,
+};
 
 fn filter_by_name(
     name: models::Name
