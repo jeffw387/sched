@@ -28,26 +28,27 @@ pub fn establish_connection() -> PgConnection {
 }
 
 pub struct DuplicateExists;
-impl Display for DuplicateExists {
+impl Debug for DuplicateExists {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "An employee with that name already exists")
     }
 }
 
 pub struct UnknownError;
-impl Display for UnknownError {
+impl Debug for UnknownError {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "An unknown error occurred while adding an employee")
     }
 }
 
 pub struct NotFound;
-impl Display for NotFound {
+impl Debug for NotFound {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "An employee with that name is not found")
     }
 }
 
+#[derive(Debug)]
 pub enum EmployeeError {
     DuplicateExists,
     NotFound,
