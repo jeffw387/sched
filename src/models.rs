@@ -3,6 +3,8 @@ use chrono::{
     Duration,
     NaiveDateTime,
 };
+use diesel::deserialize::Queryable;
+use crate::schema::employees;
 
 pub struct Shift {
     pub start: NaiveDateTime,
