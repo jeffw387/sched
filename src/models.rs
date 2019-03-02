@@ -1,10 +1,10 @@
+use crate::schema::employees;
 use chrono::{
     self,
     Duration,
     NaiveDateTime,
 };
 use diesel::deserialize::Queryable;
-use crate::schema::employees;
 
 pub struct Shift {
     pub start: NaiveDateTime,
@@ -24,7 +24,7 @@ impl Shift {
 #[table_name = "employees"]
 pub struct Name {
     pub first: String,
-    pub last: String
+    pub last: String,
 }
 
 #[derive(Identifiable, Debug, Clone)]
@@ -41,11 +41,8 @@ impl Queryable<employees::SqlType, DB> for Employee {
     fn build(row: Self::Row) -> Self {
         Employee {
             id: row.0,
-            name: Name {
-                first: row.1,
-                last: row.2
-            },
-            phone_number: row.3
+            name: Name { first: row.1, last: row.2 },
+            phone_number: row.3,
         }
     }
 }

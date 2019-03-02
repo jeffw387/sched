@@ -4,9 +4,7 @@ use chrono::{
 };
 
 use sched;
-use sched::models::{
-    Shift,
-};
+use sched::models::Shift;
 
 fn main() {
     let s1_start =

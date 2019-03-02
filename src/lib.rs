@@ -73,10 +73,8 @@ pub fn add_employee(
     new_employee: NewEmployee,
 ) -> EmployeeResult {
     use schema::employees::dsl::*;
-    let employee_result = get_employee(
-        conn,
-        new_employee.name.clone()
-    );
+    let employee_result =
+        get_employee(conn, new_employee.name.clone());
     match employee_result {
         Err(EmployeeError::NotFound) => (),
         _ => return employee_result,
@@ -94,7 +92,7 @@ use diesel::dsl::{
 };
 
 fn filter_by_name(
-    name: models::Name
+    name: models::Name,
 ) -> Filter<
     schema::employees::table,
     And<
@@ -110,11 +108,9 @@ fn filter_by_name(
 
 pub fn get_employee(
     conn: &PgConnection,
-    name: models::Name
+    name: models::Name,
 ) -> EmployeeResult {
-    match filter_by_name(name)
-        .load::<Employee>(conn)
-    {
+    match filter_by_name(name).load::<Employee>(conn) {
         Ok(existing) => {
             match existing.len().cmp(&1) {
                 std::cmp::Ordering::Equal => {
@@ -143,8 +139,7 @@ pub fn remove_employee(
     conn: &PgConnection,
     name: models::Name,
 ) -> QueryResult<usize> {
-    diesel::delete(filter_by_name(name))
-        .execute(conn)
+    diesel::delete(filter_by_name(name)).execute(conn)
 }
 
 #[cfg(test)]
@@ -154,33 +149,21 @@ mod tests {
     fn add_get_remove() {
         let conn = establish_connection();
         let name = models::Name {
-            first: "Frank".to_string(), 
-            last: "Wright".to_string()
+            first: "Frank".to_string(),
+            last: "Wright".to_string(),
         };
-        let new_employee =
-            NewEmployee::new(name, None);
+        let new_employee = NewEmployee::new(name, None);
         let added_employee =
             add_employee(&conn, new_employee.clone())
                 .unwrap();
+        assert_eq!(added_employee.name, new_employee.name);
+        let found_employee =
+            get_employee(&conn, new_employee.name.clone())
+                .unwrap();
+        assert_eq!(found_employee.name, new_employee.name);
         assert_eq!(
-            added_employee.name,
-            new_employee.name
-        );
-        let found_employee = get_employee(
-            &conn,
-            new_employee.name.clone(),
-        )
-        .unwrap();
-        assert_eq!(
-            found_employee.name,
-            new_employee.name
-        );
-        assert_eq!(
-            remove_employee(
-                &conn,
-                new_employee.name,
-            )
-            .unwrap(),
+            remove_employee(&conn, new_employee.name,)
+                .unwrap(),
             1
         );
     }
