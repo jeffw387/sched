@@ -34,8 +34,7 @@ pub struct Employee {
     pub phone_number: Option<String>,
 }
 
-type DB = diesel::pg::Pg;
-impl Queryable<employees::SqlType, DB> for Employee {
+impl Queryable<employees::SqlType, diesel::pg::Pg> for Employee {
     type Row = (i32, String, String, Option<String>);
 
     fn build(row: Self::Row) -> Self {
