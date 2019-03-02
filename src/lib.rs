@@ -79,15 +79,27 @@ pub fn add_employee<'a>(
         .or(Err(EmployeeError::UnknownError))
 }
 
+fn filter_by_name(
+    name: models::Name
+) -> Filter<
+    schema::employees::table,
+    And<
+        Eq<schema::employees::first, String>,
+        Eq<schema::employees::last, String>,
+    >,
+> {
+    use schema::employees::dsl::*;
+    employees
+        .filter(first.eq(name.first))
+        .filter(last.eq(name.last))
+}
+
 pub fn get_employee(
     conn: &PgConnection,
     first_name: &str,
     last_name: &str,
 ) -> EmployeeResult {
-    use schema::employees::dsl::*;
-    match employees
-        .filter(first.eq(first_name))
-        .filter(last.eq(last_name))
+    match filter_by_name(name)
         .load::<Employee>(conn)
     {
         Ok(existing) => {
