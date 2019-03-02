@@ -14,8 +14,12 @@ use diesel::prelude::*;
 use dotenv::dotenv;
 use std::{
     env,
+    fmt::{
+        Debug,
+        Error,
+        Formatter,
+    },
     result,
-    fmt::{Display, Formatter, Error}
 };
 
 pub fn establish_connection() -> PgConnection {
@@ -30,14 +34,20 @@ pub fn establish_connection() -> PgConnection {
 pub struct DuplicateExists;
 impl Debug for DuplicateExists {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "An employee with that name already exists")
+        write!(
+            f,
+            "An employee with that name already exists"
+        )
     }
 }
 
 pub struct UnknownError;
 impl Debug for UnknownError {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "An unknown error occurred while adding an employee")
+        write!(
+            f,
+            "An unknown error occurred while adding an employee"
+        )
     }
 }
 
@@ -58,9 +68,9 @@ pub enum EmployeeError {
 pub type EmployeeResult =
     result::Result<Employee, EmployeeError>;
 
-pub fn add_employee<'a>(
+pub fn add_employee(
     conn: &PgConnection,
-    new_employee: NewEmployee<'a>,
+    new_employee: NewEmployee,
 ) -> EmployeeResult {
     use schema::employees::dsl::*;
     let employee_result = get_employee(
