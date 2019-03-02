@@ -113,3 +113,43 @@ pub fn get_employees(
     use schema::employees::dsl::*;
     employees.load::<Employee>(conn)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn add_get_remove() {
+        let conn = establish_connection();
+        let name = models::Name {
+            first: "Frank".to_string(), 
+            last: "Wright".to_string()
+        };
+        let new_employee =
+            NewEmployee::new(name, None);
+        let added_employee =
+            add_employee(&conn, new_employee.clone())
+                .unwrap();
+        assert_eq!(
+            added_employee.name,
+            new_employee.name
+        );
+        let found_employee = get_employee(
+            &conn,
+            new_employee.name.clone(),
+        )
+        .unwrap();
+        assert_eq!(
+            found_employee.name,
+            new_employee.name
+        );
+        assert_eq!(
+            remove_employee(
+                &conn,
+                new_employee.name,
+            )
+            .unwrap(),
+            1
+        );
+    }
+}
