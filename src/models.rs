@@ -31,9 +31,22 @@ pub struct Employee {
     pub phone_number: Option<String>,
 }
 
-use super::schema::employees;
+type DB = diesel::pg::Pg;
+impl Queryable<employees::SqlType, DB> for Employee {
+    type Row = (i32, String, String, Option<String>);
 
-#[derive(Insertable)]
+    fn build(row: Self::Row) -> Self {
+        Employee {
+            id: row.0,
+            name: Name {
+                first: row.1,
+                last: row.2
+            },
+            phone_number: row.3
+        }
+    }
+}
+
 #[table_name = "employees"]
 pub struct NewEmployee<'a> {
     pub first: &'a str,
