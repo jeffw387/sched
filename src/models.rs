@@ -18,11 +18,16 @@ impl Shift {
     }
 }
 
-#[derive(Queryable, Identifiable, Debug, Clone)]
+#[derive(Insertable, Clone, Debug, PartialEq)]
+#[table_name = "employees"]
+pub struct Name {
+    pub first: String,
+    pub last: String
+}
+
 pub struct Employee {
     pub id: i32,
-    pub first: String,
-    pub last: String,
+    pub name: Name,
     pub phone_number: Option<String>,
 }
 

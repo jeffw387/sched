@@ -65,8 +65,7 @@ pub fn add_employee<'a>(
     use schema::employees::dsl::*;
     let employee_result = get_employee(
         conn,
-        new_employee.first,
-        new_employee.last,
+        new_employee.name.clone()
     );
     match employee_result {
         Err(EmployeeError::NotFound) => (),
@@ -101,8 +100,7 @@ fn filter_by_name(
 
 pub fn get_employee(
     conn: &PgConnection,
-    first_name: &str,
-    last_name: &str,
+    name: models::Name
 ) -> EmployeeResult {
     match filter_by_name(name)
         .load::<Employee>(conn)
