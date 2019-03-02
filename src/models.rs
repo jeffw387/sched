@@ -25,6 +25,7 @@ pub struct Name {
     pub last: String
 }
 
+#[derive(Identifiable, Debug, Clone)]
 pub struct Employee {
     pub id: i32,
     pub name: Name,
