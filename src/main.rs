@@ -5,10 +5,8 @@ use chrono::{
 
 use sched;
 use sched::models::{
-    NewEmployee,
     Shift,
 };
-
 
 fn main() {
     let s1_start =
@@ -20,28 +18,4 @@ fn main() {
         s1.start,
         s1.duration.num_hours()
     );
-
-    let connection = sched::establish_connection();
-
-    let _new_fox = sched::add_employee(
-        &connection,
-        NewEmployee::new(
-            "Bob",
-            "Jones",
-            Some("222-123-4567"),
-        ),
-    );
-
-    let employees = sched::get_employees(&connection);
-    match employees {
-        Ok(employees) => {
-            for employee in employees {
-                println!(
-                    "Employee: {} {}",
-                    employee.first, employee.last
-                );
-            }
-        }
-        Err(e) => println!("Error: {:?}", e),
-    }
 }
