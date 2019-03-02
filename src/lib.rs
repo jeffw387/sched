@@ -114,6 +114,13 @@ pub fn get_employees(
     employees.load::<Employee>(conn)
 }
 
+pub fn remove_employee(
+    conn: &PgConnection,
+    name: models::Name,
+) -> QueryResult<usize> {
+    diesel::delete(filter_by_name(name))
+        .execute(conn)
+}
 
 #[cfg(test)]
 mod tests {
