@@ -48,19 +48,19 @@ impl Queryable<employees::SqlType, DB> for Employee {
     }
 }
 
+#[derive(Insertable, Clone, Debug)]
 #[table_name = "employees"]
-pub struct NewEmployee<'a> {
-    pub first: &'a str,
-    pub last: &'a str,
-    pub phone_number: Option<&'a str>,
+pub struct NewEmployee {
+    #[diesel(embed)]
+    pub name: Name,
+    pub phone_number: Option<String>,
 }
 
-impl<'a> NewEmployee<'a> {
+impl NewEmployee {
     pub fn new(
-        first: &'a str,
-        last: &'a str,
-        phone_number: Option<&'a str>,
-    ) -> NewEmployee<'a> {
-        NewEmployee { first, last, phone_number }
+        name: Name,
+        phone_number: Option<String>,
+    ) -> NewEmployee {
+        NewEmployee { name, phone_number }
     }
 }
