@@ -1,8 +1,8 @@
 use crate::schema::{employees, shifts};
 use chrono::{
     self,
-    Duration,
-    NaiveDateTime,
+    NaiveDate,
+    NaiveTime
 };
 use diesel::deserialize::Queryable;
 
