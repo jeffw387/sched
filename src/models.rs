@@ -25,6 +25,15 @@ impl NewShift {
         }
     }
     }
+
+#[derive(Clone, Debug, Identifiable)]
+#[table_name = "shifts"]
+pub struct Shift {
+    pub id: i32,
+    pub employee_id: i32,
+    pub start_date: NaiveDate,
+    pub start_time: NaiveTime,
+    pub duration_hours: f32,
 }
 
 #[derive(Insertable, Clone, Debug, PartialEq)]
