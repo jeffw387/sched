@@ -6,7 +6,6 @@ use std::{
     },
     result,
 };
-use diesel::associations::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use crate::schema::*;
@@ -105,7 +104,7 @@ pub fn add_employee(
         _ => return employee_result,
     }
 
-    diesel::insert_into(employees::table())
+    diesel::insert_into(employees)
         .values(&new_employee)
         .get_result(conn)
         .or(Err(EmployeeError::UnknownError))
