@@ -1,4 +1,4 @@
-use crate::schema::employees;
+use crate::schema::{employees, shifts};
 use chrono::{
     self,
     Duration,
