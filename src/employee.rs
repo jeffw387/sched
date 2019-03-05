@@ -55,59 +55,55 @@ impl NewEmployee {
     }
 }
 
-pub struct DuplicateExists;
-impl Debug for DuplicateExists {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+pub enum Error {
+    DuplicateExists,
+    NotFound,
+    UnknownError,
+}
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            Error::DuplicateExists => {
         write!(
             f,
             "An employee with that name already exists"
         )
     }
+            Error::NotFound => {
+                write!(
+                    f,
+                    "An employee with that name is not found"
+                )
 }
-
-pub struct UnknownError;
-impl Debug for UnknownError {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+            Error::UnknownError => {
         write!(
             f,
             "An unknown error occurred while adding an employee"
         )
     }
 }
-
-pub struct NotFound;
-impl Debug for NotFound {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "An employee with that name is not found")
     }
 }
 
-#[derive(Debug)]
-pub enum EmployeeError {
-    DuplicateExists,
-    NotFound,
-    UnknownError,
-}
-
-pub type EmployeeResult =
-    result::Result<Employee, EmployeeError>;
+pub type Result = result::Result<Employee, Error>;
 
 pub fn add_employee(
     conn: &PgConnection,
     new_employee: NewEmployee,
-) -> EmployeeResult {
+) -> Result {
     use crate::schema::employees::dsl::*;
     let employee_result =
         get_employee(conn, new_employee.name.clone());
     match employee_result {
-        Err(EmployeeError::NotFound) => (),
+        Err(Error::NotFound) => (),
         _ => return employee_result,
     }
 
     diesel::insert_into(employees)
         .values(&new_employee)
         .get_result(conn)
-        .or(Err(EmployeeError::UnknownError))
+        .or(Err(Error::UnknownError))
 }
 use diesel::dsl::{
     And,
@@ -133,7 +129,7 @@ fn filter_by_name(
 pub fn get_employee(
     conn: &PgConnection,
     name: Name,
-) -> EmployeeResult {
+) -> Result {
     match filter_by_name(name).load::<Employee>(conn) {
         Ok(existing) => {
             match existing.len().cmp(&1) {
@@ -141,14 +137,15 @@ pub fn get_employee(
                     Ok(existing[0].clone())
                 }
                 std::cmp::Ordering::Greater => {
-                    Err(EmployeeError::DuplicateExists)
+                    Err(Error::DuplicateExists)
                 }
                 std::cmp::Ordering::Less => {
-                    Err(EmployeeError::NotFound)
+                    Err(Error::NotFound)
                 }
+                _ => Err(Error::UnknownError),
             }
         }
-        _ => Err(EmployeeError::UnknownError),
+        _ => Err(Error::UnknownError),
     }
 }
 
