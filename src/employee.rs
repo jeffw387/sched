@@ -1,14 +1,13 @@
+use crate::schema::*;
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use std::{
     fmt::{
         Debug,
-        Error,
         Formatter,
     },
     result,
 };
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
-use crate::schema::*;
 
 #[derive(Insertable, Clone, Debug, PartialEq)]
 #[table_name = "employees"]
