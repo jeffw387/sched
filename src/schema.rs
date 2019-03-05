@@ -11,10 +11,14 @@ table! {
     shifts (id) {
         id -> Int4,
         employee_id -> Int4,
-        start_date -> Date,
-        start_time -> Time,
+        start -> Timestamp,
         duration_hours -> Float4,
     }
 }
 
-allow_tables_to_appear_in_same_query!(employees, shifts,);
+joinable!(shifts -> employees (employee_id));
+
+allow_tables_to_appear_in_same_query!(
+    employees,
+    shifts,
+);

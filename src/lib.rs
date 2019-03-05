@@ -1,14 +1,14 @@
-pub mod schema;
 pub mod employee;
+pub mod schema;
 pub mod shift;
 
 #[macro_use]
 extern crate diesel;
 
-use std::env;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
+use std::env;
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();

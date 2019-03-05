@@ -1,12 +1,11 @@
 use chrono::{
     self,
     NaiveDate,
-    NaiveTime
+    NaiveTime,
 };
 
 fn main() {
-    let s1_start_date =
-        NaiveDate::from_ymd(2019, 3, 23);
+    let s1_start_date = NaiveDate::from_ymd(2019, 3, 23);
     let s1_start_time = NaiveTime::from_hms(7, 0, 0);
     let s1_dur = chrono::Duration::hours(12);
     println!(

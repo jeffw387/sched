@@ -64,24 +64,24 @@ impl Debug for Error {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             Error::DuplicateExists => {
-        write!(
-            f,
-            "An employee with that name already exists"
-        )
-    }
+                write!(
+                    f,
+                    "An employee with that name already exists"
+                )
+            }
             Error::NotFound => {
                 write!(
                     f,
                     "An employee with that name is not found"
                 )
-}
+            }
             Error::UnknownError => {
-        write!(
-            f,
-            "An unknown error occurred while adding an employee"
-        )
-    }
-}
+                write!(
+                    f,
+                    "An unknown error occurred while adding an employee"
+                )
+            }
+        }
     }
 }
 
