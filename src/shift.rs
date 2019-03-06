@@ -119,6 +119,16 @@ impl Employee {
         }
     }
 
+    /// Get all shifts for the given employee, or return
+    /// an error on failure
+    pub fn get_shifts(&self, conn: &PgConnection) -> std::result::Result<Vec<Shift>, Error> {
+        match Shift::belonging_to(self)
+            .load::<Shift>(conn) {
+                Ok(shifts) => return Ok(shifts),
+                Err(err) => return Err(Error::Dsl(err))
+            }
+    }
+
     /// Remove the shift starting at the given time
     /// if it exists
     pub fn remove_shift(
