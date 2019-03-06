@@ -1,6 +1,7 @@
 pub mod employee;
 pub mod schema;
 pub mod shift;
+pub mod user;
 
 #[macro_use]
 extern crate diesel;

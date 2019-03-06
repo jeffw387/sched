@@ -9,6 +9,7 @@ use std::{
     result,
 };
 
+/// Employee's first and last names as Strings
 #[derive(Insertable, Clone, Debug, PartialEq)]
 #[table_name = "employees"]
 pub struct Name {
@@ -16,6 +17,7 @@ pub struct Name {
     pub last: String,
 }
 
+/// A structure mapping to an employee in the database
 #[derive(Identifiable, Debug, Clone)]
 pub struct Employee {
     pub id: i32,
@@ -23,6 +25,8 @@ pub struct Employee {
     pub phone_number: Option<String>,
 }
 
+/// Implements queryable manually to translate
+/// name into two strings in the database
 impl Queryable<employees::SqlType, diesel::pg::Pg>
     for Employee
 {
@@ -39,14 +43,14 @@ impl Queryable<employees::SqlType, diesel::pg::Pg>
 
 #[derive(Insertable, Clone, Debug)]
 #[table_name = "employees"]
-pub struct NewEmployee {
+struct NewEmployee {
     #[diesel(embed)]
-    pub name: Name,
-    pub phone_number: Option<String>,
+    name: Name,
+    phone_number: Option<String>,
 }
 
 impl NewEmployee {
-    pub fn new(
+    fn new(
         name: Name,
         phone_number: Option<String>,
     ) -> NewEmployee {
@@ -54,6 +58,7 @@ impl NewEmployee {
     }
 }
 
+/// Employee error codes
 pub enum Error {
     DuplicateExists,
     NotFound,
@@ -85,21 +90,24 @@ impl Debug for Error {
     }
 }
 
+/// Either an employee or an error code
 pub type Result = result::Result<Employee, Error>;
 
+/// Add a new employee to the database.
+/// If an employee already exists with that name, return it.
 pub fn add_employee(
     conn: &PgConnection,
-    new_employee: NewEmployee,
+    name: Name,
+    phone_number: Option<String>,
 ) -> Result {
-    use crate::schema::employees::dsl::*;
-    let employee_result =
-        get_employee(conn, new_employee.name.clone());
+    let employee_result = get_employee(conn, name.clone());
     match employee_result {
         Err(Error::NotFound) => (),
         _ => return employee_result,
     }
 
-    diesel::insert_into(employees)
+    let new_employee = NewEmployee::new(name, phone_number);
+    diesel::insert_into(employees::table)
         .values(&new_employee)
         .get_result(conn)
         .or(Err(Error::UnknownError))
@@ -125,6 +133,8 @@ fn filter_by_name(
         .filter(last.eq(name.last))
 }
 
+/// Look up an employee by name. Returns errors for not found
+/// or if duplicates exist in the database.
 pub fn get_employee(
     conn: &PgConnection,
     name: Name,
@@ -141,13 +151,13 @@ pub fn get_employee(
                 std::cmp::Ordering::Less => {
                     Err(Error::NotFound)
                 }
-                _ => Err(Error::UnknownError),
             }
         }
         _ => Err(Error::UnknownError),
     }
 }
 
+/// Get all the employees in the database as a vector
 pub fn get_employees(
     conn: &PgConnection,
 ) -> QueryResult<Vec<Employee>> {
@@ -155,11 +165,10 @@ pub fn get_employees(
     employees.load::<Employee>(conn)
 }
 
-pub fn remove_employee(
-    conn: &PgConnection,
-    name: Name,
-) -> QueryResult<usize> {
-    diesel::delete(filter_by_name(name)).execute(conn)
+/// Remove an employee with the given name, if they exist
+pub fn remove_employee(conn: &PgConnection, name: Name) {
+    let _ =
+        diesel::delete(filter_by_name(name)).execute(conn);
 }
 
 #[cfg(test)]
@@ -170,21 +179,15 @@ mod tests {
         let conn = crate::establish_connection();
         let name = Name {
             first: "Frank".to_string(),
-            last: "Wright".to_string(),
+            last: "Wrong".to_string(),
         };
-        let new_employee = NewEmployee::new(name, None);
         let added_employee =
-            add_employee(&conn, new_employee.clone())
+            add_employee(&conn, name.clone(), None)
                 .unwrap();
-        assert_eq!(added_employee.name, new_employee.name);
+        assert_eq!(added_employee.name, name);
         let found_employee =
-            get_employee(&conn, new_employee.name.clone())
-                .unwrap();
-        assert_eq!(found_employee.name, new_employee.name);
-        assert_eq!(
-            remove_employee(&conn, new_employee.name,)
-                .unwrap(),
-            1
-        );
+            get_employee(&conn, name.clone()).unwrap();
+        assert_eq!(found_employee.name, name);
+        remove_employee(&conn, name);
     }
 }
