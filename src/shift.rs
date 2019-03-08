@@ -127,9 +127,9 @@ impl Employee {
     ) -> std::result::Result<Vec<Shift>, Error> {
         match Shift::belonging_to(self).load::<Shift>(conn)
         {
-                Ok(shifts) => return Ok(shifts),
+            Ok(shifts) => return Ok(shifts),
             Err(err) => return Err(Error::Dsl(err)),
-            }
+        }
     }
 
     /// Remove the shift starting at the given time
