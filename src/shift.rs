@@ -121,11 +121,14 @@ impl Employee {
 
     /// Get all shifts for the given employee, or return
     /// an error on failure
-    pub fn get_shifts(&self, conn: &PgConnection) -> std::result::Result<Vec<Shift>, Error> {
-        match Shift::belonging_to(self)
-            .load::<Shift>(conn) {
+    pub fn get_shifts(
+        &self,
+        conn: &PgConnection,
+    ) -> std::result::Result<Vec<Shift>, Error> {
+        match Shift::belonging_to(self).load::<Shift>(conn)
+        {
                 Ok(shifts) => return Ok(shifts),
-                Err(err) => return Err(Error::Dsl(err))
+            Err(err) => return Err(Error::Dsl(err)),
             }
     }
 
@@ -200,8 +203,7 @@ mod tests {
         assert_eq!(start, updated_shift.start);
         assert_eq!(8f32, updated_shift.duration_hours);
 
-        test_employee
-            .remove_shift(&conn, start);
+        test_employee.remove_shift(&conn, start);
 
         employee::remove_employee(
             &conn,
