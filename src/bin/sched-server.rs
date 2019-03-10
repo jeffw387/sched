@@ -1,7 +1,5 @@
 use actix::prelude::*;
-use actix::{
-    Addr,
-};
+use actix::Addr;
 use actix_web::{
     http,
     server,
