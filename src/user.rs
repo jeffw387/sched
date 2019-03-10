@@ -82,8 +82,10 @@ pub fn get_user(
         .filter(name.eq(name_find))
         .first::<User>(conn)
     {
-        Ok(user) => return Ok(user),
-        Err(err) => return Err(Error::Dsl(err)),
+        Ok(user) => Ok(user),
+        Err(err) => Err(Error::Dsl(err)),
+    }
+}
     }
 }
 
