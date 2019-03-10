@@ -1,6 +1,8 @@
 pub mod employee;
+pub mod message;
 pub mod schema;
 pub mod shift;
+pub mod token;
 pub mod user;
 
 #[macro_use]
