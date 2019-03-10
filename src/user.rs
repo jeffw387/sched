@@ -38,11 +38,14 @@ pub fn add_user(
     conn: &PgConnection,
     user_name: String,
     password: String,
-) {
-    use self::users::dsl::*;
-    let _ = diesel::insert_into(users)
+) -> std::result::Result<User, Error> {
+    match diesel::insert_into(users::table)
         .values(NewUser::new(user_name, password))
-        .execute(conn);
+        .get_result(conn)
+    {
+        Ok(r) => Ok(r),
+        Err(e) => Err(Error::Dsl(e)),
+}
 }
 
 /// User-related error codes
