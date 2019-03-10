@@ -75,6 +75,7 @@ impl Handler<GetUsers> for DbExecutor {
         _: GetUsers,
         _: &mut Self::Context,
     ) -> UserVecResult {
+        println!("From Handler<GetUsers>");
         let conn: &PgConnection = &self.0.get().expect(
             "Error: database connection not found!",
         );
