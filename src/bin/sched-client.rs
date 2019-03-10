@@ -1,7 +1,5 @@
-struct Model {
-
-}
+struct Model {}
 
 fn main() {
-  // yew::start_app::<
+    // yew::start_app::<
 }

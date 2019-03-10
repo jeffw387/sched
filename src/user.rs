@@ -45,7 +45,7 @@ pub fn add_user(
     {
         Ok(r) => Ok(r),
         Err(e) => Err(Error::Dsl(e)),
-}
+    }
 }
 
 /// User-related error codes

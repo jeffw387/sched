@@ -79,9 +79,9 @@ fn main() {
                     .with_async(print_users)
             })
     })
-            .bind("localhost:8080")
-            .unwrap()
-            .run();
+    .bind("localhost:8080")
+    .unwrap()
+    .run();
 
     let _ = sys.run();
 }
