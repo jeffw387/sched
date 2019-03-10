@@ -3,11 +3,7 @@ use super::user::{
     User,
 };
 use actix::prelude::*;
-use actix_web::{
-    http::ContentEncoding,
-    HttpResponse,
-    Responder,
-};
+
 use diesel::prelude::*;
 use diesel::r2d2::{
     ConnectionManager,
