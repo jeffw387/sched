@@ -7,7 +7,7 @@ use std::fmt::{
 };
 
 /// Represents a user in the database
-#[derive(Clone, Identifiable, Queryable)]
+#[derive(Clone, Identifiable, Queryable, Debug)]
 pub struct User {
     pub id: i32,
     pub name: String,
