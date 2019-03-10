@@ -86,6 +86,15 @@ pub fn get_user(
         Err(err) => Err(Error::Dsl(err)),
     }
 }
+
+/// Get all users in database
+pub fn get_users(
+    conn: &PgConnection,
+) -> std::result::Result<Vec<User>, Error> {
+    use self::users::dsl::*;
+    match users.load::<User>(conn) {
+        Ok(user_vec) => Ok(user_vec),
+        Err(e) => Err(Error::Dsl(e)),
     }
 }
 
