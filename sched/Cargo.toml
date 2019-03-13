@@ -1,0 +1,10 @@
+[package]
+name = "sched"
+version = "0.1.0"
+authors = ["Jeff Wright <jeffw387@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+diesel = { version = "1.0.0", features = ["r2d2", "postgres", "chrono"]}
+failure = ""
+chrono = "0.4"

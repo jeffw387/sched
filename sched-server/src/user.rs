@@ -1,26 +1,4 @@
-use crate::schema::users;
 use crypto::pbkdf2 as crypt;
-use diesel::prelude::*;
-use std::fmt::{
-    Debug,
-    Formatter,
-};
-
-/// Represents a user in the database
-#[derive(Clone, Identifiable, Queryable, Debug)]
-pub struct User {
-    pub id: i32,
-    pub name: String,
-    pub password_hash: String,
-}
-
-#[derive(Clone, Insertable)]
-#[table_name = "users"]
-struct NewUser {
-    name: String,
-    password_hash: String,
-}
-
 impl NewUser {
     fn new(name: String, password: String) -> NewUser {
         NewUser {
@@ -163,7 +141,11 @@ mod tests {
         let test_name = String::from("jeffw");
         let test_pw = String::from("password123");
         let conn = crate::establish_connection();
-        add_user(&conn, test_name.clone(), test_pw.clone());
+        let _user = add_user(
+            &conn,
+            test_name.clone(),
+            test_pw.clone(),
+        );
 
         let found_user = get_user(&conn, &test_name)
             .expect("Error finding user!");

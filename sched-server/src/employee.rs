@@ -1,30 +1,3 @@
-use crate::schema::*;
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
-use std::{
-    fmt::{
-        Debug,
-        Formatter,
-    },
-    result,
-};
-
-/// Employee's first and last names as Strings
-#[derive(Insertable, Clone, Debug, PartialEq)]
-#[table_name = "employees"]
-pub struct Name {
-    pub first: String,
-    pub last: String,
-}
-
-/// A structure mapping to an employee in the database
-#[derive(Identifiable, Debug, Clone)]
-pub struct Employee {
-    pub id: i32,
-    pub name: Name,
-    pub phone_number: Option<String>,
-}
-
 /// Implements queryable manually to translate
 /// name into two strings in the database
 impl Queryable<employees::SqlType, diesel::pg::Pg>
@@ -38,23 +11,6 @@ impl Queryable<employees::SqlType, diesel::pg::Pg>
             name: Name { first: row.1, last: row.2 },
             phone_number: row.3,
         }
-    }
-}
-
-#[derive(Insertable, Clone, Debug)]
-#[table_name = "employees"]
-struct NewEmployee {
-    #[diesel(embed)]
-    name: Name,
-    phone_number: Option<String>,
-}
-
-impl NewEmployee {
-    fn new(
-        name: Name,
-        phone_number: Option<String>,
-    ) -> NewEmployee {
-        NewEmployee { name, phone_number }
     }
 }
 

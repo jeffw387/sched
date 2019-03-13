@@ -1,0 +1,18 @@
+[package]
+name = "sched-server"
+version = "0.1.0"
+authors = ["Jeff Wright <jeffw387@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+sched = { path = "../sched"}
+rust-crypto = "^0.2"
+actix = ""
+actix-web = ""
+jsonwebtoken = ""
+serde_derive = ""
+uuid = ""
+serde = ""
+futures = "0.1.25"
+r2d2 = "0.8.3"
+dotenv = "0.9.0"

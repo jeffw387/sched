@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+</head>
+<body>
+    <section id="app"></section>
+
+    <script src='pkg/sched_client_seed.js'></script>
+    
+    <script>
+        const { render } = wasm_bindgen;
+        function run() {
+            render();
+        }
+        wasm_bindgen('pkg/sched_client_seed_bg.wasm')
+            .then(run)
+            .catch(console.error);
+    </script>
+</body>

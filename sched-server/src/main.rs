@@ -1,7 +1,6 @@
 use actix::prelude::*;
 use actix::Addr;
 use actix_web::{
-    http,
     server,
     App,
     AsyncResponder,
@@ -21,6 +20,7 @@ use std::env;
 struct AppState {
     db: Addr<DbExecutor>,
 }
+use sched::api;
 
 fn print_users(
     (_, state): (HttpRequest<AppState>, State<AppState>),
@@ -34,14 +34,14 @@ fn print_users(
             match res {
                 Ok(usrs) => {
                     let user_output = format!("{:?}", usrs);
-                    println!("{}", &user_output);
+                    println!("Ok: {}", &user_output);
                     Ok(HttpResponse::Ok()
                         .content_type("text/plain")
                         .body(user_output))
                 }
                 Err(e) => {
                     let err_output = format!("{:?}", e);
-                    println!("{}", &err_output);
+                    println!("Err: {}", &err_output);
                     Ok(HttpResponse::InternalServerError()
                         .content_type("text/plain")
                         .body(err_output))
@@ -60,6 +60,7 @@ fn main() {
             "DATABASE_URL environment variable not set!",
         )
         .1;
+    println!("database url: {}", db_url);
     let manager =
         ConnectionManager::<PgConnection>::new(db_url);
 
@@ -70,16 +71,39 @@ fn main() {
     let addr = SyncArbiter::start(3, move || {
         DbExecutor(pool.clone())
     });
-    let _ = server::HttpServer::new(move || {
+    if addr.connected() {
+        println!("Successfully connected to database.");
+    } else {
+        println!("Failed to connect to database.");
+    }
+
+    server::HttpServer::new(move || {
         App::with_state(AppState { db: addr.clone() })
-            .resource("/sched", |r| {
-                r.method(http::Method::POST)
-                    .with_async(print_users)
+            .middleware(
+                actix_web::middleware::Logger::default(),
+            )
+            .resource(api::API_INDEX, |r| {
+                r.get().f(|_r| {
+                    HttpResponse::Ok()
+                        .content_type("text/html")
+                        .body(
+                            r"<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Title</title>
+</head>
+<body><h1>Html Reply</h1></body>
+</html>",
+                        )
+                })
+            })
+            .resource(api::API_LOGIN, |r| {
+                r.post().f(|_r| HttpResponse::Ok().finish())
             })
     })
-    .bind("localhost:8080")
+    .bind("127.0.0.1:8080")
     .unwrap()
-    .run();
+    .start();
 
     let _ = sys.run();
 }

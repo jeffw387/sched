@@ -1,21 +1,7 @@
-[package]
-name = "sched"
-version = "0.1.0"
-authors = ["Jeff Wright <jeffw387@gmail.com>"]
-edition = "2018"
-
-[dependencies]
-chrono = "0.4"
-diesel = { version = "1.0.0", features = ["r2d2", "postgres", "chrono"]}
-dotenv = "0.9.0"
-rust-crypto = "^0.2"
-actix-web = ""
-yew = "0.6"
-actix = "0.7.9"
-failure = ""
-jsonwebtoken = ""
-serde_derive = ""
-uuid = ""
-serde = ""
-futures = "0.1.25"
-r2d2 = "0.8.3"
+[workspace]
+members = [
+  "sched",
+  "sched-client",
+  "sched-client-seed",
+  "sched-server"
+]
