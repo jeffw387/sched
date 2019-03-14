@@ -11,14 +11,14 @@
 <body>
     <section id="app"></section>
 
-    <script src='pkg/sched_client_seed.js'></script>
+    <script src='pkg/package.js'></script>
     
     <script>
         const { render } = wasm_bindgen;
         function run() {
             render();
         }
-        wasm_bindgen('pkg/sched_client_seed_bg.wasm')
+        wasm_bindgen('pkg/package_bg.wasm')
             .then(run)
             .catch(console.error);
     </script>
