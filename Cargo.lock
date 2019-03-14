@@ -1285,6 +1285,7 @@ name = "sched-client-seed"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sched 0.1.0",
  "seed 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "web-sys 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
