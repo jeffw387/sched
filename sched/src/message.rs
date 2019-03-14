@@ -1,5 +1,6 @@
+#[derive(Clone, Debug, Default)]
 pub struct LoginInfo {
-    pub username: String,
+    pub email: String,
     pub password: String,
 }
 
