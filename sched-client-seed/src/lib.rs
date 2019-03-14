@@ -1,5 +1,3 @@
-pub mod root;
-
 use seed::dom_types::{
     Attrs,
     Ev,
