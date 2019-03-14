@@ -9,7 +9,7 @@ use seed::{
     form,
     input,
     label,
-    log,
+    // log,
     button
 };
 
