@@ -110,7 +110,6 @@ fn update(
     msg: Message,
     model: &mut Model,
 ) -> Update<Message> {
-    log!(format!("Model: {:#?}", model));
     match &msg {
         Message::Page(new_page) => {
             model.page = new_page.clone() as ModelPages;
@@ -146,7 +145,6 @@ fn update(
             };
         }
     };
-    log!(format!("Updated Model: {:#?}", model));
     Render.into()
 }
 
