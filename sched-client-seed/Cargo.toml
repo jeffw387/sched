@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
+sched = { path = "../sched"}
 seed = "^0.3"
 wasm-bindgen = "^0.2.38"
 web-sys = "^0.3.15"
