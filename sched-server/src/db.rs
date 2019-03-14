@@ -1,5 +1,4 @@
-use crate::token;
-use crate::user::{
+use sched::user::{
     self,
     User,
 };
