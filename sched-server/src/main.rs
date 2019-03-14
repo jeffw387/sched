@@ -12,9 +12,9 @@ use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use dotenv;
 use futures::Future;
-use sched::message::{
-    DbExecutor,
-    GetUsers,
+use sched_server::message::{
+    // DbExecutor,
+    // GetUsers,
 };
 use std::env;
 struct AppState {
