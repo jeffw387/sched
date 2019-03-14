@@ -13,17 +13,13 @@ use seed::{
     button
 };
 
-#[derive(Clone, Debug, Default)]
-struct LoginInfo {
-    email: String,
-    email_state: InputState,
-    password: String,
-    password_state: InputState,
-}
+use sched::message::LoginInfo;
 
 #[derive(Clone, Debug)]
 struct LoginPage {
     login_info: LoginInfo,
+    email_state: InputState,
+    password_state: InputState,
     button_state: InputState
 }
 
@@ -31,6 +27,8 @@ impl Default for LoginPage {
     fn default() -> Self {
         LoginPage {
             login_info: LoginInfo::default(),
+            email_state: InputState::Normal,
+            password_state: InputState::Normal,
             button_state: InputState::Disabled
         }
     }
@@ -98,8 +96,8 @@ fn validate_email(email: &str) -> InputState {
 }
 
 fn update_login_button(page: &mut LoginPage) {
-    if page.login_info.email_state == InputState::Success &&
-        page.login_info.password_state == InputState::Success {
+    if page.email_state == InputState::Success &&
+        page.password_state == InputState::Success {
             page.button_state = InputState::Success;
         }
 }
@@ -115,8 +113,8 @@ fn update(
         Message::Login(_info) => {
             if let ModelPages::Login(page) = &mut model.page {
                 page.button_state = InputState::Disabled;
-                page.login_info.email_state = InputState::Disabled;
-                page.login_info.password_state = InputState::Disabled;
+                page.email_state = InputState::Disabled;
+                page.password_state = InputState::Disabled;
             };
             ()
             },
@@ -124,7 +122,7 @@ fn update(
             if let ModelPages::Login(page) = &mut model.page
             {
                 page.login_info.email = email.clone();
-                page.login_info.email_state = validate_email(&email);
+                page.email_state = validate_email(&email);
                 update_login_button(page);       
             };
         }
@@ -132,7 +130,7 @@ fn update(
             if let ModelPages::Login(page) = &mut model.page
             {
                 page.login_info.password = password.clone();
-                page.login_info.password_state =
+                page.password_state =
                     match password.len().cmp(&0) {
                         std::cmp::Ordering::Greater => {
                             InputState::Success
@@ -220,7 +218,6 @@ fn view(model: &Model) -> El<Message> {
                         }
                         .merge(&input_attrs(
                             login_page
-                            .login_info
                             .email_state
                         )),
                         input_ev(
@@ -242,7 +239,6 @@ fn view(model: &Model) -> El<Message> {
                     }
                     .merge(&input_attrs(
                         login_page
-                        .login_info
                         .password_state
                     )),
                     input_ev(
