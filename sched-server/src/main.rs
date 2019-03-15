@@ -37,7 +37,7 @@ const SESSION_TEST_VALUE: &str = "";
 
 fn make_session() -> http::Cookie<'static> {
                                     http::Cookie::build(
-                                        "session", "",
+                                        SESSION_KEY, SESSION_TEST_VALUE,
                                     )
                                     .max_age(
                                         Duration::days(1),
