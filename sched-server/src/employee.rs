@@ -1,6 +1,5 @@
 use super::schema::employees;
 use diesel::prelude::*;
-use sched::employee::Name as NameCommon;
 use std::fmt::{
     Debug,
     Formatter,
