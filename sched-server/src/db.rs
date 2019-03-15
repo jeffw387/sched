@@ -1,21 +1,18 @@
 use super::user as dbuser;
 use actix::prelude::*;
 use sched::message::LoginInfo;
-use sched::user::{
-    self,
-    User,
-};
-
+use crate::employee::{self, Employee};
+use crate::shift::{self, Shift};
 use diesel::prelude::*;
 use diesel::r2d2::{
     ConnectionManager,
     Pool,
 };
-use diesel::result::ConnectionError;
 use std::fmt::{
     Debug,
     Formatter,
 };
+
 pub struct LoginRequest(pub LoginInfo);
 
 pub type LoginResult = std::result::Result<String, Error>;
