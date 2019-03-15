@@ -103,6 +103,21 @@ fn validate_session(cookie: Option<cookie::Cookie>, user_token: &str) -> bool {
     }
 }
 
+fn get_employees((req, state): (HttpRequest<AppState>, State<AppState>),
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
+    if validate_session(req.cookie(SESSION_KEY), SESSION_TEST_VALUE) {
+        state.db.send(GetEmployees{})
+            .from_err()
+            .and_then(|res| {
+                match res {
+                    Ok(emps) => Ok(HttpResponse::Ok().json(emps)),
+                    Err(e) => Ok(HttpResponse::from_error(e.into()))
+            }}).responder()
+    } else {
+        Box::new(ImmediateResponse{ f: || HttpResponse::Unauthorized().finish()})
+    }
+}
+
 fn main() {
     std::env::set_var("RUST_LOG", "actix_web=info");
 
