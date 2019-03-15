@@ -13,6 +13,7 @@ use actix_web::{
 };
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
+use dotenv;
 use futures::Future;
 use sched::message::LoginInfo;
 use sched_server::db::{
@@ -22,11 +23,10 @@ use sched_server::db::{
     GetEmployees,
     GetShifts
 };
+use std::env;
 use chrono::Duration;
 use cookie::SameSite;
 use sched::api;
-use std::env;
-use dotenv;
 
 struct AppState {
     db: Addr<DbExecutor>,
@@ -142,12 +142,11 @@ fn main() {
 
     let sys = actix::System::new("database-system");
     dotenv::dotenv().ok();
-    let db_url = env::vars()
+    let (_db_url_key, db_url) = env::vars()
         .find(|(key, _)| key == "DATABASE_URL")
         .expect(
             "DATABASE_URL environment variable not set!",
-        )
-        .1;
+        );
     println!("database url: {}", db_url);
     let manager =
         ConnectionManager::<PgConnection>::new(db_url);
