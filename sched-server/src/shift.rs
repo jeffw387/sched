@@ -13,6 +13,7 @@ use std::fmt::{
     Debug,
     Formatter,
 };
+use serde::{Serialize, Deserialize};
 
 #[derive(
     Clone,
@@ -21,6 +22,8 @@ use std::fmt::{
     Identifiable,
     AsChangeset,
     Associations,
+    Serialize,
+    Deserialize
 )]
 #[belongs_to(Employee)]
 pub struct Shift {
