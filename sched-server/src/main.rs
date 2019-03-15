@@ -35,6 +35,10 @@ struct AppState {
 const SESSION_KEY: &str = "session";
 const SESSION_TEST_VALUE: &str = "";
 
+const ENV_DB_URL: &str = "DATABASE_URL";
+const ENV_INDEX_BASE: &str = "INDEX_BASE";
+const ENV_SERVER_PORT: &str = "SERVER_PORT";
+
 fn make_session() -> http::Cookie<'static> {
     http::Cookie::build(SESSION_KEY, SESSION_TEST_VALUE)
         .max_age(Duration::days(1))
@@ -179,19 +183,19 @@ fn get_shifts(
     }
 }
 
-fn main() {
-    std::env::set_var("RUST_LOG", "actix_web=info");
+fn get_env(key: &str) -> String {
+    env::vars()
+        .find(|(skey, _)| key == skey)
+        .expect(&format!("Can't find environment variable {}!", key)).1
+}
 
+fn main() {
     let sys = actix::System::new("database-system");
     dotenv::dotenv().ok();
-    let (_db_url_key, db_url) = env::vars()
-        .find(|(key, _)| key == "DATABASE_URL")
-        .expect(
-            "DATABASE_URL environment variable not set!",
-        );
-    let (_index_key, index_url) = env::vars()
-        .find(|(key, _)| key == "INDEX_BASE")
-        .expect("INDEX_BASE environment variable not set!");
+    let db_url = get_env(ENV_DB_URL);
+    let index_url = get_env(ENV_INDEX_BASE);
+    let port = get_env(ENV_SERVER_PORT);
+
     println!("database url: {}", db_url);
     let manager =
         ConnectionManager::<PgConnection>::new(db_url);
@@ -230,7 +234,7 @@ fn main() {
                 r.post().with_async(get_shifts)
             })
     })
-    .bind("127.0.0.1:8080")
+    .bind(format!("localhost:{}", port))
     .unwrap()
     .start();
 
