@@ -81,8 +81,11 @@ impl Handler<GetShifts> for DbExecutor {
 
 
 pub enum Error {
-    Dsl(ConnectionError),
+    Dsl(diesel::result::Error),
+    R2(r2d2::Error),
     Usr(dbuser::Error),
+    Emp(employee::Error),
+    Shft(shift::Error),
     InvalidPassword,
 }
 
