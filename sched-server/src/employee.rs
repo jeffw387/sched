@@ -14,12 +14,30 @@ pub struct Name {
     pub last: String,
 }
 
+impl From<Name> for sched::employee::Name {
+    fn from(name: Name) -> Self {
+        Self {
+            first: name.first,
+            last: name.last
+        }
+    }
+}
 
 #[derive(Debug, Clone, Identifiable, Serialize, Deserialize)]
 pub struct Employee {
     pub id: i32,
     pub name: Name,
     pub phone_number: Option<String>,
+}
+
+impl From<Employee> for sched::employee::Employee {
+    fn from(emp: Employee) -> Self {
+        Self {
+            id: emp.id,
+            name: emp.name.into(),
+            phone_number: emp.phone_number
+        }
+    }
 }
 
 #[derive(Clone, Debug, Insertable)]
