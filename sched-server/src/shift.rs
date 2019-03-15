@@ -1,6 +1,5 @@
 use super::employee::Employee;
 use super::schema::{
-    employees,
     shifts,
 };
 use chrono::{
