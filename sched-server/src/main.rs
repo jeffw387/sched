@@ -118,6 +118,25 @@ fn get_employees((req, state): (HttpRequest<AppState>, State<AppState>),
     }
 }
 
+fn get_shifts((req, state): (HttpRequest<AppState>, State<AppState>),
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
+    if validate_session(req.cookie(SESSION_KEY), SESSION_TEST_VALUE) {
+        use sched_server::employee::Employee;
+        req.json()
+            .from_err()
+            .and_then(move |emp: Employee| {
+                state.db.send(GetShifts(emp))
+                .from_err()
+                .and_then(|res| match res {
+                    Ok(shifts) => Ok(HttpResponse::Ok().json(shifts)),
+                    Err(e) => Ok(HttpResponse::from_error(e.into()))
+                })
+            }).responder()
+    } else {
+        Box::new(ImmediateResponse{ f: || HttpResponse::Unauthorized().finish()})
+    }
+}
+
 fn main() {
     std::env::set_var("RUST_LOG", "actix_web=info");
 
