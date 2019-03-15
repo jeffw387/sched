@@ -5,15 +5,17 @@ use std::fmt::{
     Debug,
     Formatter,
 };
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug, Insertable)]
+#[derive(Clone, Debug, Insertable, Serialize, Deserialize)]
 #[table_name = "employees"]
 pub struct Name {
     pub first: String,
     pub last: String,
 }
 
-#[derive(Debug, Clone, Identifiable)]
+
+#[derive(Debug, Clone, Identifiable, Serialize, Deserialize)]
 pub struct Employee {
     pub id: i32,
     pub name: Name,
