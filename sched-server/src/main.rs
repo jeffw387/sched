@@ -32,6 +32,9 @@ struct AppState {
     db: Addr<DbExecutor>,
 }
 
+const SESSION_KEY: &str = "session";
+const SESSION_TEST_VALUE: &str = "";
+
 fn make_session() -> http::Cookie<'static> {
                                     http::Cookie::build(
                                         "session", "",
