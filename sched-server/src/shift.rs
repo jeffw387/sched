@@ -89,6 +89,12 @@ impl Debug for Error {
     }
 }
 
+impl From<Error> for actix_web::Error {
+    fn from(err: Error) -> Self {
+        actix_web::error::ErrorBadRequest(format!("{:?}", err))
+    }
+}
+
 /// Either a shift or an error
 pub type Result = std::result::Result<Shift, Error>;
 
