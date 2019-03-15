@@ -43,6 +43,24 @@ impl Handler<LoginRequest> for DbExecutor {
     }
 }
 
+pub struct GetEmployees {}
+
+type GetEmployeesResult = std::result::Result<Vec<Employee>, Error>;
+impl Message for GetEmployees {
+    type Result = GetEmployeesResult;
+}
+
+impl Handler<GetEmployees> for DbExecutor {
+    type Result = GetEmployeesResult;
+
+    fn handle(&mut self, _: GetEmployees, _: &mut Self::Context)
+    -> GetEmployeesResult {
+        let conn = &self.0.get().unwrap();
+        employee::get_employees(conn)
+            .map_err(|e| Error::Dsl(e.into()))
+    }
+}
+
 pub enum Error {
     Dsl(ConnectionError),
     Usr(dbuser::Error),
