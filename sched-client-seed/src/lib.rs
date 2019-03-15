@@ -13,6 +13,9 @@ use seed::{
     button
 };
 
+use sched::employee::Employee;
+use sched::shift::Shift;
+
 use sched::message::LoginInfo;
 
 #[derive(Clone, Debug)]
