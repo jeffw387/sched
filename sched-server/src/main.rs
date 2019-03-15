@@ -147,6 +147,9 @@ fn main() {
         .expect(
             "DATABASE_URL environment variable not set!",
         );
+    let (_index_key, index_url) = env::vars()
+        .find(|(key, _)| key == "INDEX_BASE")
+        .expect("INDEX_BASE environment variable not set!");
     println!("database url: {}", db_url);
     let manager =
         ConnectionManager::<PgConnection>::new(db_url);
@@ -169,7 +172,7 @@ fn main() {
             .middleware(
                 actix_web::middleware::Logger::default(),
             )
-            .handler(api::API_INDEX, StaticFiles::new("./").expect("Error accessing fs").index_file("index.html"))
+            .handler(api::API_INDEX, StaticFiles::new(&index_url).expect("Error accessing fs").index_file("index.html"))
             .resource(api::API_LOGIN, |r| {
                 r.post().with_async(login)
             })
