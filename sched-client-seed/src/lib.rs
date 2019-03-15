@@ -48,6 +48,7 @@ struct SettingsPage {}
 
 #[derive(Clone, Debug)]
     employees: Vec<Employee>,
+    employee_shifts: HashMap<Employee, Shift>
 
 #[derive(Clone, Debug)]
 enum ModelPages {
