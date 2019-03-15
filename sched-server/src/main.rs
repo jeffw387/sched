@@ -20,12 +20,13 @@ use sched_server::db::{
     DbExecutor,
     LoginRequest,
     LoginResult,
+    GetEmployees,
+    GetShifts
 };
 use std::env;
 use chrono::Duration;
 use cookie::SameSite;
 use sched::api;
-use sched::user::User;
 
 struct AppState {
     db: Addr<DbExecutor>,
