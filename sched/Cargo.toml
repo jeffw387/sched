@@ -8,3 +8,4 @@ edition = "2018"
 # diesel = { version = "1.0.0", features = ["r2d2", "postgres", "chrono"]}
 # failure = ""
 chrono = "0.4"
+serde = { version = "", features = ["derive"]}
