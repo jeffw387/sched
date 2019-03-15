@@ -51,6 +51,23 @@ fn make_session() -> http::Cookie<'static> {
                                     .finish()
 }
 
+type ImmediateResult = futures::Poll<HttpResponse, actix_web::Error>;
+
+struct ImmediateResponse<F>
+    where F: Sized + FnOnce() -> HttpResponse + Copy { 
+    f: F
+}
+
+impl<F> Future for ImmediateResponse<F> 
+    where F: Sized + FnOnce() -> HttpResponse + Copy {
+    type Item = HttpResponse;
+    type Error = actix_web::Error;
+
+    fn poll(&mut self) -> ImmediateResult {
+        Ok(futures::Async::Ready((self.f)()))
+    }
+}
+
 fn login(
     (req, state): (HttpRequest<AppState>, State<AppState>),
 ) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>>
