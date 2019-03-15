@@ -1,3 +1,63 @@
+use super::employee::Employee;
+use super::schema::{
+    employees,
+    shifts,
+};
+use chrono::{
+    self,
+    NaiveDateTime,
+};
+use diesel::prelude::*;
+use sched::shift::Shift as ShiftCommon;
+use std::fmt::{
+    Debug,
+    Formatter,
+};
+
+#[derive(
+    Clone,
+    Debug,
+    Queryable,
+    Identifiable,
+    AsChangeset,
+    Associations,
+)]
+#[belongs_to(Employee)]
+pub struct Shift {
+    pub id: i32,
+    pub employee_id: i32,
+    pub start: NaiveDateTime,
+    pub duration_hours: f32,
+}
+
+impl From<Shift> for ShiftCommon {
+    fn from(shift: Shift) -> Self {
+        ShiftCommon {
+            id: shift.id,
+            employee_id: shift.employee_id,
+            start: shift.start,
+            duration_hours: shift.duration_hours,
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "shifts"]
+pub struct NewShift {
+    employee_id: i32,
+    start: NaiveDateTime,
+    duration_hours: f32,
+}
+
+impl NewShift {
+    pub fn new(
+        employee_id: i32,
+        start: NaiveDateTime,
+        duration_hours: f32,
+    ) -> NewShift {
+        NewShift { employee_id, start, duration_hours }
+    }
+}
 
 /// Error codes related to shifts
 pub enum Error {
@@ -27,7 +87,7 @@ impl Debug for Error {
 }
 
 /// Either a shift or an error
-pub type Result = result::Result<Shift, Error>;
+pub type Result = std::result::Result<Shift, Error>;
 
 impl Employee {
     /// Add a shift to the given employee.
@@ -110,54 +170,54 @@ impl Shift {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn add_new_shift() {
-        let conn = crate::establish_connection();
-        use crate::employee::{
-            self,
-            Name,
-        };
-        let test_employee = employee::add_employee(
-            &conn,
-            Name {
-                first: "Frank".to_string(),
-                last: "Wright".to_string(),
-            },
-            None,
-        )
-        .expect(
-            "Unable to add test employee Frank Wright!",
-        );
-        let start =
-            chrono::NaiveDate::from_ymd(2000, 1, 31)
-                .and_hms(10, 30, 0);
-        let duration_hours = 10f32;
-        let added_shift = test_employee
-            .add_shift(&conn, start, duration_hours)
-            .expect("Error adding test shift!");
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     #[test]
+//     fn add_new_shift() {
+//         let conn = crate::establish_connection();
+//         use crate::employee::{
+//             self,
+//             Name,
+//         };
+//         let test_employee = employee::add_employee(
+//             &conn,
+//             Name {
+//                 first: "Frank".to_string(),
+//                 last: "Wright".to_string(),
+//             },
+//             None,
+//         )
+//         .expect(
+//             "Unable to add test employee Frank Wright!",
+//         );
+//         let start =
+//             chrono::NaiveDate::from_ymd(2000, 1, 31)
+//                 .and_hms(10, 30, 0);
+//         let duration_hours = 10f32;
+//         let added_shift = test_employee
+//             .add_shift(&conn, start, duration_hours)
+//             .expect("Error adding test shift!");
 
-        assert_eq!(start, added_shift.start);
-        assert_eq!(
-            duration_hours,
-            added_shift.duration_hours
-        );
-        let modified_shift =
-            Shift { duration_hours: 8f32, ..added_shift };
-        let updated_shift = modified_shift
-            .update(&conn)
-            .expect("Unable to update shift!");
+//         assert_eq!(start, added_shift.start);
+//         assert_eq!(
+//             duration_hours,
+//             added_shift.duration_hours
+//         );
+//         let modified_shift =
+//             Shift { duration_hours: 8f32, ..added_shift };
+//         let updated_shift = modified_shift
+//             .update(&conn)
+//             .expect("Unable to update shift!");
 
-        assert_eq!(start, updated_shift.start);
-        assert_eq!(8f32, updated_shift.duration_hours);
+//         assert_eq!(start, updated_shift.start);
+//         assert_eq!(8f32, updated_shift.duration_hours);
 
-        test_employee.remove_shift(&conn, start);
+//         test_employee.remove_shift(&conn, start);
 
-        employee::remove_employee(
-            &conn,
-            test_employee.name,
-        );
-    }
-}
+//         employee::remove_employee(
+//             &conn,
+//             test_employee.name,
+//         );
+//     }
+// }

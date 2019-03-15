@@ -12,18 +12,3 @@ pub struct Employee {
     pub name: Name,
     pub phone_number: Option<String>,
 }
-
-#[derive(Clone, Debug)]
-pub struct NewEmployee {
-    name: Name,
-    phone_number: Option<String>,
-}
-
-impl NewEmployee {
-    pub fn new(
-        name: Name,
-        phone_number: Option<String>,
-    ) -> NewEmployee {
-        NewEmployee { name, phone_number }
-    }
-}

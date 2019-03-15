@@ -1,8 +1,10 @@
+use super::user as dbuser;
+use actix::prelude::*;
+use sched::message::LoginInfo;
 use sched::user::{
     self,
     User,
 };
-use actix::prelude::*;
 
 use diesel::prelude::*;
 use diesel::r2d2::{
@@ -14,8 +16,9 @@ use std::fmt::{
     Debug,
     Formatter,
 };
+pub struct LoginRequest(pub LoginInfo);
 
-type LoginResult = std::result::Result<String, Error>;
+pub type LoginResult = std::result::Result<String, Error>;
 impl Message for LoginRequest {
     type Result = LoginResult;
 }
@@ -31,19 +34,15 @@ impl Handler<LoginRequest> for DbExecutor {
         let conn: &PgConnection = &self.0.get().expect(
             "Error: database connection not found!",
         );
-        let username = req.0.username;
+        let username = req.0.email;
         let password = req.0.password;
-        let usr = user::get_user(conn, &username)
+        let usr = super::user::get_user(conn, &username)
             .map_err(|err| Error::Usr(err))?;
         match usr
             .check_password(&password)
             .expect("Error while checking password!")
         {
-            true => {
-                Ok(token::Token::create(&username).expect(
-                    "Error creating session token!",
-                ))
-            }
+            true => Ok("test token".to_owned()),
             false => Err(Error::InvalidPassword),
         }
     }
@@ -51,8 +50,7 @@ impl Handler<LoginRequest> for DbExecutor {
 
 pub enum Error {
     Dsl(ConnectionError),
-    Usr(user::Error),
-    Tkn(token::TokenError),
+    Usr(dbuser::Error),
     InvalidPassword,
 }
 
@@ -64,7 +62,6 @@ impl Debug for Error {
                 write!(f, "Incorrect password was entered!")
             }
             Error::Usr(u) => u.fmt(f),
-            Error::Tkn(t) => t.fmt(f),
         }
     }
 }

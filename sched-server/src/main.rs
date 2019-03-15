@@ -1,57 +1,82 @@
 use actix::prelude::*;
 use actix::Addr;
+use actix_web::http;
 use actix_web::{
     server,
     App,
     AsyncResponder,
+    HttpMessage,
     HttpRequest,
     HttpResponse,
     State,
+    fs::StaticFiles
 };
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use dotenv;
 use futures::Future;
-use sched_server::message::{
-    // DbExecutor,
-    // GetUsers,
+use sched::message::LoginInfo;
+use sched_server::db::{
+    DbExecutor,
+    LoginRequest,
+    LoginResult,
 };
 use std::env;
+use chrono::Duration;
+use cookie::SameSite;
+use sched::api;
+use sched::user::User;
+
 struct AppState {
     db: Addr<DbExecutor>,
 }
-use sched::api;
 
-fn print_users(
-    (_, state): (HttpRequest<AppState>, State<AppState>),
-) -> impl Future<Item = HttpResponse, Error = actix_web::Error>
+fn make_session() -> http::Cookie<'static> {
+                                    http::Cookie::build(
+                                        "session", "",
+                                    )
+                                    .max_age(
+                                        Duration::days(1),
+                                    )
+                                    .domain("www.jw387.com")
+                                    .http_only(true)
+                                    .secure(true)
+                                    .same_site(
+                                        SameSite::Strict,
+                                    )
+                                    .finish()
+}
+
+fn login(
+    (req, state): (HttpRequest<AppState>, State<AppState>),
+) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>>
 {
-    state
-        .db
-        .send(GetUsers {})
+    let db = state.db.clone();
+    req.json()
         .from_err()
-        .and_then(|res| {
-            match res {
-                Ok(usrs) => {
-                    let user_output = format!("{:?}", usrs);
-                    println!("Ok: {}", &user_output);
-                    Ok(HttpResponse::Ok()
-                        .content_type("text/plain")
-                        .body(user_output))
-                }
-                Err(e) => {
-                    let err_output = format!("{:?}", e);
-                    println!("Err: {}", &err_output);
-                    Ok(HttpResponse::InternalServerError()
-                        .content_type("text/plain")
-                        .body(err_output))
-                }
-            }
+        .and_then(move |login_info: LoginInfo| {
+                db
+                .send(LoginRequest(login_info))
+                .from_err()
+                .and_then(|login_result: LoginResult| {
+                    match login_result {
+                        Ok(_token) => {
+                            Ok(HttpResponse::Ok()
+                            .cookie(make_session())
+                            .finish())
+                        }
+                        Err(_err) => {
+                            Ok(HttpResponse::Unauthorized().finish())
+                        }
+                    }
+                }).responder()
         })
         .responder()
 }
 
 fn main() {
+    std::env::set_var("RUST_LOG", "actix_web=info");
+
     let sys = actix::System::new("database-system");
     dotenv::dotenv().ok();
     let db_url = env::vars()
@@ -82,23 +107,9 @@ fn main() {
             .middleware(
                 actix_web::middleware::Logger::default(),
             )
-            .resource(api::API_INDEX, |r| {
-                r.get().f(|_r| {
-                    HttpResponse::Ok()
-                        .content_type("text/html")
-                        .body(
-                            r"<!DOCTYPE html>
-<html>
-<head>
-    <title>Test Title</title>
-</head>
-<body><h1>Html Reply</h1></body>
-</html>",
-                        )
-                })
-            })
+            .handler(api::API_INDEX, StaticFiles::new("./").expect("Error accessing fs").index_file("index.html"))
             .resource(api::API_LOGIN, |r| {
-                r.post().f(|_r| HttpResponse::Ok().finish())
+                r.post().with_async(login)
             })
     })
     .bind("127.0.0.1:8080")
