@@ -28,9 +28,7 @@ impl Handler<LoginRequest> for DbExecutor {
         req: LoginRequest,
         _: &mut Self::Context,
     ) -> LoginResult {
-        let conn: &PgConnection = &self.0.get().expect(
-            "Error: database connection not found!",
-        );
+        let conn = &self.0.get().map_err(|e| Error::R2(e))?;
         let username = req.0.email;
         let password = req.0.password;
         let usr = super::user::get_user(conn, &username)
