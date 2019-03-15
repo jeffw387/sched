@@ -37,6 +37,12 @@ impl Default for LoginPage {
     }
 }
 
+enum ViewType {
+    Month,
+    Week,
+    Day
+}
+
 #[derive(Clone, Debug)]
 struct SettingsPage {}
 
