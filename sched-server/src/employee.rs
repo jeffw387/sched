@@ -1,12 +1,17 @@
 use super::schema::employees;
 use diesel::prelude::*;
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::fmt::{
     Debug,
     Formatter,
 };
-use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug, Insertable, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, Insertable, Serialize, Deserialize,
+)]
 #[table_name = "employees"]
 pub struct Name {
     pub first: String,
@@ -15,14 +20,13 @@ pub struct Name {
 
 impl From<Name> for sched::employee::Name {
     fn from(name: Name) -> Self {
-        Self {
-            first: name.first,
-            last: name.last
-        }
+        Self { first: name.first, last: name.last }
     }
 }
 
-#[derive(Debug, Clone, Identifiable, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Identifiable, Serialize, Deserialize,
+)]
 pub struct Employee {
     pub id: i32,
     pub name: Name,
@@ -34,7 +38,7 @@ impl From<Employee> for sched::employee::Employee {
         Self {
             id: emp.id,
             name: emp.name.into(),
-            phone_number: emp.phone_number
+            phone_number: emp.phone_number,
         }
     }
 }

@@ -1,34 +1,54 @@
 use yew::{
-    ShouldRender, 
-    Component, 
-    ComponentLink, 
-    Renderable,
+    html,
+    Component,
+    ComponentLink,
     Html,
-    html};
+    Renderable,
+    ShouldRender,
+};
 
 pub struct LoginComponent {
     email: String,
     password: String,
-    inputs_disabled: bool
+    inputs_disabled: bool,
 }
 pub enum Message {
     UpdateEmail(String),
     UpdatePassword(String),
-    Submit
+    Submit,
 }
 impl Component for LoginComponent {
     type Message = Message;
     type Properties = ();
 
-    fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
-        LoginComponent { email: String::new(), password: String::new(), inputs_disabled: false }
+    fn create(
+        _: Self::Properties,
+        _: ComponentLink<Self>,
+    ) -> Self {
+        LoginComponent {
+            email: String::new(),
+            password: String::new(),
+            inputs_disabled: false,
+        }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(
+        &mut self,
+        msg: Self::Message,
+    ) -> ShouldRender {
         match msg {
-            Message::UpdateEmail(upd) => {self.email = upd; false},
-            Message::UpdatePassword(upd) => {self.password = upd; false},
-            Message::Submit => {self.inputs_disabled = true; true}
+            Message::UpdateEmail(upd) => {
+                self.email = upd;
+                false
+            }
+            Message::UpdatePassword(upd) => {
+                self.password = upd;
+                false
+            }
+            Message::Submit => {
+                self.inputs_disabled = true;
+                true
+            }
         }
     }
 }
@@ -39,7 +59,7 @@ impl Renderable<LoginComponent> for LoginComponent {
             <div class="loginform",>
             <form onsubmit="return false",>
                 <div>
-                <input type="email", 
+                <input type="email",
                     oninput=|upd| Message::UpdateEmail(upd.value),
                     disabled=self.inputs_disabled,
                     placeholder="*Email*",/>
@@ -50,7 +70,7 @@ impl Renderable<LoginComponent> for LoginComponent {
                     placeholder="*Password*",/>
                 </div>
                 <div class="login_buttons",>
-                    <button 
+                    <button
                         type="submit",
                         disabled=self.inputs_disabled,
                         onclick=|_upd| Message::Submit,>{"Login"}</button>

@@ -2,6 +2,7 @@ use actix::prelude::*;
 use actix::Addr;
 use actix_web::http;
 use actix_web::{
+    fs::StaticFiles,
     server,
     App,
     AsyncResponder,
@@ -9,24 +10,23 @@ use actix_web::{
     HttpRequest,
     HttpResponse,
     State,
-    fs::StaticFiles
-};
-use diesel::pg::PgConnection;
-use diesel::r2d2::ConnectionManager;
-use futures::Future;
-use sched::message::LoginInfo;
-use sched_server::db::{
-    DbExecutor,
-    LoginRequest,
-    LoginResult,
-    GetEmployees,
-    GetShifts
 };
 use chrono::Duration;
 use cookie::SameSite;
-use sched::api;
-use std::env;
+use diesel::pg::PgConnection;
+use diesel::r2d2::ConnectionManager;
 use dotenv;
+use futures::Future;
+use sched::api;
+use sched::message::LoginInfo;
+use sched_server::db::{
+    DbExecutor,
+    GetEmployees,
+    GetShifts,
+    LoginRequest,
+    LoginResult,
+};
+use std::env;
 
 struct AppState {
     db: Addr<DbExecutor>,
@@ -36,30 +36,29 @@ const SESSION_KEY: &str = "session";
 const SESSION_TEST_VALUE: &str = "";
 
 fn make_session() -> http::Cookie<'static> {
-                                    http::Cookie::build(
-                                        SESSION_KEY, SESSION_TEST_VALUE,
-                                    )
-                                    .max_age(
-                                        Duration::days(1),
-                                    )
-                                    .domain("www.jw387.com")
-                                    .http_only(true)
-                                    .secure(true)
-                                    .same_site(
-                                        SameSite::Strict,
-                                    )
-                                    .finish()
+    http::Cookie::build(SESSION_KEY, SESSION_TEST_VALUE)
+        .max_age(Duration::days(1))
+        .domain("www.jw387.com")
+        .http_only(true)
+        .secure(true)
+        .same_site(SameSite::Strict)
+        .finish()
 }
 
-type ImmediateResult = futures::Poll<HttpResponse, actix_web::Error>;
+type ImmediateResult =
+    futures::Poll<HttpResponse, actix_web::Error>;
 
 struct ImmediateResponse<F>
-    where F: Sized + FnOnce() -> HttpResponse + Copy { 
-    f: F
+where
+    F: Sized + FnOnce() -> HttpResponse + Copy,
+{
+    f: F,
 }
 
-impl<F> Future for ImmediateResponse<F> 
-    where F: Sized + FnOnce() -> HttpResponse + Copy {
+impl<F> Future for ImmediateResponse<F>
+where
+    F: Sized + FnOnce() -> HttpResponse + Copy,
+{
     type Item = HttpResponse;
     type Error = actix_web::Error;
 
@@ -70,70 +69,113 @@ impl<F> Future for ImmediateResponse<F>
 
 fn login(
     (req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>>
-{
+) -> Box<
+    Future<Item = HttpResponse, Error = actix_web::Error>,
+> {
     let db = state.db.clone();
     req.json()
         .from_err()
         .and_then(move |login_info: LoginInfo| {
-                db
-                .send(LoginRequest(login_info))
+            db.send(LoginRequest(login_info))
                 .from_err()
                 .and_then(|login_result: LoginResult| {
                     match login_result {
                         Ok(_token) => {
                             Ok(HttpResponse::Ok()
-                            .cookie(make_session())
-                            .finish())
+                                .cookie(make_session())
+                                .finish())
                         }
                         Err(_err) => {
-                            Ok(HttpResponse::Unauthorized().finish())
+                            Ok(HttpResponse::Unauthorized()
+                                .finish())
                         }
                     }
-                }).responder()
+                })
+                .responder()
         })
         .responder()
 }
 
 // TODO: actually validate session
-fn validate_session(cookie: Option<cookie::Cookie>, user_token: &str) -> bool {
+fn validate_session(
+    cookie: Option<cookie::Cookie>,
+    user_token: &str,
+) -> bool {
     match cookie {
         None => false,
-        Some(cookie) => user_token == cookie.value()
+        Some(cookie) => user_token == cookie.value(),
     }
 }
 
-fn get_employees((req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
-    if validate_session(req.cookie(SESSION_KEY), SESSION_TEST_VALUE) {
-        state.db.send(GetEmployees{})
+fn get_employees(
+    (req, state): (HttpRequest<AppState>, State<AppState>),
+) -> Box<
+    Future<Item = HttpResponse, Error = actix_web::Error>,
+> {
+    if validate_session(
+        req.cookie(SESSION_KEY),
+        SESSION_TEST_VALUE,
+    ) {
+        state
+            .db
+            .send(GetEmployees {})
             .from_err()
             .and_then(|res| {
                 match res {
-                    Ok(emps) => Ok(HttpResponse::Ok().json(emps)),
-                    Err(e) => Ok(HttpResponse::from_error(e.into()))
-            }}).responder()
+                    Ok(emps) => {
+                        Ok(HttpResponse::Ok().json(emps))
+                    }
+                    Err(e) => {
+                        Ok(HttpResponse::from_error(
+                            e.into(),
+                        ))
+                    }
+                }
+            })
+            .responder()
     } else {
-        Box::new(ImmediateResponse{ f: || HttpResponse::Unauthorized().finish()})
+        Box::new(ImmediateResponse {
+            f: || HttpResponse::Unauthorized().finish(),
+        })
     }
 }
 
-fn get_shifts((req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<Future<Item = HttpResponse, Error = actix_web::Error>> {
-    if validate_session(req.cookie(SESSION_KEY), SESSION_TEST_VALUE) {
+fn get_shifts(
+    (req, state): (HttpRequest<AppState>, State<AppState>),
+) -> Box<
+    Future<Item = HttpResponse, Error = actix_web::Error>,
+> {
+    if validate_session(
+        req.cookie(SESSION_KEY),
+        SESSION_TEST_VALUE,
+    ) {
         use sched_server::employee::Employee;
         req.json()
             .from_err()
             .and_then(move |emp: Employee| {
-                state.db.send(GetShifts(emp))
-                .from_err()
-                .and_then(|res| match res {
-                    Ok(shifts) => Ok(HttpResponse::Ok().json(shifts)),
-                    Err(e) => Ok(HttpResponse::from_error(e.into()))
-                })
-            }).responder()
+                state
+                    .db
+                    .send(GetShifts(emp))
+                    .from_err()
+                    .and_then(|res| {
+                        match res {
+                            Ok(shifts) => {
+                                Ok(HttpResponse::Ok()
+                                    .json(shifts))
+                            }
+                            Err(e) => Ok(
+                                HttpResponse::from_error(
+                                    e.into(),
+                                ),
+                            ),
+                        }
+                    })
+            })
+            .responder()
     } else {
-        Box::new(ImmediateResponse{ f: || HttpResponse::Unauthorized().finish()})
+        Box::new(ImmediateResponse {
+            f: || HttpResponse::Unauthorized().finish(),
+        })
     }
 }
 
@@ -172,7 +214,12 @@ fn main() {
             .middleware(
                 actix_web::middleware::Logger::default(),
             )
-            .handler(api::API_INDEX, StaticFiles::new(&index_url).expect("Error accessing fs").index_file("index.html"))
+            .handler(
+                api::API_INDEX,
+                StaticFiles::new(&index_url)
+                    .expect("Error accessing fs")
+                    .index_file("index.html"),
+            )
             .resource(api::API_LOGIN, |r| {
                 r.post().with_async(login)
             })

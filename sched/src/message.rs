@@ -1,4 +1,7 @@
-use serde::{Serialize, Deserialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LoginInfo {
@@ -7,4 +10,3 @@ pub struct LoginInfo {
 }
 
 pub struct Settings {}
-

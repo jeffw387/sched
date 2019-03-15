@@ -1,4 +1,7 @@
-use serde::{Serialize, Deserialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 /// Represents a user in the database
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -7,4 +10,3 @@ pub struct User {
     pub email: String,
     pub password_hash: String,
 }
-

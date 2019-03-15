@@ -1,18 +1,19 @@
 use super::employee::Employee;
-use super::schema::{
-    shifts,
-};
+use super::schema::shifts;
 use chrono::{
     self,
     NaiveDateTime,
 };
 use diesel::prelude::*;
 use sched::shift::Shift as ShiftCommon;
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::fmt::{
     Debug,
     Formatter,
 };
-use serde::{Serialize, Deserialize};
 
 #[derive(
     Clone,
@@ -22,7 +23,7 @@ use serde::{Serialize, Deserialize};
     AsChangeset,
     Associations,
     Serialize,
-    Deserialize
+    Deserialize,
 )]
 #[belongs_to(Employee)]
 pub struct Shift {
@@ -90,7 +91,10 @@ impl Debug for Error {
 
 impl From<Error> for actix_web::Error {
     fn from(err: Error) -> Self {
-        actix_web::error::ErrorBadRequest(format!("{:?}", err))
+        actix_web::error::ErrorBadRequest(format!(
+            "{:?}",
+            err
+        ))
     }
 }
 

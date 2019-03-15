@@ -1,13 +1,19 @@
 use super::user as dbuser;
+use crate::employee::{
+    self,
+    Employee,
+};
+use crate::shift::{
+    self,
+    Shift,
+};
 use actix::prelude::*;
-use sched::message::LoginInfo;
-use crate::employee::{self, Employee};
-use crate::shift::{self, Shift};
 use diesel::prelude::*;
 use diesel::r2d2::{
     ConnectionManager,
     Pool,
 };
+use sched::message::LoginInfo;
 use std::fmt::{
     Debug,
     Formatter,
@@ -28,7 +34,8 @@ impl Handler<LoginRequest> for DbExecutor {
         req: LoginRequest,
         _: &mut Self::Context,
     ) -> LoginResult {
-        let conn = &self.0.get().map_err(|e| Error::R2(e))?;
+        let conn =
+            &self.0.get().map_err(|e| Error::R2(e))?;
         let username = req.0.email;
         let password = req.0.password;
         let usr = super::user::get_user(conn, &username)
@@ -45,7 +52,8 @@ impl Handler<LoginRequest> for DbExecutor {
 
 pub struct GetEmployees {}
 
-type GetEmployeesResult = std::result::Result<Vec<Employee>, Error>;
+type GetEmployeesResult =
+    std::result::Result<Vec<Employee>, Error>;
 impl Message for GetEmployees {
     type Result = GetEmployeesResult;
 }
@@ -53,8 +61,11 @@ impl Message for GetEmployees {
 impl Handler<GetEmployees> for DbExecutor {
     type Result = GetEmployeesResult;
 
-    fn handle(&mut self, _: GetEmployees, _: &mut Self::Context)
-    -> GetEmployeesResult {
+    fn handle(
+        &mut self,
+        _: GetEmployees,
+        _: &mut Self::Context,
+    ) -> GetEmployeesResult {
         let conn = &self.0.get().unwrap();
         employee::get_employees(conn)
             .map_err(|e| Error::Dsl(e.into()))
@@ -63,7 +74,8 @@ impl Handler<GetEmployees> for DbExecutor {
 
 pub struct GetShifts(pub Employee);
 
-pub type GetShiftsResult = std::result::Result<Vec<Shift>, Error>;
+pub type GetShiftsResult =
+    std::result::Result<Vec<Shift>, Error>;
 impl Message for GetShifts {
     type Result = GetShiftsResult;
 }
@@ -71,14 +83,15 @@ impl Message for GetShifts {
 impl Handler<GetShifts> for DbExecutor {
     type Result = GetShiftsResult;
 
-    fn handle(&mut self, msg: GetShifts, _: &mut Self::Context)
-    -> GetShiftsResult {
+    fn handle(
+        &mut self,
+        msg: GetShifts,
+        _: &mut Self::Context,
+    ) -> GetShiftsResult {
         let conn = &self.0.get().unwrap();
-        msg.0.get_shifts(conn)
-            .map_err(|e| Error::Shft(e))
-    }    
+        msg.0.get_shifts(conn).map_err(|e| Error::Shft(e))
+    }
 }
-
 
 pub enum Error {
     Dsl(diesel::result::Error),

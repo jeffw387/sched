@@ -4,10 +4,7 @@ use chrono::{
 };
 
 /// A structure representing a shift in the database
-#[derive(
-    Clone,
-    Debug
-)]
+#[derive(Clone, Debug)]
 pub struct Shift {
     pub id: i32,
     pub employee_id: i32,

@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::hash::{
+    Hash,
+    Hasher,
+};
 
 /// Employee's first and last names as Strings
 #[derive(Clone, Debug)]

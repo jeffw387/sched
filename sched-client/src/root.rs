@@ -1,12 +1,13 @@
-use yew::{
-    ShouldRender, 
-    Component, 
-    ComponentLink, 
-    Renderable,
-    Html,
-    html};
-use crate::login::{LoginComponent};
+use crate::login::LoginComponent;
 use sched::message::LoginRequest;
+use yew::{
+    html,
+    Component,
+    ComponentLink,
+    Html,
+    Renderable,
+    ShouldRender,
+};
 
 pub enum Message {
     Login(LoginRequest),
@@ -16,17 +17,20 @@ pub enum Message {
 pub enum RootPage {
     Login,
     Settings,
-    Calendar
+    Calendar,
 }
 pub struct RootComponent {
-    pub root_page: RootPage
+    pub root_page: RootPage,
 }
 
 impl Component for RootComponent {
     type Message = ();
     type Properties = ();
 
-    fn create(_: Self::Properties, _: ComponentLink<Self>) -> RootComponent {
+    fn create(
+        _: Self::Properties,
+        _: ComponentLink<Self>,
+    ) -> RootComponent {
         RootComponent { root_page: RootPage::Login }
     }
 
@@ -36,7 +40,7 @@ impl Component for RootComponent {
 }
 
 impl Renderable<RootComponent> for RootComponent {
-    fn view(&self) ->Html<Self> {
+    fn view(&self) -> Html<Self> {
         html! {
             <div class="header",>
             <h1>{"Login!"}</h1>

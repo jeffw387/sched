@@ -5,12 +5,12 @@ use seed::dom_types::{
 use seed::prelude::*;
 use seed::{
     attrs,
+    // log,
+    button,
     div,
     form,
     input,
     label,
-    // log,
-    button
 };
 
 use sched::employee::Employee;
@@ -23,7 +23,7 @@ struct LoginPage {
     login_info: LoginInfo,
     email_state: InputState,
     password_state: InputState,
-    button_state: InputState
+    button_state: InputState,
 }
 
 impl Default for LoginPage {
@@ -32,7 +32,7 @@ impl Default for LoginPage {
             login_info: LoginInfo::default(),
             email_state: InputState::Normal,
             password_state: InputState::Normal,
-            button_state: InputState::Disabled
+            button_state: InputState::Disabled,
         }
     }
 }
@@ -40,15 +40,17 @@ impl Default for LoginPage {
 enum ViewType {
     Month,
     Week,
-    Day
+    Day,
 }
 
 #[derive(Clone, Debug)]
 struct SettingsPage {}
 
 #[derive(Clone, Debug)]
+struct CalendarPage {
     employees: Vec<Employee>,
-    employee_shifts: HashMap<Employee, Shift>
+    employee_shifts: HashMap<Employee, Shift>,
+}
 
 #[derive(Clone, Debug)]
 enum ModelPages {
@@ -84,20 +86,30 @@ enum Message {
 
 fn validate_email(email: &str) -> InputState {
     use InputState::*;
-    if email.len() == 0 { return Normal; };
+    if email.len() == 0 {
+        return Normal;
+    };
     let at_pieces: Vec<&str> = email.split('@').collect();
     match at_pieces.len() {
         2 => {
             let user = at_pieces[0];
-            if user.len() == 0 {return Danger};
+            if user.len() == 0 {
+                return Danger;
+            };
             let domain = at_pieces[1];
-            if domain.len() == 0 {return Danger};
+            if domain.len() == 0 {
+                return Danger;
+            };
             let dot_pieces: Vec<&str> =
                 domain.split('.').collect();
             match dot_pieces.len() {
-                2 => 
-                    if dot_pieces[1].len() > 0 {Success}
-                        else {Danger},
+                2 => {
+                    if dot_pieces[1].len() > 0 {
+                        Success
+                    } else {
+                        Danger
+                    }
+                }
                 _ => Danger,
             }
         }
@@ -106,10 +118,11 @@ fn validate_email(email: &str) -> InputState {
 }
 
 fn update_login_button(page: &mut LoginPage) {
-    if page.email_state == InputState::Success &&
-        page.password_state == InputState::Success {
-            page.button_state = InputState::Success;
-        }
+    if page.email_state == InputState::Success
+        && page.password_state == InputState::Success
+    {
+        page.button_state = InputState::Success;
+    }
 }
 
 fn update(
@@ -121,19 +134,20 @@ fn update(
             model.page = new_page.clone() as ModelPages;
         }
         Message::Login(_info) => {
-            if let ModelPages::Login(page) = &mut model.page {
+            if let ModelPages::Login(page) = &mut model.page
+            {
                 page.button_state = InputState::Disabled;
                 page.email_state = InputState::Disabled;
                 page.password_state = InputState::Disabled;
             };
             ()
-            },
+        }
         Message::UpdateEmail(email) => {
             if let ModelPages::Login(page) = &mut model.page
             {
                 page.login_info.email = email.clone();
                 page.email_state = validate_email(&email);
-                update_login_button(page);       
+                update_login_button(page);
             };
         }
         Message::UpdatePassword(password) => {
@@ -147,7 +161,7 @@ fn update(
                         }
                         _ => InputState::Normal,
                     };
-                update_login_button(page);       
+                update_login_button(page);
             };
         }
     };
@@ -170,7 +184,8 @@ impl Default for InputState {
 
 fn input_attrs(state: InputState) -> Attrs {
     let mut res = Attrs::empty();
-    let mut classes = vec!["uk-input", "uk-form-width-medium"];
+    let mut classes =
+        vec!["uk-input", "uk-form-width-medium"];
     match state {
         InputState::Normal => (),
         InputState::Success => {
