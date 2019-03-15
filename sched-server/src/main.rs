@@ -174,6 +174,9 @@ fn main() {
             .resource(api::API_LOGIN, |r| {
                 r.post().with_async(login)
             })
+            .resource(api::API_GET_EMPLOYEES, |r| {
+                r.post().with_async(get_employees)
+            })
     })
     .bind("127.0.0.1:8080")
     .unwrap()
