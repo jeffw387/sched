@@ -37,7 +37,7 @@ const SESSION_TEST_VALUE: &str = "";
 
 fn make_session() -> http::Cookie<'static> {
                                     http::Cookie::build(
-                                        SESSION_KEY, SESSION_TEST_VALUE,
+                                        "session", "",
                                     )
                                     .max_age(
                                         Duration::days(1),
@@ -76,6 +76,14 @@ fn login(
                 }).responder()
         })
         .responder()
+}
+
+// TODO: actually validate session
+fn validate_session(cookie: Option<cookie::Cookie>, user_token: &str) -> bool {
+    match cookie {
+        None => false,
+        Some(cookie) => user_token == cookie.value()
+    }
 }
 
 fn main() {
