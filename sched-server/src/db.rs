@@ -43,25 +43,6 @@ impl Handler<LoginRequest> for DbExecutor {
     }
 }
 
-pub struct GetShifts(pub Employee);
-
-pub type GetShiftsResult = std::result::Result<Vec<Shift>, Error>;
-impl Message for GetShifts {
-    type Result = GetShiftsResult;
-}
-
-impl Handler<GetShifts> for DbExecutor {
-    type Result = GetShiftsResult;
-
-    fn handle(&mut self, msg: GetShifts, _: &mut Self::Context)
-    -> GetShiftsResult {
-        let conn = &self.0.get().unwrap();
-        msg.0.get_shifts(conn)
-            .map_err(|e| Error::Shft(e))
-    }    
-}
-
-
 pub enum Error {
     Dsl(ConnectionError),
     Usr(dbuser::Error),
@@ -72,10 +53,13 @@ impl Debug for Error {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
             Error::Dsl(d) => d.fmt(f),
+            Error::R2(r) => r.fmt(f),
+            Error::Usr(u) => u.fmt(f),
+            Error::Emp(e) => e.fmt(f),
+            Error::Shft(s) => s.fmt(f),
             Error::InvalidPassword => {
                 write!(f, "Incorrect password was entered!")
             }
-            Error::Usr(u) => u.fmt(f),
         }
     }
 }
