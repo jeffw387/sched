@@ -13,7 +13,6 @@ use actix_web::{
 };
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
-use dotenv;
 use futures::Future;
 use sched::message::LoginInfo;
 use sched_server::db::{
@@ -23,10 +22,11 @@ use sched_server::db::{
     GetEmployees,
     GetShifts
 };
-use std::env;
 use chrono::Duration;
 use cookie::SameSite;
 use sched::api;
+use std::env;
+use dotenv;
 
 struct AppState {
     db: Addr<DbExecutor>,
