@@ -9,11 +9,10 @@ sched = { path = "../sched"}
 rust-crypto = "^0.2"
 actix = ""
 actix-web = ""
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "1.0.0", features = ["r2d2", "postgres", "chrono"]}
 jsonwebtoken = ""
-serde = ""
-serde_derive = ""
+serde = { version = "", features = ["derive"] }
 uuid = ""
 futures = "0.1.25"
 r2d2 = "0.8.3"
