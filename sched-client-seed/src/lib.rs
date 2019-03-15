@@ -37,17 +37,11 @@ impl Default for LoginPage {
     }
 }
 
-enum ViewType {
-    Month,
-    Week,
-    Day
-}
-
 #[derive(Clone, Debug)]
 struct SettingsPage {}
 
 #[derive(Clone, Debug)]
-struct CalendarPage {}
+    employees: Vec<Employee>,
 
 #[derive(Clone, Debug)]
 enum ModelPages {
