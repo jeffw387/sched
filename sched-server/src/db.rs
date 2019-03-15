@@ -43,23 +43,24 @@ impl Handler<LoginRequest> for DbExecutor {
     }
 }
 
-pub struct GetEmployees {}
+pub struct GetShifts(pub Employee);
 
-type GetEmployeesResult = std::result::Result<Vec<Employee>, Error>;
-impl Message for GetEmployees {
-    type Result = GetEmployeesResult;
+pub type GetShiftsResult = std::result::Result<Vec<Shift>, Error>;
+impl Message for GetShifts {
+    type Result = GetShiftsResult;
 }
 
-impl Handler<GetEmployees> for DbExecutor {
-    type Result = GetEmployeesResult;
+impl Handler<GetShifts> for DbExecutor {
+    type Result = GetShiftsResult;
 
-    fn handle(&mut self, _: GetEmployees, _: &mut Self::Context)
-    -> GetEmployeesResult {
+    fn handle(&mut self, msg: GetShifts, _: &mut Self::Context)
+    -> GetShiftsResult {
         let conn = &self.0.get().unwrap();
-        employee::get_employees(conn)
-            .map_err(|e| Error::Dsl(e.into()))
-    }
+        msg.0.get_shifts(conn)
+            .map_err(|e| Error::Shft(e))
+    }    
 }
+
 
 pub enum Error {
     Dsl(ConnectionError),
