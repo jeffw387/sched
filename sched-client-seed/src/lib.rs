@@ -20,6 +20,8 @@ use sched::message::LoginInfo;
 
 use chrono::NaiveDateTime;
 
+const DOMAIN_URL: &str = "http://localhost/sched";
+
 #[derive(Clone, Debug)]
 struct LoginPage {
     login_info: LoginInfo,
