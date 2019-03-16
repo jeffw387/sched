@@ -19,8 +19,9 @@ use sched::shift::Shift;
 use sched::message::LoginInfo;
 
 use chrono::NaiveDateTime;
+use dotenv;
 
-const DOMAIN_URL: &str = "http://localhost/sched";
+const ENV_DOMAIN_URL: &str = "DOMAIN_URL";
 
 #[derive(Clone, Debug)]
 struct LoginPage {
