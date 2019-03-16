@@ -13,10 +13,12 @@ use seed::{
     label,
 };
 
-use sched::employee::Employee;
+use sched::employee::{Employee, Name};
 use sched::shift::Shift;
 
 use sched::message::LoginInfo;
+
+use chrono::NaiveDateTime;
 
 #[derive(Clone, Debug)]
 struct LoginPage {
@@ -82,6 +84,8 @@ enum Message {
     Login(LoginInfo),
     UpdateEmail(String),
     UpdatePassword(String),
+    AddEmployee(Name, String),
+    AddShift(Employee, NaiveDateTime, f32)
 }
 
 fn validate_email(email: &str) -> InputState {
@@ -163,7 +167,9 @@ fn update(
                     };
                 update_login_button(page);
             };
-        }
+        },
+        Message::AddEmployee(name, phone_number) => {},
+        Message::AddShift(employee, start, duration_hours) => {}
     };
     Render.into()
 }
