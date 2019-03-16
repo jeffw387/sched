@@ -1254,6 +1254,7 @@ dependencies = [
 name = "sched-client-seed"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "sched 0.1.0",
  "seed 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
