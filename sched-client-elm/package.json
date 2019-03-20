@@ -1,0 +1,24 @@
+{
+  "name": "sched-client-elm",
+  "version": "0.1.0",
+  "description": "Client portion of scheduler app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffw387/sched.git"
+  },
+  "keywords": [
+    "schedule",
+    "rust",
+    "elm"
+  ],
+  "author": "Jeff Wright",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jeffw387/sched/issues"
+  },
+  "homepage": "https://github.com/jeffw387/sched#readme"
+}
