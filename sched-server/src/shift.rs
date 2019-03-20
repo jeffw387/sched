@@ -1,11 +1,7 @@
 use super::employee::Employee;
 use super::schema::shifts;
-use chrono::{
-    self,
-    NaiveDateTime,
-};
+
 use diesel::prelude::*;
-use sched::shift::Shift as ShiftCommon;
 use serde::{
     Deserialize,
     Serialize,
@@ -18,47 +14,52 @@ use std::fmt::{
 #[derive(
     Clone,
     Debug,
-    Queryable,
     Identifiable,
     AsChangeset,
     Associations,
     Serialize,
     Deserialize,
+    Queryable
 )]
+#[table_name="shifts"]
 #[belongs_to(Employee)]
 pub struct Shift {
     pub id: i32,
     pub employee_id: i32,
-    pub start: NaiveDateTime,
-    pub duration_hours: f32,
-}
-
-impl From<Shift> for ShiftCommon {
-    fn from(shift: Shift) -> Self {
-        ShiftCommon {
-            id: shift.id,
-            employee_id: shift.employee_id,
-            start: shift.start,
-            duration_hours: shift.duration_hours,
-        }
-    }
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
+    pub hour: i32,
+    pub minute: i32,
+    pub hours: i32,
+    pub minutes: i32
 }
 
 #[derive(Debug, Insertable)]
 #[table_name = "shifts"]
 pub struct NewShift {
     employee_id: i32,
-    start: NaiveDateTime,
-    duration_hours: f32,
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
+    pub hour: i32,
+    pub minute: i32,
+    pub hours: i32,
+    pub minutes: i32
 }
 
 impl NewShift {
     pub fn new(
         employee_id: i32,
-        start: NaiveDateTime,
-        duration_hours: f32,
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        minute: i32,
+        hours: i32,
+        minutes: i32
     ) -> NewShift {
-        NewShift { employee_id, start, duration_hours }
+        NewShift { employee_id, year, month, day, hour, minute, hours, minutes }
     }
 }
 
@@ -108,12 +109,17 @@ impl Employee {
     pub fn add_shift(
         &self,
         conn: &PgConnection,
-        start: NaiveDateTime,
-        duration_hours: f32,
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        minute: i32,
+        hours: i32,
+        minutes: i32
     ) -> Result {
         let new_shift =
-            NewShift::new(self.id, start, duration_hours);
-        match self.get_shift(conn, start) {
+            NewShift::new(self.id, year, month, day, hour, minute, hours, minutes);
+        match self.get_shift(conn, year, month, day, hour, minute) {
             Ok(_) => return Err(Error::ShiftExists),
             _ => (),
         };
@@ -129,11 +135,18 @@ impl Employee {
     pub fn get_shift(
         &self,
         conn: &PgConnection,
-        start_find: NaiveDateTime,
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        minute: i32,
     ) -> Result {
-        use crate::schema::shifts::dsl::*;
         match Shift::belonging_to(self)
-            .filter(start.eq(start_find))
+            .filter(shifts::year.eq(year))
+            .filter(shifts::month.eq(month))
+            .filter(shifts::day.eq(day))
+            .filter(shifts::hour.eq(hour))
+            .filter(shifts::minute.eq(minute))
             .first::<Shift>(conn)
         {
             Ok(found) => Ok(found),
@@ -159,9 +172,13 @@ impl Employee {
     pub fn remove_shift(
         &self,
         conn: &PgConnection,
-        start_find: NaiveDateTime,
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        minute: i32
     ) {
-        match self.get_shift(conn, start_find) {
+        match self.get_shift(conn, year, month, day, hour, minute) {
             Ok(shift_to_delete) => {
                 let _ = diesel::delete(&shift_to_delete)
                     .execute(conn);
@@ -181,55 +198,3 @@ impl Shift {
             .map_err(|e| Error::Dsl(e))
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     #[test]
-//     fn add_new_shift() {
-//         let conn = crate::establish_connection();
-//         use crate::employee::{
-//             self,
-//             Name,
-//         };
-//         let test_employee = employee::add_employee(
-//             &conn,
-//             Name {
-//                 first: "Frank".to_string(),
-//                 last: "Wright".to_string(),
-//             },
-//             None,
-//         )
-//         .expect(
-//             "Unable to add test employee Frank Wright!",
-//         );
-//         let start =
-//             chrono::NaiveDate::from_ymd(2000, 1, 31)
-//                 .and_hms(10, 30, 0);
-//         let duration_hours = 10f32;
-//         let added_shift = test_employee
-//             .add_shift(&conn, start, duration_hours)
-//             .expect("Error adding test shift!");
-
-//         assert_eq!(start, added_shift.start);
-//         assert_eq!(
-//             duration_hours,
-//             added_shift.duration_hours
-//         );
-//         let modified_shift =
-//             Shift { duration_hours: 8f32, ..added_shift };
-//         let updated_shift = modified_shift
-//             .update(&conn)
-//             .expect("Unable to update shift!");
-
-//         assert_eq!(start, updated_shift.start);
-//         assert_eq!(8f32, updated_shift.duration_hours);
-
-//         test_employee.remove_shift(&conn, start);
-
-//         employee::remove_employee(
-//             &conn,
-//             test_employee.name,
-//         );
-//     }
-// }
