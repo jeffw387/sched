@@ -36,8 +36,5 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
-    employees,
-    sessions,
-    shifts,
-    users,
+    employees, sessions, shifts, users,
 );

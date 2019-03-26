@@ -2,3 +2,4 @@
 **/*.rs.bk
 pkg/
 target/
+elm-stuff/

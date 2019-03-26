@@ -18,14 +18,16 @@ struct NewUser {
 
 impl NewUser {
     fn new(login_info: LoginInfo) -> NewUser {
-        NewUser {
+        let new_user = NewUser {
             email: login_info.email,
             password_hash: crypt::pbkdf2_simple(
                 &login_info.password,
                 1,
             )
             .expect("Failed to hash password!"),
-        }
+        };
+        println!("NewUser created: {:#?}", new_user);
+        new_user
     }
 }
 
@@ -52,6 +54,7 @@ pub fn add_user(
     user_name: String,
     password: String,
 ) -> std::result::Result<User, Error> {
+    println!("add_user(conn, {}, {})", user_name, password);
     match diesel::insert_into(users::table)
         .values(NewUser::new(LoginInfo {
             email: user_name,
@@ -59,8 +62,14 @@ pub fn add_user(
         }))
         .get_result(conn)
     {
-        Ok(r) => Ok(r),
-        Err(e) => Err(Error::Dsl(e)),
+        Ok(r) => {
+            println!("Successfully added user.");
+            Ok(r)
+        }
+        Err(e) => {
+            println!("Error adding user: {:?}", e);
+            Err(Error::Dsl(e))
+        }
     }
 }
 
@@ -99,7 +108,12 @@ pub fn get_user(
         .first::<User>(conn)
     {
         Ok(user) => Ok(user),
-        Err(err) => Err(Error::Dsl(err)),
+        Err(err) => match err {
+            diesel::result::Error::NotFound => {
+                Err(Error::NotFound)
+            }
+            other_err => Err(Error::Dsl(other_err))
+        }
     }
 }
 

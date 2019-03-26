@@ -19,9 +19,9 @@ use std::fmt::{
     Associations,
     Serialize,
     Deserialize,
-    Queryable
+    Queryable,
 )]
-#[table_name="shifts"]
+#[table_name = "shifts"]
 #[belongs_to(Employee)]
 pub struct Shift {
     pub id: i32,
@@ -32,7 +32,7 @@ pub struct Shift {
     pub hour: i32,
     pub minute: i32,
     pub hours: i32,
-    pub minutes: i32
+    pub minutes: i32,
 }
 
 #[derive(Debug, Insertable)]
@@ -45,7 +45,7 @@ pub struct NewShift {
     pub hour: i32,
     pub minute: i32,
     pub hours: i32,
-    pub minutes: i32
+    pub minutes: i32,
 }
 
 impl NewShift {
@@ -57,9 +57,18 @@ impl NewShift {
         hour: i32,
         minute: i32,
         hours: i32,
-        minutes: i32
+        minutes: i32,
     ) -> NewShift {
-        NewShift { employee_id, year, month, day, hour, minute, hours, minutes }
+        NewShift {
+            employee_id,
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            hours,
+            minutes,
+        }
     }
 }
 
@@ -115,11 +124,15 @@ impl Employee {
         hour: i32,
         minute: i32,
         hours: i32,
-        minutes: i32
+        minutes: i32,
     ) -> Result {
-        let new_shift =
-            NewShift::new(self.id, year, month, day, hour, minute, hours, minutes);
-        match self.get_shift(conn, year, month, day, hour, minute) {
+        let new_shift = NewShift::new(
+            self.id, year, month, day, hour, minute, hours,
+            minutes,
+        );
+        match self
+            .get_shift(conn, year, month, day, hour, minute)
+        {
             Ok(_) => return Err(Error::ShiftExists),
             _ => (),
         };
@@ -176,9 +189,11 @@ impl Employee {
         month: i32,
         day: i32,
         hour: i32,
-        minute: i32
+        minute: i32,
     ) {
-        match self.get_shift(conn, year, month, day, hour, minute) {
+        match self
+            .get_shift(conn, year, month, day, hour, minute)
+        {
             Ok(shift_to_delete) => {
                 let _ = diesel::delete(&shift_to_delete)
                     .execute(conn);
