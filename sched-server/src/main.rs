@@ -17,8 +17,8 @@ use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use dotenv;
 use futures::Future;
-use sched::api;
-use sched::message::LoginInfo;
+use sched_server::api;
+use sched_server::message::LoginInfo;
 use sched_server::db::{
     CreateUser,
     CreateUserResult,
