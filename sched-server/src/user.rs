@@ -2,8 +2,7 @@ use super::schema::users;
 use crypto::pbkdf2 as crypt;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use sched::message::LoginInfo;
-use sched::user::User as UserCommon;
+use super::message::LoginInfo;
 use std::fmt::{
     Debug,
     Formatter,
@@ -36,16 +35,6 @@ pub struct User {
     pub id: i32,
     pub email: String,
     pub password_hash: String,
-}
-
-impl From<User> for UserCommon {
-    fn from(user: User) -> UserCommon {
-        UserCommon {
-            id: user.id,
-            email: user.email,
-            password_hash: user.password_hash,
-        }
-    }
 }
 
 /// Add a new user to the database
