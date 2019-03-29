@@ -78,7 +78,7 @@ where
     }
 }
 
-fn create_user(
+fn add_user(
     (req, state): (HttpRequest<AppState>, State<AppState>),
 ) -> Box<
     Future<Item = HttpResponse, Error = actix_web::Error>,
@@ -369,7 +369,7 @@ fn main() {
                 r.post().with_async(login_request)
             })
             .resource(api::API_ADD_USER, |r| {
-                r.post().with_async(create_user)
+                r.post().with_async(add_user)
             })
             .resource(api::API_GET_EMPLOYEES, |r| {
                 r.post().with_async(get_employees)
