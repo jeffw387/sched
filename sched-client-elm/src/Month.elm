@@ -312,17 +312,16 @@ view model =
     shiftDict = model.employeesData.employeeShifts
     employees = model.employeesData.employees
   in
-    monthElement
-    -- [
-    --   table [
-    --         class "uk-table",
-    --         -- class "uk-table-divider",
-    --         -- class "uk-flex", 
-    --         class "uk-text-center" 
-    --         -- class "uk-flex-row"
-    --       ]
-    --     (Array.toList (Array.map 
-    --       (monthRowElement settings (mapEmployeeShifts shiftDict employees))
-    --       month))
-    -- ]
+    Element.column
+      [
+        Element.width Element.fill,
+        Element.height Element.fill,
+        Element.spacing 1
+      ] 
+      (Array.toList 
+        (Array.map 
+          (monthRowElement 
+          settings 
+          (mapEmployeeShifts shiftDict employees))
+        month))
     
