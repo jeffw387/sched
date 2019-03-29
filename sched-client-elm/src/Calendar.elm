@@ -150,7 +150,7 @@ toSession model =
 
 view model = 
   case model of
-    CalendarLoadModel loadModel -> Element.text "Loading..."
+    CalendarLoadModel loadModel -> Element.el [] (Element.text "Loading...")
     MonthModel monthModel ->
       Month.view 
         monthModel
