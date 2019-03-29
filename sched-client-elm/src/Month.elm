@@ -294,14 +294,16 @@ monthRowElement :
   -> Row 
   -> Element msg
 monthRowElement settings employeeShifts row =
-  Element.row [] []
-  -- tr 
-  --   [ 
-  --     -- class "uk-container"
-  --   ]
-  --   (Array.toList (Array.map (dayElement settings employeeShifts) row))
-
-monthElement = Element.el [] Element.none
+  Element.row 
+    [
+      Element.height Element.fill,
+      Element.width Element.fill,
+      Element.spacing 1
+    ] 
+    (Array.toList 
+      (Array.map 
+        (dayElement settings employeeShifts) 
+        row))
 
 view model =
   let 
