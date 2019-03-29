@@ -11,10 +11,16 @@ type HourFormat =
   Hour12 |
   Hour24
 
+type LastNameStyle =
+  FullName |
+  FirstInitial |
+  Hidden
+
 type alias Settings =
   {
     viewType : ViewType,
-    hourFormat : HourFormat
+    hourFormat : HourFormat,
+    lastNameStyle : LastNameStyle
   }
 
 type alias Session =
