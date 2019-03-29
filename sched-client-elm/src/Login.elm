@@ -56,7 +56,7 @@ createUser : LoginInfo -> (Cmd Message)
 createUser loginInfo =
   Http.post
     {
-      url = UB.absolute ["sched", "create_user"][],
+      url = UB.absolute ["sched", "add_user"][],
       body = Http.jsonBody (encode loginInfo),
       expect = Http.expectWhatever LoginResponse
     }
