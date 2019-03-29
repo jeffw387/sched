@@ -213,8 +213,24 @@ shiftElement :
   -> Shift 
   -> Element msg
 shiftElement settings employee shift =
-  Element.el 
-    [] (formatHours settings shift.hour shift.hours)
+  Element.row
+    [
+      Font.size 14,
+      Element.paddingXY 0 2,
+      Border.color (Element.rgb 1 0 0),
+      BG.color (Element.rgba 1 0 0 0.1),
+      Border.width 2,
+      Border.rounded 3,
+      Element.width Element.fill
+    ] 
+    [
+      Element.text 
+        (employee.name.first
+        ++ " "
+        ++ formatLastName settings employee.name.last
+        ++ ": "),
+      (formatHours settings shift.hour shift.hours)
+    ]
 
 dayElement : 
   Settings 
