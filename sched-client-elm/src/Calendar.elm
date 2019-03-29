@@ -1,109 +1,159 @@
-module Calendar exposing (Model, Message(..), init, update, view)
+module Calendar exposing (Model, Message(..), init, update, view, toSession)
 import Time exposing (Posix)
 import Dict exposing (Dict)
-import Http
-import Url
-import Api
 import Json.Decode.Pipeline as JPipe
 import Json.Decode as D
 import Json.Encode as E
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Session exposing (Session)
-import Browser
 import Employee exposing (..)
 import Shift exposing (..)
+import Http
+import Url
+import Api
+import Browser
 import Month
+import Week
+import Day
+import Query
+import CalendarLoad
+import Element
 
-type alias Model = 
-  {
-    session : Session,
-    employees : List Employee,
-    employeeShifts : Dict Int (List Shift)
-  }
+type Model =
+  CalendarLoadModel CalendarLoad.Model |
+  MonthModel Month.Model |
+  WeekModel Week.Model |
+  DayModel Day.Model
 
-type alias EmployeesQuery =
-  {
-    employees : List Employee
-  }
-
-employeesQueryDecoder : D.Decoder EmployeesQuery
-employeesQueryDecoder =
-  D.succeed EmployeesQuery
-  |> JPipe.requiredAt ["employees"] (D.list employeeDecoder)
-
-type alias ShiftsQuery =
-  {
-    shifts : List Shift
-  }
-
-shiftsQueryDecoder : D.Decoder ShiftsQuery
-shiftsQueryDecoder =
-  D.succeed ShiftsQuery
-  |> JPipe.requiredAt ["shifts"] (D.list Shift.decoder)
-
-employeeEncoder : Employee -> E.Value
-employeeEncoder e =
-  E.object
-    [
-      ("id", E.int e.id),
-      ("name", nameEncoder e.name),
-      case e.phone_number of
-        Just pn -> ("phone_number", E.string pn)
-        Nothing -> ("phone_number", E.null)
-    ]
+toParentTypes : (CalendarLoad.Model, Cmd CalendarLoad.Message) 
+  -> (Model, Cmd Message)
+toParentTypes (model, cmdMsg) =
+  (CalendarLoadModel model, Cmd.map LoadingMsg cmdMsg)
 
 init : Session -> (Model, Cmd Message)
 init session =
-  (Model session [] Dict.empty, requestEmployees)
+  toParentTypes (CalendarLoad.init session)
 
 type Message = 
-  ReceiveEmployees (Result Http.Error (EmployeesQuery)) |
-  ReceiveShifts Employee (Result Http.Error (ShiftsQuery))
+  LoadingMsg CalendarLoad.Message |
+  MonthMsg Month.Message |
+  WeekMsg Week.Message |
+  DayMsg Day.Message
 
-requestEmployees : Cmd Message
-requestEmployees =
-  Http.post 
-  {
-    url=Api.getEmployees,
-    body=Http.emptyBody,
-    expect=Http.expectJson ReceiveEmployees employeesQueryDecoder
-  }
+updateWith : (subModel -> Model) -> 
+  (subMessage -> Message) -> 
+  Model -> 
+  (subModel, Cmd subMessage) -> 
+  (Model, Cmd Message)
+updateWith toModel toMessage model (subModel, subCmd) =
+  ( 
+    toModel subModel,
+    Cmd.map toMessage subCmd
+  )
 
-requestShifts : Employee -> Cmd Message
-requestShifts emp =
-  Debug.log ("Requesting shifts for employee" ++ (Debug.toString emp))
-  Http.post {
-    url=Api.getShifts,
-    body=Http.jsonBody (employeeEncoder emp),
-    expect=Http.expectJson (ReceiveShifts emp) shiftsQueryDecoder
-  }
+viewSwitch : Session.ViewType -> Model -> Model
+viewSwitch viewType model =
+  case viewType of
+    Session.Month ->
+      case model of
+        CalendarLoadModel loadModel ->
+          MonthModel 
+            (Month.Model 
+            loadModel.session 
+            loadModel.employeesData 
+            Nothing)
+        MonthModel monthModel -> model
+        WeekModel weekModel ->
+          MonthModel 
+            (Month.Model
+            weekModel.session
+            weekModel.employeesData
+            Nothing)
+        DayModel dayModel ->
+          MonthModel 
+            (Month.Model
+            dayModel.session
+            dayModel.employeesData
+            Nothing)
+    Session.Week ->
+      case model of
+        CalendarLoadModel loadModel ->
+          WeekModel 
+            (Week.Model 
+            loadModel.session 
+            loadModel.employeesData 
+            Nothing)
+        MonthModel monthModel ->
+          WeekModel 
+            (Week.Model
+            monthModel.session
+            monthModel.employeesData
+            Nothing)
+        WeekModel weekModel -> model
+        DayModel dayModel ->
+          WeekModel 
+            (Week.Model
+            dayModel.session
+            dayModel.employeesData
+            Nothing)
+    Session.Day ->
+      case model of
+        CalendarLoadModel loadModel ->
+          DayModel 
+            (Day.Model 
+            loadModel.session 
+            loadModel.employeesData 
+            Nothing)
+        MonthModel monthModel ->
+          DayModel 
+            (Day.Model
+            monthModel.session
+            monthModel.employeesData
+            Nothing)
+        WeekModel weekModel ->
+          DayModel
+            (Day.Model
+            weekModel.session
+            weekModel.employeesData
+            Nothing)
+        DayModel dayModel -> model
 
 update : Model -> Message -> (Model, Cmd Message)
 update model msg =
-  case msg of
-    ReceiveEmployees employeesResult ->
-      case employeesResult of
-        Ok employees ->
-          ({ model | employees = employees.employees }, 
-            Cmd.batch (List.map requestShifts employees.employees))
-        Err e ->
-          (model, Cmd.none)
-          
-    ReceiveShifts employee shiftsResult ->
-      case shiftsResult of
-        Ok shifts ->
-          ({ model | employeeShifts = Dict.insert employee.id shifts.shifts model.employeeShifts}, Cmd.none)
-        Err e ->
-          (model, Cmd.none)
+  case (model, msg) of
+    (CalendarLoadModel loadModel, LoadingMsg loadMsg) ->
+      case loadMsg of
+        CalendarLoad.DoneLoading -> 
+          (viewSwitch loadModel.session.settings.viewType model,
+          Cmd.none)
+        _ -> CalendarLoad.update loadModel loadMsg
+          |> updateWith CalendarLoadModel LoadingMsg model
+    (MonthModel monthModel, MonthMsg monthMessage) ->
+      Month.update monthModel monthMessage
+      |> updateWith MonthModel MonthMsg model
+    (WeekModel weekModel, WeekMsg weekMessage) ->
+      Week.update weekModel weekMessage
+      |> updateWith WeekModel WeekMsg model
+    (DayModel dayModel, DayMsg dayMessage) ->
+      Day.update dayModel dayMessage
+      |> updateWith DayModel DayMsg model
+    (_, _) -> (model, Cmd.none)
 
-view : Model -> List (Html Message)
+toSession : Model -> Session
+toSession model =
+  case model of
+    CalendarLoadModel loadModel -> loadModel.session
+    MonthModel monthModel -> monthModel.session
+    WeekModel weekModel -> weekModel.session
+    DayModel dayModel -> dayModel.session
+
 view model = 
-  case model.session.settings.viewType of
-    Session.Month -> 
+  case model of
+    CalendarLoadModel loadModel -> Element.text "Loading..."
+    MonthModel monthModel ->
       Month.view 
-        model.session 
-        model.employees 
-        model.employeeShifts
-    Session.Week -> []
-    Session.Day -> []
+        monthModel
+      |> Element.map MonthMsg
+    WeekModel weekModel -> Element.none
+    DayModel dayModel -> Element.none

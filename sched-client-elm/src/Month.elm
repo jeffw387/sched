@@ -1,10 +1,36 @@
-module Month exposing (view)
-import Employee exposing (Employee)
+module Month exposing (..)
+import Employee exposing (Employee, EmployeesData)
 import Shift exposing (Shift)
 import Dict exposing (Dict)
 import Session exposing (..)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+-- import Html exposing (..)
+-- import Html.Attributes exposing (..)
+-- import Html.Events exposing (..)
+import CalendarExtra exposing (..)
+import Array exposing (Array)
+import Http
+import Query exposing (..)
+import Element exposing (Element)
+
+-- dayStyle : 
+
+type Message =
+  OverShift (Employee, Shift) |
+  LeaveShift |
+  ReceiveEmployees (Result Http.Error (Query.Employees)) |
+  ReceiveShifts Employee (Result Http.Error (Query.Shifts))
+
+type alias HoverData =
+  {
+
+  }
+
+type alias Model =
+  {
+    session : Session,
+    employeesData : EmployeesData,
+    hover : Maybe HoverData
+  }
 
 swapFirst : Employee -> (Int, List Shift) -> (Employee, List Shift)
 swapFirst c (a, b) =
@@ -14,19 +40,19 @@ mapEmployeeShifts : Dict Int (List Shift) -> List Employee -> List (Employee, Li
 mapEmployeeShifts shiftDict employees =
   List.map2 swapFirst employees (Dict.toList shiftDict)
 
-matchDay : Day -> Shift -> Bool
-matchDay day shift =
+matchYearMonthDay : YearMonthDay -> Shift -> Bool
+matchYearMonthDay day shift =
   shift.year == day.year && shift.month == day.month && shift.day == day.day
 
-filterByDay : Day -> 
+filterByYearMonthDay : YearMonthDay -> 
   (Employee, List Shift) -> (Employee, List Shift)
-filterByDay day (employee, shifts) =
-    (employee, List.filter (matchDay day) shifts)
+filterByYearMonthDay day (employee, shifts) =
+    (employee, List.filter (matchYearMonthDay day) shifts)
 
-mapShiftsToDay : Day -> 
+mapShiftsToYearMonthDay : YearMonthDay -> 
   List (Employee, List Shift) -> List (Employee, List Shift)
-mapShiftsToDay day employeeShifts =
-  List.map (filterByDay day) employeeShifts
+mapShiftsToYearMonthDay day employeeShifts =
+  List.map (filterByYearMonthDay day) employeeShifts
 
 endsFromStartDur : (Int, Int) -> (Int, Int)
 endsFromStartDur (start, duration) =
@@ -49,62 +75,193 @@ formatHour24 rawHour =
     hour24 = modBy 24 rawHour
   in String.fromInt hour24
 
-formatHours : Settings -> Int -> Int -> Html msg
+formatHours : Settings -> Int -> Int -> Element msg
 formatHours settings start duration =
   case settings.hourFormat of
     Session.Hour12 -> 
       let (_, end) = endsFromStartDur (start, duration)
-      in (text (formatHour12 start ++ "-" ++ formatHour12 end))
+      in (Element.text (formatHour12 start ++ "-" ++ formatHour12 end))
     Session.Hour24 -> 
       let (_, end) = endsFromStartDur (start, duration)
-      in (text (formatHour24 start ++ "-" ++ formatHour24 end))
+      in (Element.text (formatHour24 start ++ "-" ++ formatHour24 end))
 
-viewShift : Settings -> Shift -> Html msg
-viewShift settings shift =
-  div [] 
-    [ 
-      (formatHours settings shift.hour shift.hours)
-    ]
 
-viewEmployeeShifts : Settings -> 
-  (Employee, List Shift) -> Html msg
-viewEmployeeShifts settings (employee, shifts) =
-  div [] (List.append 
-    [text (Employee.toString employee.name)]
-    (List.map (viewShift settings) shifts))
+type alias Row =
+  Array (Maybe YearMonthDay)
 
-viewDay : Settings -> Day -> List (Employee, List Shift) -> Html msg
-viewDay settings day employeeShifts =
-  div [ class "uk-card", class "uk-card-default", class "uk-card-body" ]
-    (List.append 
-      [text (String.fromInt day.day)]
-      (List.map (viewEmployeeShifts settings)
-        (mapShiftsToDay day employeeShifts)))
+rowDefault : Row
+rowDefault =
+  Array.repeat 7 Nothing
 
-gridAttr : Attribute msg
-gridAttr =
-  attribute "uk-grid" ""
+type alias Month =
+    Array Row
 
-viewRow : List (Maybe Day) -> Html msg
-viewRow rowIndex =
-  div [][]
-
-type alias Day =
+type alias RowID =
   {
-    year : Int,
-    month : Int,
-    day : Int
+    index : Int,
+    maybeRow : Maybe Row
   }
 
-view : Session -> List Employee -> Dict Int (List Shift) -> List (Html msg)
-view session employees shiftDict =
-  Debug.log "Month view"
-  [
-    div [gridAttr, class "uk-child-width-expand@s", class "uk-text-center"]
-    [
-      viewDay session.settings (Day 2019 3 23)
-        (mapEmployeeShifts shiftDict employees),
-      viewDay session.settings (Day 2019 3 24) 
-        (mapEmployeeShifts shiftDict employees)
-    ]
-  ]
+type alias DayID =
+  {
+    index : Int,
+    maybeDay : Maybe YearMonthDay
+  }
+
+monthDefault : Month    
+monthDefault =
+  Array.repeat 6 rowDefault
+
+makeDaysForMonth : YearMonth -> Array YearMonthDay
+makeDaysForMonth ym =
+  List.range 1 (daysInMonth ym) 
+      |> List.map (\d -> (withDay ym d))
+      |> Array.fromList
+
+foldAllEmpty : Maybe YearMonthDay -> Bool -> Bool
+foldAllEmpty maybeYMD emptySoFar =
+  case emptySoFar of
+    True ->
+      case maybeYMD of
+        Just _ -> False
+        Nothing -> True
+    False -> False
+
+allEmpty : Array (Maybe YearMonthDay) -> Bool
+allEmpty ymdArray =
+  Array.foldl foldAllEmpty True ymdArray
+
+foldRowSelect : Int -> Row -> (RowID, DayID) -> (RowID, DayID)
+foldRowSelect targetIndex row (rowID, dayID) =
+    case allEmpty (Array.slice targetIndex 7 row) of
+      True ->
+        -- Debug.log "allEmpty True: " 
+          case rowID.maybeRow of
+            Just alreadyFound -> (rowID, dayID)
+            Nothing ->
+              (RowID rowID.index (Just row), DayID targetIndex Nothing)
+      False ->
+        -- Debug.log "allEmpty False: " 
+          (RowID (rowID.index + 1) Nothing, dayID)
+
+defaultID = (RowID 0 Nothing, DayID 0 Nothing)
+
+selectPositionForDay : YearMonthDay -> Month -> (RowID, DayID)
+selectPositionForDay ymd month =
+  let dayIndex = (toWeekday ymd) - 1
+  in
+    Array.foldl (foldRowSelect dayIndex) defaultID month
+
+foldPlaceDay : YearMonthDay -> Month -> Month
+foldPlaceDay ymd inMonth =
+  let 
+    (rowID, dayID) = 
+      -- Debug.log "foldPlaceDay" 
+      (selectPositionForDay 
+        ymd 
+          -- Debug.log "inMonth" 
+            inMonth)
+    newRow = 
+      case rowID.maybeRow of
+        Just row -> Array.set 
+          dayID.index 
+          (Just ymd) 
+            -- Debug.log 
+            --   "Just row" 
+              row
+        Nothing -> rowDefault
+    -- newRowPrint = Debug.log "newRow" newRow
+  in
+    -- Debug.log "foldPlaceDay output" 
+      (Array.set rowID.index newRow inMonth)
+
+placeDays : Array YearMonthDay -> Month -> Month
+placeDays ymd month =
+  Array.foldl foldPlaceDay month ymd
+
+makeGridFromMonth : YearMonth -> Month
+makeGridFromMonth ym =
+  let 
+    days = makeDaysForMonth ym
+  in
+    placeDays days monthDefault
+
+monthToWeekdays : List YearMonthDay -> List Weekdays
+monthToWeekdays days =
+  List.map toWeekday days |> List.map CalendarExtra.fromInt
+
+update : Model -> Message -> (Model, Cmd Message)
+update model message =
+  (model, Cmd.none)
+
+pairEmployeeShift : Settings -> (Employee, List Shift) -> List (Element msg)
+pairEmployeeShift settings (employee, shifts) = 
+  List.map (shiftElement settings employee) shifts
+
+foldHtmlList : List (Element msg) -> List (Element msg) -> List (Element msg)
+foldHtmlList nextList soFar =
+  List.append soFar nextList
+
+combineHtmlLists : List (List (Element msg)) -> List (Element msg)
+combineHtmlLists lists =
+  List.foldl foldHtmlList [] lists
+
+shiftElement : 
+  Settings 
+  -> Employee
+  -> Shift 
+  -> Element msg
+shiftElement settings employee shift =
+  Element.el 
+    [] (formatHours settings shift.hour shift.hours)
+
+dayElement : 
+  Settings 
+  -> List (Employee, List Shift)
+  -> Maybe YearMonthDay
+  -> Element msg
+dayElement settings employeeShifts maybeYMD =
+  case maybeYMD of
+    Just day -> Element.el [] Element.none
+      -- (List.append 
+      --   [text (String.fromInt day.day)]
+      --   (combineHtmlLists (List.map 
+      --     (pairEmployeeShift settings)
+      --     (mapShiftsToYearMonthDay day employeeShifts))))
+    Nothing -> Element.el [] Element.none
+monthRowElement : 
+  Settings 
+  -> List (Employee, List Shift)
+  -> Row 
+  -> Element msg
+monthRowElement settings employeeShifts row =
+  Element.row [] []
+  -- tr 
+  --   [ 
+  --     -- class "uk-container"
+  --   ]
+  --   (Array.toList (Array.map (dayElement settings employeeShifts) row))
+
+monthElement = Element.el [] Element.none
+
+view model =
+  let 
+    month = makeGridFromMonth (YearMonth 2019 3)
+    settings = model.session.settings
+    shiftDict = model.employeesData.employeeShifts
+    employees = model.employeesData.employees
+  in
+    monthElement
+    -- [
+    --   table [
+    --         class "uk-table",
+    --         -- class "uk-table-divider",
+    --         -- class "uk-flex", 
+    --         class "uk-text-center" 
+    --         -- class "uk-flex-row"
+    --       ]
+    --     (Array.toList (Array.map 
+    --       (monthRowElement settings (mapEmployeeShifts shiftDict employees))
+    --       month))
+    -- ]
+    

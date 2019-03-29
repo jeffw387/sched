@@ -1,7 +1,7 @@
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (..)
-import Html.Attributes exposing (..)
+-- import Html exposing (..)
+-- import Html.Attributes exposing (..)
 import Url
 import Api
 import Json.Decode as D
@@ -10,6 +10,8 @@ import Login
 import Calendar
 import Task
 import Session exposing (Session)
+import Element exposing (Element)
+import Element.Font as Font
 
 -- domain_url = "http://localhost/8000/sched"
 
@@ -62,7 +64,7 @@ toSession model =
     LoginPage page ->
       page.session
     CalendarPage page ->
-      page.session
+      Calendar.toSession page
 
 index model url =
   Debug.log (Debug.toString url)
@@ -98,11 +100,11 @@ update msg model =
           Debug.log "Url changed, no match"
           (model, Cmd.none)
     (LoginMsg loginMsg, LoginPage loginPage) ->
-      Debug.log ("LoginMsg: " ++ (Debug.toString loginMsg))
+      Debug.log ("LoginMsg")
       Login.update loginPage loginMsg
         |> updateWith LoginPage LoginMsg model
     (CalendarMsg calMsg, CalendarPage calPage) ->
-      Debug.log ("CalendarMsg: " ++ (Debug.toString calMsg))
+      Debug.log ("CalendarMsg")
       Calendar.update calPage calMsg
         |> updateWith CalendarPage CalendarMsg model
     (_, _) -> 
@@ -114,11 +116,22 @@ subscriptions : Model -> Sub Message
 subscriptions model =
     Sub.none
 
-toDocument : (List (Html Message)) -> (Browser.Document Message)
-toDocument htmlList =
+toDocument : Element Message -> Browser.Document Message
+toDocument rootElement =
   {
     title = "Scheduler",
-    body = htmlList
+    body = 
+      [
+        Element.layout 
+          [
+            Font.family
+              [
+                Font.typeface "Open Sans",
+                Font.sansSerif
+              ]
+          ] 
+        rootElement
+      ]
   }
 
 -- VIEW
@@ -127,13 +140,9 @@ view model =
   case model of
     LoginPage loginModel ->
       Login.view loginModel 
-      |> List.map (Html.map LoginMsg) 
+      |> Element.map LoginMsg
       |> toDocument
     CalendarPage calendarModel ->
       Calendar.view calendarModel 
-      |> List.map (Html.map CalendarMsg) 
+      |> Element.map CalendarMsg
       |> toDocument
-
-viewLink : String -> Html msg
-viewLink path =
-  li [] [ a [ href path ] [ text path ] ]

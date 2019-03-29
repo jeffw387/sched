@@ -4,9 +4,13 @@ import Json.Decode as D
 import Json.Encode as E
 import Http
 import Url.Builder as UB
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+-- import Html exposing (..)
+-- import Html.Attributes exposing (..)
+-- import Html.Events exposing (..)
+import Element exposing (Element)
+import Element.Input as Input
+import Element.Background as BG
+import Element.Border as Border
 import Session exposing (Session)
 import Browser.Navigation as Nav
 
@@ -98,36 +102,102 @@ update model msg =
       ({ model | login_info =
         LoginInfo model.login_info.email password }, Cmd.none)
 
-view : Model -> List (Html Message)
+elementShadow =
+  Border.shadow
+    {
+      offset = (4, 4),
+      size = 3,
+      blur = 10,
+      color = Element.rgba 0 0 0 0.5
+    }
+
+view : Model -> Element Message
 view model =
-  [
-    h1 [][text "Login to Scheduler"],
-    Html.form 
-      [
-        onSubmit LoginRequest
-      ]
-      [
-        div [][
-          label [][text "Email"],
-          input 
+  Element.column 
+    [
+      Element.padding 100, 
+      Element.width Element.fill,
+      BG.color (Element.rgb 0.6 0.8 0.9),
+      Element.centerY
+    ] 
+    [
+      Element.column 
+        [
+          Element.centerX
+        ]
+        [
+          Element.el 
             [
-              onInput UpdateEmail,
-              type_ "email", 
-              placeholder "you@something.com"
-            ][]
-        ],
-        div [][
-          label [][text "Password"],
-          input 
+              Element.centerX,
+              Element.padding 15
+            ] (Element.text "Login to Scheduler"),
+          Element.column
             [
-              onInput UpdatePassword,
-              type_ "password",
-              placeholder "Password"][]
-        ],
-        button [][text "Login"],
-        button [onClick CreateUser][text "Create User"]
-      ],
-    a [href "/sched/calendar"][text "calendar"],
-    div [][],
-    a [href "/sched/settings"][text "settings"]
-  ]
+              Element.spacing 15
+            ]
+            [
+              Input.username
+                [
+                  Element.alignRight,
+                  Input.focusedOnLoad,
+                  Element.width (Element.px 300),
+                  elementShadow,
+                  Element.padding 15,
+                  Element.spacing 15
+                ]
+                {
+                  label = Input.labelLeft [] (Element.text "Email"),
+                  onChange = UpdateEmail,
+                  placeholder = Just (Input.placeholder [] (Element.text "you@something.com")),
+                  text = model.login_info.email
+                },
+              Input.currentPassword
+                [
+                  Element.alignRight,
+                  Element.width (Element.px 300),
+                  elementShadow,
+                  Element.padding 15,
+                  Element.spacing 15
+                ]
+                {
+                  onChange = UpdatePassword,
+                  text = model.login_info.password,
+                  label = Input.labelLeft [] (Element.text "Password"),
+                  placeholder = Just (Input.placeholder [] (Element.text "Password")),
+                  show = False
+                }
+            ],
+          Element.row
+            [
+              Element.alignRight,
+              Element.width (Element.px 300),
+              Element.padding 15
+            ]
+            [
+              Input.button 
+                [ 
+                  Element.alignLeft,
+                  Element.padding 15,
+                  BG.color (Element.rgb 0.25 0.8 0.25),
+                  elementShadow,
+                  Element.padding 15
+                ]
+                {
+                  label = Element.text "Login",
+                  onPress = Just LoginRequest
+                },
+              Input.button 
+                [ 
+                  Element.alignRight,
+                  Element.padding 15,
+                  BG.color (Element.rgb 0.45 0.45 0.8),
+                  elementShadow,
+                  Element.padding 15
+                ]
+                {
+                  label = Element.text "Create User",
+                  onPress = Just CreateUser
+                }
+            ]
+        ]
+    ]
