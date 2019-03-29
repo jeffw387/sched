@@ -142,7 +142,6 @@ view model =
                   Element.alignRight,
                   Input.focusedOnLoad,
                   Element.width (Element.px 300),
-                  -- elementShadow,
                   Element.padding 15,
                   Element.spacing 15
                 ]
@@ -156,7 +155,6 @@ view model =
                 [
                   Element.alignRight,
                   Element.width (Element.px 300),
-                  -- elementShadow,
                   Element.padding 15,
                   Element.spacing 15
                 ]
