@@ -365,10 +365,10 @@ fn main() {
             .default_resource(|r| r.get().f(index))
             .resource(api::API_INDEX, |r| r.get().f(index))
             .resource("/sched/index.js", |r| r.get().f(index_js))
-            .resource(api::API_LOGIN, |r| {
+            .resource(api::API_LOGIN_REQUEST, |r| {
                 r.post().with_async(login_request)
             })
-            .resource(api::API_CREATE_USER, |r| {
+            .resource(api::API_ADD_USER, |r| {
                 r.post().with_async(create_user)
             })
             .resource(api::API_GET_EMPLOYEES, |r| {
