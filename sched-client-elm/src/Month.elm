@@ -11,8 +11,10 @@ import Array exposing (Array)
 import Http
 import Query exposing (..)
 import Element exposing (Element)
-
--- dayStyle : 
+import Element.Background as BG
+import Element.Input as Input
+import Element.Border as Border
+import Element.Font as Font
 
 type Message =
   OverShift (Employee, Shift) |
