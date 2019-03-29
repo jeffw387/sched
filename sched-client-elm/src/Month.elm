@@ -200,6 +200,13 @@ combineElementLists : List (List (Element msg)) -> List (Element msg)
 combineElementLists lists =
   List.foldl foldElementList [] lists
 
+formatLastName : Settings -> String -> String
+formatLastName settings name =
+  case settings.lastNameStyle of
+    Session.FullName -> name
+    Session.FirstInitial -> String.left 1 name
+    Session.Hidden -> ""
+
 shiftElement : 
   Settings 
   -> Employee
