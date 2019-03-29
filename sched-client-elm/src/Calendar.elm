@@ -121,7 +121,7 @@ viewSwitch viewType model =
 
 update : Model -> Message -> (Model, Cmd Message)
 update model msg =
-  case (model, msg) of
+  case (model, Debug.log "Calendar Message" msg) of
     (CalendarLoadModel loadModel, LoadingMsg loadMsg) ->
       case loadMsg of
         CalendarLoad.DoneLoading -> 
