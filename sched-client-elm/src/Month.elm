@@ -232,6 +232,22 @@ shiftElement settings employee shift =
       (formatHours settings shift.hour shift.hours)
     ]
 
+filledDayStyle = 
+  [
+    Element.width Element.fill,
+    Element.height Element.fill,
+    Border.rounded 3,
+    Border.color (Element.rgb 0.2 0.2 0.2),
+    Border.width 1,
+    Border.shadow
+      {
+        offset = (1, 1),
+        size = 2,
+        blur = 2,
+        color = Element.rgb 0.75 0.75 0.75
+      }
+  ]
+
 dayElement : 
   Settings 
   -> List (Employee, List Shift)
