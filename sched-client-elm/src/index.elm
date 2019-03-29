@@ -31,10 +31,15 @@ type Model =
   LoginPage Login.Model |
   CalendarPage Calendar.Model
 
-
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Message)
 init _ url key =
-  Session url key (Session.Settings Session.Month Session.Hour12)
+  Session 
+    url 
+    key 
+    (Session.Settings 
+      Session.Month 
+      Session.Hour12 
+      Session.FirstInitial)
     |> Login.init 
     >> \(lmdl, lmsg) -> (LoginPage lmdl, Cmd.map LoginMsg lmsg)
 
