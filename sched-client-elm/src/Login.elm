@@ -141,7 +141,7 @@ view model =
                   Element.alignRight,
                   Input.focusedOnLoad,
                   Element.width (Element.px 300),
-                  elementShadow,
+                  -- elementShadow,
                   Element.padding 15,
                   Element.spacing 15
                 ]
@@ -155,7 +155,7 @@ view model =
                 [
                   Element.alignRight,
                   Element.width (Element.px 300),
-                  elementShadow,
+                  -- elementShadow,
                   Element.padding 15,
                   Element.spacing 15
                 ]
@@ -171,16 +171,15 @@ view model =
             [
               Element.alignRight,
               Element.width (Element.px 300),
-              Element.padding 15
+              Element.paddingXY 0 15
             ]
             [
               Input.button 
                 [ 
                   Element.alignLeft,
-                  Element.padding 15,
                   BG.color (Element.rgb 0.25 0.8 0.25),
                   elementShadow,
-                  Element.padding 15
+                  Element.padding 10
                 ]
                 {
                   label = Element.text "Login",
@@ -189,10 +188,9 @@ view model =
               Input.button 
                 [ 
                   Element.alignRight,
-                  Element.padding 15,
                   BG.color (Element.rgb 0.45 0.45 0.8),
                   elementShadow,
-                  Element.padding 15
+                  Element.padding 10
                 ]
                 {
                   label = Element.text "Create User",
