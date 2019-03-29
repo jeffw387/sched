@@ -128,9 +128,10 @@ view model =
         [
           Element.el 
             [
-              Element.centerX,
+              Element.alignRight,
+              Element.width (Element.px 300),
               Element.padding 15
-            ] (Element.text "Login to Scheduler"),
+            ] (Element.el [Element.centerX] (Element.text "Login to Scheduler")),
           Element.column
             [
               Element.spacing 15
