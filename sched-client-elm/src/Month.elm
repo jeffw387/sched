@@ -137,13 +137,11 @@ foldRowSelect : Int -> Row -> (RowID, DayID) -> (RowID, DayID)
 foldRowSelect targetIndex row (rowID, dayID) =
     case allEmpty (Array.slice targetIndex 7 row) of
       True ->
-        -- Debug.log "allEmpty True: " 
           case rowID.maybeRow of
             Just alreadyFound -> (rowID, dayID)
             Nothing ->
               (RowID rowID.index (Just row), DayID targetIndex Nothing)
       False ->
-        -- Debug.log "allEmpty False: " 
           (RowID (rowID.index + 1) Nothing, dayID)
 
 defaultID = (RowID 0 Nothing, DayID 0 Nothing)
@@ -158,23 +156,17 @@ foldPlaceDay : YearMonthDay -> Month -> Month
 foldPlaceDay ymd inMonth =
   let 
     (rowID, dayID) = 
-      -- Debug.log "foldPlaceDay" 
       (selectPositionForDay 
         ymd 
-          -- Debug.log "inMonth" 
             inMonth)
     newRow = 
       case rowID.maybeRow of
         Just row -> Array.set 
           dayID.index 
           (Just ymd) 
-            -- Debug.log 
-            --   "Just row" 
               row
         Nothing -> rowDefault
-    -- newRowPrint = Debug.log "newRow" newRow
   in
-    -- Debug.log "foldPlaceDay output" 
       (Array.set rowID.index newRow inMonth)
 
 placeDays : Array YearMonthDay -> Month -> Month
