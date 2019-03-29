@@ -5,7 +5,7 @@ authors = ["Jeff Wright <jeffw387@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-sched = { path = "../sched"}
+# sched = { path = "../sched"}
 rust-crypto = "^0.2"
 actix = ""
 actix-web = ""

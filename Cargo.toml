@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "sched",
+  # "sched",
   # "sched-client-seed",
   "sched-server"
 ]
