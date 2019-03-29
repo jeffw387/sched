@@ -192,13 +192,13 @@ pairEmployeeShift : Settings -> (Employee, List Shift) -> List (Element msg)
 pairEmployeeShift settings (employee, shifts) = 
   List.map (shiftElement settings employee) shifts
 
-foldHtmlList : List (Element msg) -> List (Element msg) -> List (Element msg)
-foldHtmlList nextList soFar =
+foldElementList : List (Element msg) -> List (Element msg) -> List (Element msg)
+foldElementList nextList soFar =
   List.append soFar nextList
 
-combineHtmlLists : List (List (Element msg)) -> List (Element msg)
-combineHtmlLists lists =
-  List.foldl foldHtmlList [] lists
+combineElementLists : List (List (Element msg)) -> List (Element msg)
+combineElementLists lists =
+  List.foldl foldElementList [] lists
 
 shiftElement : 
   Settings 
