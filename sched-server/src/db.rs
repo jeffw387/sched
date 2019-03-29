@@ -13,7 +13,7 @@ use diesel::r2d2::{
     ConnectionManager,
     Pool,
 };
-use sched::message::LoginInfo;
+use super::message::LoginInfo;
 use std::fmt::{
     Debug,
     Formatter,
