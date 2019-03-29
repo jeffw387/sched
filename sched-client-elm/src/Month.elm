@@ -265,13 +265,29 @@ dayElement :
   -> Element msg
 dayElement settings employeeShifts maybeYMD =
   case maybeYMD of
-    Just day -> Element.el [] Element.none
-      -- (List.append 
-      --   [text (String.fromInt day.day)]
-      --   (combineHtmlLists (List.map 
-      --     (pairEmployeeShift settings)
-      --     (mapShiftsToYearMonthDay day employeeShifts))))
-    Nothing -> Element.el [] Element.none
+    Just day -> Element.column 
+      filledDayStyle
+      [
+        Element.el 
+          [
+            Element.paddingEach 
+              { 
+                left = 5, 
+                top = 5, 
+                right = 0, 
+                bottom = 5
+              }
+          ] (Element.text (String.fromInt day.day)),
+        Element.column 
+          [
+            Element.centerX,
+            Element.width Element.fill
+          ] 
+          (combineElementLists (List.map 
+            (pairEmployeeShift settings)
+            (mapShiftsToYearMonthDay day employeeShifts)))
+      ]
+    Nothing -> Element.el emptyDayStyle Element.none
 monthRowElement : 
   Settings 
   -> List (Employee, List Shift)
