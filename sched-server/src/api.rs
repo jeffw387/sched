@@ -3,6 +3,7 @@ pub const API_ADD_USER: &str = "/sched/add_user";
 pub const API_CHANGE_PASSWORD: &str = "/sched/change_password";
 pub const API_REMOVE_USER: &str = "/sched/remove_user";
 pub const API_LOGIN_REQUEST: &str = "/sched/login_request";
+pub const API_LOGOUT_REQUEST: &str = "/sched/logout_request";
 pub const API_GET_SETTINGS: &str = "/sched/get_settings";
 pub const API_ADD_SETTINGS: &str = "/sched/add_settings";
 pub const API_REPLACE_SETTINGS: &str = "/sched/replace_settings";
