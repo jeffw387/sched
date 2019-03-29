@@ -248,6 +248,16 @@ filledDayStyle =
       }
   ]
 
+emptyDayStyle =
+  [
+    Element.width Element.fill,
+    Element.height Element.fill,
+    Border.solid,
+    Border.color (Element.rgb 1 1 1),
+    Border.width 1,
+    BG.color (Element.rgba 0.95 0.95 0.95 0.25)
+  ]
+
 dayElement : 
   Settings 
   -> List (Employee, List Shift)
