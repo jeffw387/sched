@@ -1,7 +1,5 @@
 import Browser
 import Browser.Navigation as Nav
--- import Html exposing (..)
--- import Html.Attributes exposing (..)
 import Url
 import Api
 import Json.Decode as D
@@ -40,8 +38,8 @@ init _ url key =
       Session.Month 
       Session.Hour12 
       Session.FirstInitial)
-    |> Login.init 
-    >> \(lmdl, lmsg) -> (LoginPage lmdl, Cmd.map LoginMsg lmsg)
+  |> Login.init 
+  >> \(lmdl, lmsg) -> (LoginPage lmdl, Cmd.map LoginMsg lmsg)
 
 -- UPDATE
 type Message =
