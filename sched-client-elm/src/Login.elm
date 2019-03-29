@@ -117,7 +117,7 @@ view model =
     [
       Element.padding 100, 
       Element.width Element.fill,
-      BG.color (Element.rgb 0.6 0.8 0.9),
+      BG.color (Element.rgb 0.85 0.9 0.95),
       Element.centerY
     ] 
     [
