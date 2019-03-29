@@ -13,8 +13,6 @@ import Session exposing (Session)
 import Element exposing (Element)
 import Element.Font as Font
 
--- domain_url = "http://localhost/8000/sched"
-
 -- MAIN
 main : Program () Model Message
 main =
