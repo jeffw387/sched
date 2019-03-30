@@ -45,6 +45,8 @@ const ENV_INDEX_BASE: &str = "INDEX_BASE";
 const ENV_SERVER_PORT: &str = "SERVER_PORT";
 
 fn make_session(secure: bool) -> http::Cookie<'static> {
+    let now = chrono::Local::now();
+    
     http::Cookie::build(SESSION_KEY, SESSION_TEST_VALUE)
         .max_age(Duration::days(1))
         .domain("localhost")
