@@ -42,8 +42,6 @@ const SESSION_TEST_VALUE: &str = "";
 
 const ENV_DB_URL: &str = "DATABASE_URL";
 const ENV_INDEX_BASE: &str = "INDEX_BASE";
-
-
 const ENV_SERVER_PORT: &str = "SERVER_PORT";
 
 fn make_session(secure: bool) -> http::Cookie<'static> {
