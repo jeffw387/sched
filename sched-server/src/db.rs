@@ -1,3 +1,4 @@
+use super::message::LoginInfo;
 use super::user as dbuser;
 use crate::employee::{
     self,
@@ -13,12 +14,11 @@ use diesel::r2d2::{
     ConnectionManager,
     Pool,
 };
-use super::message::LoginInfo;
+use serde::Serialize;
 use std::fmt::{
     Debug,
     Formatter,
 };
-use serde::{Serialize};
 
 pub struct LoginRequest(pub LoginInfo);
 
@@ -39,7 +39,10 @@ impl Handler<LoginRequest> for DbExecutor {
             &self.0.get().map_err(|e| Error::R2(e))?;
         let username = req.0.email;
         let password = req.0.password;
-        println!("Trying login with {} and {}", username, password);
+        println!(
+            "Trying login with {} and {}",
+            username, password
+        );
         let usr = super::user::get_user(conn, &username)
             .map_err(|err| Error::Usr(err))?;
         match usr.check_password(&password).map_err(|e| {
@@ -50,7 +53,8 @@ impl Handler<LoginRequest> for DbExecutor {
         }) {
             Ok(true) => {
                 println!("Password matches.");
-                Ok("test token".to_owned())}
+                Ok("test token".to_owned())
+            }
             Ok(false) => {
                 println!(
                     "Error during login: invalid password"
@@ -101,7 +105,7 @@ impl Handler<CreateUser> for DbExecutor {
                 println!("get_user failed: {:?}", e);
                 dbg!(&e);
                 match e {
-                    // If user is not found, 
+                    // If user is not found,
                     // try to add the user
                     super::user::Error::NotFound => {
                         match super::user::add_user(
@@ -134,7 +138,7 @@ pub struct GetEmployees {}
 
 #[derive(Serialize, Debug)]
 pub struct EmployeesQuery {
-    pub employees: Vec<Employee>
+    pub employees: Vec<Employee>,
 }
 
 type GetEmployeesResult =
@@ -154,7 +158,7 @@ impl Handler<GetEmployees> for DbExecutor {
         let conn = &self.0.get().unwrap();
         employee::get_employees(conn)
             .map_err(|e| Error::Dsl(e.into()))
-            .map(|emps| EmployeesQuery{employees: emps})
+            .map(|emps| EmployeesQuery { employees: emps })
     }
 }
 
@@ -162,7 +166,7 @@ pub struct GetShifts(pub Employee);
 
 #[derive(Serialize, Debug)]
 pub struct ShiftsQuery {
-    pub shifts: Vec<Shift>
+    pub shifts: Vec<Shift>,
 }
 
 pub type GetShiftsResult =
@@ -180,8 +184,10 @@ impl Handler<GetShifts> for DbExecutor {
         _: &mut Self::Context,
     ) -> GetShiftsResult {
         let conn = &self.0.get().unwrap();
-        msg.0.get_shifts(conn).map_err(|e| Error::Shft(e))
-            .map(|shifts| ShiftsQuery{shifts: shifts})
+        msg.0
+            .get_shifts(conn)
+            .map_err(|e| Error::Shft(e))
+            .map(|shifts| ShiftsQuery { shifts: shifts })
     }
 }
 

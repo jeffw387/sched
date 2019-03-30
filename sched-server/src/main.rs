@@ -18,7 +18,6 @@ use diesel::r2d2::ConnectionManager;
 use dotenv;
 use futures::Future;
 use sched_server::api;
-use sched_server::message::LoginInfo;
 use sched_server::db::{
     CreateUser,
     CreateUserResult,
@@ -28,6 +27,7 @@ use sched_server::db::{
     LoginRequest,
     LoginResult,
 };
+use sched_server::message::LoginInfo;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -46,7 +46,7 @@ const ENV_SERVER_PORT: &str = "SERVER_PORT";
 
 fn make_session(secure: bool) -> http::Cookie<'static> {
     let now = chrono::Local::now();
-    
+
     http::Cookie::build(SESSION_KEY, SESSION_TEST_VALUE)
         .max_age(Duration::days(1))
         .domain("localhost")
@@ -95,7 +95,9 @@ fn add_user(
                         match create_result {
                             Ok(()) => {
                                 Ok(HttpResponse::Ok()
-                                    .cookie(make_session(false))
+                                    .cookie(make_session(
+                                        false,
+                                    ))
                                     .finish())
                             }
                             Err(err) => Ok(
@@ -126,7 +128,10 @@ fn login_request(
             db.send(LoginRequest(login_info))
                 .from_err()
                 .and_then(|login_result: LoginResult| {
-                    println!("Login Result: {:?}", login_result);
+                    println!(
+                        "Login Result: {:?}",
+                        login_result
+                    );
                     match login_result {
                         Ok(_token) => {
                             println!("Login result Ok");
@@ -157,9 +162,7 @@ fn validate_session(
     }
 }
 
-fn print_cookies(
-    req: &HttpRequest<AppState>
-) {
+fn print_cookies(req: &HttpRequest<AppState>) {
     match req.cookies() {
         Ok(cks) => {
             println!("Printing cookies:");
@@ -167,7 +170,9 @@ fn print_cookies(
                 println!("Cookie: {:?}", ck);
             }
         }
-        Err(err) => println!("Error getting cookies: {}", err)
+        Err(err) => {
+            println!("Error getting cookies: {}", err)
+        }
     };
 }
 
@@ -271,7 +276,8 @@ fn load_static_js() -> String {
                 }
                 Err(e) => {
                     let msg = format!(
-                        "Error reading from static resource: {:#?}", e
+                        "Error reading from static resource: {:#?}",
+                        e
                     );
                     println!("{}", msg);
                     msg
@@ -364,7 +370,9 @@ fn main() {
             )
             .default_resource(|r| r.get().f(index))
             .resource(api::API_INDEX, |r| r.get().f(index))
-            .resource("/sched/index.js", |r| r.get().f(index_js))
+            .resource("/sched/index.js", |r| {
+                r.get().f(index_js)
+            })
             .resource(api::API_LOGIN_REQUEST, |r| {
                 r.post().with_async(login_request)
             })

@@ -1,14 +1,17 @@
-use super::schema::users;
+use super::message::LoginInfo;
 use super::schema::sessions;
+use super::schema::users;
 use crypto::pbkdf2 as crypt;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use super::message::LoginInfo;
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::fmt::{
     Debug,
     Formatter,
 };
-use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, Insertable)]
 #[table_name = "users"]
@@ -100,13 +103,15 @@ pub fn get_user(
         .first::<User>(conn)
     {
         Ok(user) => Ok(user),
-        Err(err) => match err {
+        Err(err) => {
+            match err {
             diesel::result::Error::NotFound => {
                 Err(Error::NotFound)
             }
-            other_err => Err(Error::Dsl(other_err))
+                other_err => Err(Error::Dsl(other_err)),
         }
     }
+}
 }
 
 /// Get all users in database
