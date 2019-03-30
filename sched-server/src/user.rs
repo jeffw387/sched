@@ -8,6 +8,7 @@ use std::fmt::{
     Debug,
     Formatter,
 };
+use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, Insertable)]
 #[table_name = "users"]
