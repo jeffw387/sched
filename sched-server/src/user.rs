@@ -187,12 +187,21 @@ impl NewSession {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Queryable, Identifiable)]
+pub struct Session {
+    pub id: i32,
+    pub user_id: i32,
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
+    pub hour: i32,
+    pub hours: i32,
+    pub token: String
 }
 
 impl Session {
-    fn encrypt(&self) -> std::io::Result<String> {
-        let json = serde_json::to_string(&self)?;
-        crypt::pbkdf2_simple(&json, 1)
+
+}
     }
 }
 
