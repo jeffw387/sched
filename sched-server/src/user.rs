@@ -136,8 +136,17 @@ pub fn remove_user(conn: &PgConnection, name_find: &str) {
 }
 
 #[derive(Insertable, Debug)]
-#[table_name="sessions"]
-struct NewSession {
+#[table_name = "sessions"]
+pub struct NewSession {
+    pub user_id: i32,
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
+    pub hour: i32,
+    pub hours: i32,
+    pub token: String
+}
+
     user_id: i32,
     year: i32,
     month: i32,
