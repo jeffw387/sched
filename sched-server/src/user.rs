@@ -147,12 +147,14 @@ pub struct NewSession {
     pub token: String
 }
 
+#[derive(Serialize, Deserialize)]
+struct TokenData {
     user_id: i32,
     year: i32,
     month: i32,
     day: i32,
     hour: i32,
-    hours: i32
+    hours: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Queryable)]
