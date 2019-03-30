@@ -202,6 +202,22 @@ pub struct Session {
 impl Session {
 
 }
+
+impl User {
+    pub fn create_session(
+        &self,
+        conn: &PgConnection,
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        hours: i32,
+        ) -> std::result::Result<Session, Error> {
+            let new_session = NewSession::new(self.id, year, month, day, hour, hours);
+            diesel::insert_into(sessions::table)
+                .values(new_session)
+                .get_result::<Session>(conn)
+                .map_err(|e| Error::Dsl(e))
     }
 }
 
