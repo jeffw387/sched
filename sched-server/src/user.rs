@@ -221,7 +221,7 @@ impl User {
         }
 
     pub fn check_token(token: &str, conn: &PgConnection) -> bool {
-        
+        unimplemented!()
     }
 
     /// Ensure that the given password matches
