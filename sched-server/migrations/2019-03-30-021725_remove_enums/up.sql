@@ -1,0 +1,8 @@
+ALTER TABLE settings 
+ALTER COLUMN view_type TYPE VARCHAR,
+ALTER COLUMN hour_format TYPE VARCHAR,
+ALTER COLUMN last_name_style TYPE VARCHAR;
+
+DROP TYPE ViewType;
+DROP TYPE HourFormat;
+DROP TYPE LastNameStyle;
