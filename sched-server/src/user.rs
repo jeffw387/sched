@@ -1,4 +1,5 @@
 use super::schema::users;
+use super::schema::sessions;
 use crypto::pbkdf2 as crypt;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
