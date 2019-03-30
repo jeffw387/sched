@@ -105,13 +105,13 @@ pub fn get_user(
         Ok(user) => Ok(user),
         Err(err) => {
             match err {
-            diesel::result::Error::NotFound => {
-                Err(Error::NotFound)
-            }
+                diesel::result::Error::NotFound => {
+                    Err(Error::NotFound)
+                }
                 other_err => Err(Error::Dsl(other_err)),
+            }
         }
     }
-}
 }
 
 /// Get all users in database
@@ -159,12 +159,12 @@ struct TokenData {
 
 impl NewSession {
     pub fn new(
-    user_id: i32,
-    year: i32,
-    month: i32,
-    day: i32,
-    hour: i32,
-    hours: i32
+        user_id: i32,
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        hours: i32
     ) -> NewSession {
         let token_data = TokenData {
             user_id,
@@ -218,10 +218,12 @@ impl User {
                 .values(new_session)
                 .get_result::<Session>(conn)
                 .map_err(|e| Error::Dsl(e))
-    }
-}
+        }
 
-impl User {
+    pub fn check_token(token: &str, conn: &PgConnection) -> bool {
+        
+    }
+
     /// Ensure that the given password matches
     /// the user's stored password
     pub fn check_password(
