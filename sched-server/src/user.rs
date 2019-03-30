@@ -128,6 +128,35 @@ pub fn remove_user(conn: &PgConnection, name_find: &str) {
     }
 }
 
+#[derive(Insertable, Debug)]
+#[table_name="sessions"]
+struct NewSession {
+    user_id: i32,
+    year: i32,
+    month: i32,
+    day: i32,
+    hour: i32,
+    hours: i32
+}
+
+#[derive(Debug, Serialize, Deserialize, Queryable)]
+struct Session {
+    id: i32,
+    user_id: i32,
+    year: i32,
+    month: i32,
+    day: i32,
+    hour: i32,
+    hours: i32
+}
+
+impl Session {
+    fn encrypt(&self) -> std::io::Result<String> {
+        let json = serde_json::to_string(&self)?;
+        crypt::pbkdf2_simple(&json, 1)
+    }
+}
+
 impl User {
     /// Ensure that the given password matches
     /// the user's stored password
