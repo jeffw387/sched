@@ -23,7 +23,7 @@ table! {
     repeat_shifts (id) {
         id -> Int4,
         employee_id -> Int4,
-        repeat_type -> Repeattype,
+        repeat_type -> Varchar,
         every_n -> Int4,
         hour -> Int4,
         minute -> Int4,
@@ -33,8 +33,14 @@ table! {
 }
 
 table! {
-    sessions (token) {
-        token -> Text,
+    sessions (id) {
+        id -> Int4,
+        user_id -> Int4,
+        year -> Int4,
+        month -> Int4,
+        day -> Int4,
+        hour -> Int4,
+        hours -> Int4,
     }
 }
 
@@ -42,9 +48,9 @@ table! {
     settings (id) {
         id -> Int4,
         user_id -> Int4,
-        view_type -> Viewtype,
-        hour_format -> Hourformat,
-        last_name_style -> Lastnamestyle,
+        view_type -> Varchar,
+        hour_format -> Varchar,
+        last_name_style -> Varchar,
     }
 }
 
