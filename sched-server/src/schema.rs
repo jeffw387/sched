@@ -23,7 +23,7 @@ table! {
     repeat_shifts (id) {
         id -> Int4,
         employee_id -> Int4,
-        repeat_type -> Repeattype,
+        repeat_type -> Varchar,
         every_n -> Int4,
         hour -> Int4,
         minute -> Int4,
