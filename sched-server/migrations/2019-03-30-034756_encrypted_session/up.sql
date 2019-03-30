@@ -7,5 +7,5 @@ CREATE TABLE sessions (
   "day" INTEGER NOT NULL,
   "hour" INTEGER NOT NULL,
   "hours" INTEGER NOT NULL,
-  token VARCHAR
+  token VARCHAR NOT NULL
 );

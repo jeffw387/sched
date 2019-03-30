@@ -41,7 +41,7 @@ table! {
         day -> Int4,
         hour -> Int4,
         hours -> Int4,
-        token -> Nullable<Varchar>,
+        token -> Varchar,
     }
 }
 
