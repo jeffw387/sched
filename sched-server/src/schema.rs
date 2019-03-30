@@ -48,9 +48,9 @@ table! {
     settings (id) {
         id -> Int4,
         user_id -> Int4,
-        view_type -> Viewtype,
-        hour_format -> Hourformat,
-        last_name_style -> Lastnamestyle,
+        view_type -> Varchar,
+        hour_format -> Varchar,
+        last_name_style -> Varchar,
     }
 }
 
