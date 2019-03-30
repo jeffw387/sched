@@ -13,6 +13,7 @@ chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "1.0.0", features = ["r2d2", "postgres", "chrono"]}
 jsonwebtoken = ""
 serde = { version = "", features = ["derive"] }
+serde_json = ""
 uuid = ""
 futures = "0.1.25"
 r2d2 = "0.8.3"
