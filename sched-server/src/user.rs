@@ -37,6 +37,7 @@ pub struct User {
     pub id: i32,
     pub email: String,
     pub password_hash: String,
+    pub startup_settings: Option<i32>,
 }
 
 /// Add a new user to the database
