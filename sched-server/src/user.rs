@@ -147,25 +147,44 @@ pub struct NewSession {
     pub token: String
 }
 
-#[derive(Serialize, Deserialize)]
-struct TokenData {
-    user_id: i32,
-    year: i32,
-    month: i32,
-    day: i32,
-    hour: i32,
-    hours: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize, Queryable)]
-struct Session {
-    id: i32,
     user_id: i32,
     year: i32,
     month: i32,
     day: i32,
     hour: i32,
     hours: i32
+}
+
+impl NewSession {
+    pub fn new(
+    user_id: i32,
+    year: i32,
+    month: i32,
+    day: i32,
+    hour: i32,
+    hours: i32
+    ) -> NewSession {
+        let token_data = TokenData {
+            user_id,
+            year,
+            month,
+            day,
+            hour,
+            hours
+        };
+        let token = crypt::pbkdf2_simple(&serde_json::to_string(&token_data).expect("Error serializing token data!"), 1).expect("Error hashing token data!");
+        NewSession {
+            user_id,
+            year,
+            month,
+            day,
+            hour,
+            hours,
+            token
+        }
+    }
+}
+
 }
 
 impl Session {
