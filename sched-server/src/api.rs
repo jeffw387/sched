@@ -8,15 +8,16 @@ pub const API_LOGOUT_REQUEST: &str =
     "/sched/logout_request";
 pub const API_GET_SETTINGS: &str = "/sched/get_settings";
 pub const API_ADD_SETTINGS: &str = "/sched/add_settings";
-pub const API_REPLACE_SETTINGS: &str =
-    "/sched/replace_settings";
+pub const API_UPDATE_SETTINGS: &str =
+    "/sched/UPDATE_settings";
 pub const API_GET_EMPLOYEES: &str = "/sched/get_employees";
+pub const API_GET_EMPLOYEE: &str = "/sched/get_employee";
 pub const API_ADD_EMPLOYEE: &str = "/sched/add_employee";
-pub const API_REPLACE_EMPLOYEE: &str =
-    "/sched/replace_employee";
+pub const API_UPDATE_EMPLOYEE: &str =
+    "/sched/UPDATE_employee";
 pub const API_REMOVE_EMPLOYEE: &str =
     "/sched/remove_employee";
 pub const API_GET_SHIFTS: &str = "/sched/get_shifts";
 pub const API_ADD_SHIFT: &str = "/sched/add_shift";
-pub const API_REPLACE_SHIFT: &str = "/sched/replace_shift";
+pub const API_UPDATE_SHIFT: &str = "/sched/UPDATE_shift";
 pub const API_REMOVE_SHIFT: &str = "/sched/remove_shift";

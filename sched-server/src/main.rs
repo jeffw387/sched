@@ -1,8 +1,6 @@
 use actix::prelude::*;
 use actix::Addr;
-use actix_web::http;
 use actix_web::{
-    // fs::StaticFiles,
     server,
     App,
     AsyncResponder,
@@ -11,244 +9,317 @@ use actix_web::{
     HttpResponse,
     State,
 };
-use chrono::Duration;
-use cookie::SameSite;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use dotenv;
 use futures::Future;
 use sched_server::api;
+use sched_server::db::Error as DbError;
 use sched_server::db::{
-    CreateUser,
-    CreateUserResult,
     DbExecutor,
-    GetEmployees,
-    GetShifts,
-    LoginRequest,
-    LoginResult,
+    Messages,
+    Results,
+};
+use sched_server::employee::{
+    Employee,
 };
 use sched_server::message::LoginInfo;
+use sched_server::user::{
+    NewUser,
+    User,
+};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
-use std::ops::Deref;
 
 struct AppState {
     db: Addr<DbExecutor>,
 }
 
-const SESSION_KEY: &str = "session";
-const SESSION_TEST_VALUE: &str = "";
+const SESSION_COOKIE_KEY: &str = "session";
 
 const ENV_DB_URL: &str = "DATABASE_URL";
 const ENV_INDEX_BASE: &str = "INDEX_BASE";
 const ENV_SERVER_PORT: &str = "SERVER_PORT";
 
-fn make_session(secure: bool) -> http::Cookie<'static> {
-    let now = chrono::Local::now();
+type DbFuture =
+    Future<Item = HttpResponse, Error = actix_web::Error>;
+type DbRequest = (HttpRequest<AppState>, State<AppState>);
 
-    http::Cookie::build(SESSION_KEY, SESSION_TEST_VALUE)
-        .max_age(Duration::days(1))
-        .domain("localhost")
-        .http_only(true)
-        .secure(secure)
-        .same_site(SameSite::Strict)
-        .finish()
-}
-
-type ImmediateResult =
-    futures::Poll<HttpResponse, actix_web::Error>;
-
-struct ImmediateResponse<F>
-where
-    F: Sized + FnOnce() -> HttpResponse + Copy,
-{
-    f: F,
-}
-
-impl<F> Future for ImmediateResponse<F>
-where
-    F: Sized + FnOnce() -> HttpResponse + Copy,
-{
-    type Item = HttpResponse;
-    type Error = actix_web::Error;
-
-    fn poll(&mut self) -> ImmediateResult {
-        Ok(futures::Async::Ready((self.f)()))
+fn get_token(request: &HttpRequest<AppState>) -> String {
+    match request.cookie(SESSION_COOKIE_KEY) {
+        Some(token) => String::from(token.value()),
+        None => String::new(),
     }
 }
 
-fn add_user(
-    (req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<
-    Future<Item = HttpResponse, Error = actix_web::Error>,
-> {
-    print_cookies(&req);
-    let db = state.db.clone();
-    req.json()
-        .from_err()
-        .and_then(move |login_info: LoginInfo| {
-            db.send(CreateUser(login_info))
-                .from_err()
-                .and_then(
-                    |create_result: CreateUserResult| {
-                        match create_result {
-                            Ok(()) => {
-                                Ok(HttpResponse::Ok()
-                                    .cookie(make_session(
-                                        false,
-                                    ))
-                                    .finish())
-                            }
-                            Err(err) => Ok(
-                                HttpResponse::Unauthorized(
-                                )
-                                .content_type("text/plain")
-                                .body(format!("{:?}", err)),
-                            ),
-                        }
-                    },
-                )
-                .responder()
-        })
-        .responder()
-}
-
-fn login_request(
-    (req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<
-    Future<Item = HttpResponse, Error = actix_web::Error>,
-> {
-    print_cookies(&req);
+fn login((req, state): DbRequest) -> Box<DbFuture> {
     let db = state.db.clone();
     req.json()
         .from_err()
         .and_then(move |login_info: LoginInfo| {
             println!("Login Request: {:?}", login_info);
-            db.send(LoginRequest(login_info))
+            db.send(Messages::Login(login_info))
                 .from_err()
-                .and_then(|login_result: LoginResult| {
-                    println!(
-                        "Login Result: {:?}",
-                        login_result
-                    );
-                    match login_result {
-                        Ok(_token) => {
-                            println!("Login result Ok");
-                            Ok(HttpResponse::Ok()
-                                .cookie(make_session(false))
-                                .finish())
-                        }
-                        Err(_err) => {
-                            println!("Login result error!");
-                            Ok(HttpResponse::Unauthorized()
-                                .finish())
-                        }
-                    }
-                })
+                .and_then(handle_results)
                 .responder()
         })
         .responder()
 }
 
-// TODO: actually validate session
-fn validate_session(
-    cookie: Option<cookie::Cookie>,
-    user_token: &str,
-) -> bool {
-    match cookie {
-        None => false,
-        Some(cookie) => user_token == cookie.value(),
-    }
-}
-
-fn print_cookies(req: &HttpRequest<AppState>) {
-    match req.cookies() {
-        Ok(cks) => {
-            println!("Printing cookies:");
-            for ck in cks.deref() {
-                println!("Cookie: {:?}", ck);
-            }
-        }
-        Err(err) => {
-            println!("Error getting cookies: {}", err)
-        }
-    };
-}
-
-fn get_employees(
-    (req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<
-    Future<Item = HttpResponse, Error = actix_web::Error>,
-> {
-    print_cookies(&req);
-    if validate_session(
-        req.cookie(SESSION_KEY),
-        SESSION_TEST_VALUE,
-    ) {
-        println!("Session validated!");
-        state
-            .db
-            .send(GetEmployees {})
-            .from_err()
-            .and_then(|res| {
-                match res {
-                    Ok(emps) => {
-                        Ok(HttpResponse::Ok().json(emps))
-                    }
-                    Err(e) => {
-                        Ok(HttpResponse::from_error(
-                            e.into(),
-                        ))
-                    }
-                }
-            })
-            .responder()
-    } else {
-        println!("Session not validated!");
-        Box::new(ImmediateResponse {
-            f: || HttpResponse::Unauthorized().finish(),
+fn logout((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |user: User| {
+            state
+                .db
+                .clone()
+                .send(Messages::Logout(token, user))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
         })
-    }
+        .responder()
 }
 
-fn get_shifts(
-    (req, state): (HttpRequest<AppState>, State<AppState>),
-) -> Box<
-    Future<Item = HttpResponse, Error = actix_web::Error>,
-> {
-    print_cookies(&req);
-    if validate_session(
-        req.cookie(SESSION_KEY),
-        SESSION_TEST_VALUE,
-    ) {
-        use sched_server::employee::Employee;
-        req.json()
+fn add_user((req, state): DbRequest) -> Box<DbFuture> {
+    let db = state.db.clone();
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |login_info: LoginInfo| {
+            db.send(Messages::AddUser(
+                token,
+                NewUser::new(login_info),
+            ))
             .from_err()
-            .and_then(move |emp: Employee| {
-                state
-                    .db
-                    .send(GetShifts(emp))
-                    .from_err()
-                    .and_then(|res| {
-                        match res {
-                            Ok(shifts) => {
-                                Ok(HttpResponse::Ok()
-                                    .json(shifts))
-                            }
-                            Err(e) => Ok(
-                                HttpResponse::from_error(
-                                    e.into(),
-                                ),
-                            ),
-                        }
-                    })
-            })
+            .and_then(handle_results)
             .responder()
-    } else {
-        Box::new(ImmediateResponse {
-            f: || HttpResponse::Unauthorized().finish(),
         })
+        .responder()
+}
+
+fn change_password(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
+    // let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |change_password_info| {
+            state
+                .db
+                .clone()
+                .send(Messages::ChangePassword(
+                    change_password_info,
+                ))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn remove_user((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |user| {
+            state
+                .db
+                .clone()
+                .send(Messages::RemoveUser(token, user))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn get_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    state
+        .db
+        .clone()
+        .send(Messages::GetSettings(token))
+        .from_err()
+        .and_then(handle_results)
+        .responder()
+}
+
+fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |new_settings| {
+            state.db.clone()
+                .send(Messages::AddSettings(token, new_settings))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn update_settings(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |updated_settings| {
+            state.db.clone()
+                .send(Messages::UpdateSettings(token, updated_settings))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn get_employees((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    state
+        .db
+        .clone()
+        .send(Messages::GetEmployees(token))
+        .from_err()
+        .and_then(handle_results)
+        .responder()
+}
+
+fn get_employee((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |name| 
+            state.db.clone()
+            .send(Messages::GetEmployee(token, name))
+            .from_err()
+            .and_then(handle_results)
+            .responder())
+        .responder()
+}
+
+fn add_employee((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |new_employee| 
+            state.db.clone()
+            .send(Messages::AddEmployee(token, new_employee))
+            .from_err()
+            .and_then(handle_results)
+            .responder())
+        .responder()
+}
+
+fn update_employee((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |updated_employee| 
+            state.db.clone()
+            .send(Messages::UpdateEmployee(token, updated_employee))
+            .from_err()
+            .and_then(handle_results)
+            .responder())
+        .responder()
+}
+
+fn remove_employee((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |employee| {
+            state.db.clone()
+                .send(Messages::RemoveEmployee(token, employee))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |emp: Employee| {
+            state
+                .db
+                .send(Messages::GetShifts(token, emp))
+                .from_err()
+                .and_then(handle_results)
+        })
+        .responder()
+}
+
+fn add_shift((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |new_shift| {
+            state.db.clone()
+                .send(Messages::AddShift(token, new_shift))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn update_shift((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |updated| {
+            state.db.clone()
+                .send(Messages::UpdateShift(token, updated))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |shift| {
+            state.db.clone()
+                .send(Messages::RemoveShift(token, shift))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn handle_results(result: Result<Results, DbError>)
+    -> Result<HttpResponse, actix_web::Error> {
+    match result {
+        Ok(ok) => match ok {
+            Results::GetSession(token) => 
+                Ok(HttpResponse::Ok().json(token)),
+            Results::GetUser(user) =>
+                Ok(HttpResponse::Ok().json(user)),
+            Results::GetSettingsVec(settings_vec) =>
+                Ok(HttpResponse::Ok().json(settings_vec)),
+            Results::GetSettings(settings) =>
+                Ok(HttpResponse::Ok().json(settings)),
+            Results::GetEmployeesVec(employees_vec) =>
+                Ok(HttpResponse::Ok().json(employees_vec)),
+            Results::GetEmployee(employee) =>
+                Ok(HttpResponse::Ok().json(employee)),
+            Results::GetShiftsVec(shifts_vec) =>
+                Ok(HttpResponse::Ok().json(shifts_vec)),
+            Results::GetShift(shift) =>
+                Ok(HttpResponse::Ok().json(shift)),
+            Results::Nothing => Ok(HttpResponse::Ok().finish())
+        }
+        Err(err) => Ok(HttpResponse::from_error(err.into()))
     }
 }
 
@@ -374,16 +445,55 @@ fn main() {
                 r.get().f(index_js)
             })
             .resource(api::API_LOGIN_REQUEST, |r| {
-                r.post().with_async(login_request)
+                r.post().with_async(login)
+            })
+            .resource(api::API_LOGOUT_REQUEST, |r| {
+                r.post().with_async(logout)
             })
             .resource(api::API_ADD_USER, |r| {
                 r.post().with_async(add_user)
             })
+            .resource(api::API_CHANGE_PASSWORD, |r| {
+                r.post().with_async(change_password)
+            })
+            .resource(api::API_REMOVE_USER, |r| {
+                r.post().with_async(remove_user)
+            })
+            .resource(api::API_GET_SETTINGS, |r| {
+                r.post().with_async(get_settings)
+            })
+            .resource(api::API_ADD_SETTINGS, |r| {
+                r.post().with_async(add_settings)
+            })
+            .resource(api::API_UPDATE_SETTINGS, |r| {
+                r.post().with_async(update_settings)
+            })
             .resource(api::API_GET_EMPLOYEES, |r| {
                 r.post().with_async(get_employees)
             })
+            .resource(api::API_GET_EMPLOYEE, |r| {
+                r.post().with_async(get_employee)
+            })
+            .resource(api::API_ADD_EMPLOYEE, |r| {
+                r.post().with_async(add_employee)
+            })
+            .resource(api::API_UPDATE_EMPLOYEE, |r| {
+                r.post().with_async(update_employee)
+            })
+            .resource(api::API_REMOVE_EMPLOYEE, |r| {
+                r.post().with_async(remove_employee)
+            })
             .resource(api::API_GET_SHIFTS, |r| {
                 r.post().with_async(get_shifts)
+            })
+            .resource(api::API_ADD_SHIFT, |r| {
+                r.post().with_async(add_shift)
+            })
+            .resource(api::API_UPDATE_SHIFT, |r| {
+                r.post().with_async(update_shift)
+            })
+            .resource(api::API_REMOVE_SHIFT, |r| {
+                r.post().with_async(remove_shift)
             })
     })
     .bind(format!("localhost:{}", port))

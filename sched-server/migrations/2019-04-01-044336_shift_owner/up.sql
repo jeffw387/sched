@@ -1,0 +1,2 @@
+ALTER TABLE shifts
+ADD COLUMN user_id INTEGER NOT NULL;

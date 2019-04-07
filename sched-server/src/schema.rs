@@ -40,7 +40,7 @@ table! {
         month -> Int4,
         day -> Int4,
         hour -> Int4,
-        hours -> Int4,
+        minute -> Int4,
         token -> Varchar,
     }
 }
@@ -66,6 +66,7 @@ table! {
         minute -> Int4,
         hours -> Int4,
         minutes -> Int4,
+        user_id -> Int4,
     }
 }
 
@@ -75,6 +76,7 @@ table! {
         email -> Varchar,
         password_hash -> Varchar,
         startup_settings -> Nullable<Int4>,
+        level -> Varchar,
     }
 }
 

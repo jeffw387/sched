@@ -1,132 +1,397 @@
-use super::message::LoginInfo;
-use super::user as dbuser;
+use super::datetime;
+use super::message::{
+    ChangePasswordInfo,
+    LoginInfo,
+};
+use super::user::{
+    NewUser,
+    Session,
+    User,
+    UserLevel,
+};
 use crate::employee::{
-    self,
     Employee,
+    Name,
+    NewEmployee,
+};
+use crate::schema::{
+    employees,
+    sessions,
+    settings,
+    shifts,
+    users,
+};
+use crate::settings::{
+    NewSettings,
+    Settings,
 };
 use crate::shift::{
-    self,
+    NewShift,
     Shift,
 };
+use crate::user::NewSession;
 use actix::prelude::*;
+use crypto::pbkdf2 as crypt;
 use diesel::prelude::*;
 use diesel::r2d2::{
     ConnectionManager,
     Pool,
 };
-use serde::Serialize;
 use std::fmt::{
     Debug,
     Formatter,
 };
+use std::result::Result;
 
-pub struct LoginRequest(pub LoginInfo);
+type Token = String;
 
-pub type LoginResult = std::result::Result<String, Error>;
-impl Message for LoginRequest {
-    type Result = LoginResult;
+pub enum Messages {
+    Login(LoginInfo),
+    Logout(Token, User),
+    AddUser(Token, NewUser),
+    ChangePassword(ChangePasswordInfo),
+    RemoveUser(Token, User),
+    GetSettings(Token),
+    AddSettings(Token, NewSettings),
+    UpdateSettings(Token, Settings),
+    GetEmployees(Token),
+    GetEmployee(Token, Name),
+    AddEmployee(Token, NewEmployee),
+    UpdateEmployee(Token, Employee),
+    RemoveEmployee(Token, Employee),
+    GetShifts(Token, Employee),
+    AddShift(Token, NewShift),
+    UpdateShift(Token, Shift),
+    RemoveShift(Token, Shift),
 }
 
-impl Handler<LoginRequest> for DbExecutor {
-    type Result = LoginResult;
+impl Message for Messages {
+    type Result = Result<Results, Error>;
+}
+
+pub enum Results {
+    GetSession(String),
+    GetUser(User),
+    GetSettingsVec(Vec<Settings>),
+    GetSettings(Settings),
+    GetEmployeesVec(Vec<Employee>),
+    GetEmployee(Employee),
+    GetShiftsVec(Vec<Shift>),
+    GetShift(Shift),
+    Nothing,
+}
+
+impl Handler<Messages> for DbExecutor {
+    type Result = Result<Results, Error>;
 
     fn handle(
         &mut self,
-        req: LoginRequest,
-        _: &mut Self::Context,
-    ) -> LoginResult {
-        let conn =
-            &self.0.get().map_err(|e| Error::R2(e))?;
-        let username = req.0.email;
-        let password = req.0.password;
-        println!(
-            "Trying login with {} and {}",
-            username, password
-        );
-        let usr = super::user::get_user(conn, &username)
-            .map_err(|err| Error::Usr(err))?;
-        match usr.check_password(&password).map_err(|e| {
-            println!(
-                "Error while checking password: {}",
-                e
-            );
-        }) {
-            Ok(true) => {
-                println!("Password matches.");
-                Ok("test token".to_owned())
-            }
-            Ok(false) => {
-                println!(
-                    "Error during login: invalid password"
-                );
-                Err(Error::InvalidPassword)
-            }
-            Err(e) => {
-                println!(
-                    "Login request: unknown error {:?}",
-                    e
-                );
-                Err(Error::Misc("unknown error"))
-            }
-        }
-    }
-}
-
-pub struct CreateUser(pub LoginInfo);
-pub type CreateUserResult = std::result::Result<(), Error>;
-impl Message for CreateUser {
-    type Result = CreateUserResult;
-}
-
-impl Handler<CreateUser> for DbExecutor {
-    type Result = CreateUserResult;
-
-    fn handle(
-        &mut self,
-        req: CreateUser,
+        req: Messages,
         _: &mut Self::Context,
     ) -> Self::Result {
         let conn =
             &self.0.get().map_err(|e| Error::R2(e))?;
-        let username = req.0.email;
-        let password = req.0.password;
-        println!(
-            "Creating user {} with password {}",
-            username, password
-        );
-        match super::user::get_user(conn, &username) {
-            Ok(_) => {
-                println!(
-                    "Create user: a user with that email already exists."
-                );
-                Err(Error::UserExists)
+        match req {
+            Messages::Login(login_info) => {
+                let user =
+                    user_by_email(conn, &login_info.email)?;
+                if crypt::pbkdf2_check(
+                    &login_info.password,
+                    &user.password_hash,
+                )
+                .is_ok()
+                {
+                    let session_length = match user.level {
+                        UserLevel::Read => 24,
+                        _ => 1,
+                    };
+                    diesel::insert_into(sessions::table)
+                        .values(NewSession::new(
+                            user.id,
+                            datetime::now_plus_hours(
+                                session_length,
+                            ),
+                        ))
+                        .get_result::<Session>(conn)
+                        .map(|session| {
+                            Results::GetSession(session.token)
+                        })
+                        .map_err(|dsl_err| {
+                            Error::Dsl(dsl_err)
+                        })
+                } else {
+                    Err(Error::InvalidPassword)
+                }
             }
-            Err(e) => {
-                println!("get_user failed: {:?}", e);
-                dbg!(&e);
-                match e {
-                    // If user is not found,
-                    // try to add the user
-                    super::user::Error::NotFound => {
-                        match super::user::add_user(
-                            conn, username, password,
-                        ) {
-                            Ok(_) => Ok(()),
-                            Err(create_err) => {
-                                println!(
-                                    "Create user error: {:?}",
-                                    create_err
-                                );
-                                Err(Error::Usr(create_err))
+            Messages::Logout(token, user) => {
+                match check_token(&token, conn) {
+                    Ok(token_user) => {
+                        match_ids(token_user.id, user.id)?;
+                        let _n = diesel::delete(
+                            sessions::table.filter(
+                                sessions::token.eq(token),
+                            ),
+                        )
+                        .execute(conn);
+
+                        Ok(Results::Nothing)
+                    }
+                    Err(token_err) => Err(token_err),
+                }
+            }
+            Messages::AddUser(token, new_user) => {
+                let user = check_token(&token, conn)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::insert_into(users::table)
+                            .values(new_user)
+                            .get_result::<User>(conn)
+                            .map(|user| {
+                                Results::GetUser(user)
+                            })
+                            .map_err(|dsl_err| {
+                                Error::Dsl(dsl_err)
+                            })
+                    }
+                }
+            }
+            Messages::ChangePassword(
+                change_password_info,
+            ) => {
+                let user = user_by_email(
+                    conn,
+                    &change_password_info.login_info.email,
+                )?;
+                match crypt::pbkdf2_check(
+                    &change_password_info
+                        .login_info
+                        .password,
+                    &user.password_hash,
+                )
+                .is_ok()
+                {
+                    true => {
+                        let new_hash =
+                            crypt::pbkdf2_simple(
+                                &change_password_info
+                                    .new_password,
+                                1,
+                            )
+                            .map_err(|hash_err| {
+                                Error::Misc(format!(
+                                    "Hash error: {:?}",
+                                    hash_err
+                                ))
+                            })?;
+                        match diesel::update(&user)
+                            .set(
+                                users::password_hash
+                                    .eq(new_hash),
+                            )
+                            .execute(conn)
+                        {
+                            Ok(1) => Ok(Results::Nothing),
+                            Ok(_) => {
+                                Err(Error::Misc(
+                                    String::from(
+                                        "Updated the wrong number of password hashes! DB corruption may have occurred.",
+                                    ),
+                                ))
                             }
+                            Err(e) => Err(Error::Dsl(e)),
                         }
                     }
-                    e => {
-                        println!(
-                            "Create user error: {:?}",
-                            e
-                        );
-                        Err(Error::Usr(e))
+                    false => Err(Error::InvalidPassword),
+                }
+            }
+            Messages::RemoveUser(token, user) => {
+                let token_user = check_token(&token, conn)?;
+                match token_user.level {
+                    UserLevel::Admin => {
+                        diesel::delete(&user)
+                            .execute(conn)
+                            .map(|_count| Results::Nothing)
+                            .map_err(|err| Error::Dsl(err))
+                    }
+                    _ => Err(Error::Unauthorized),
+                }
+            }
+            Messages::GetSettings(token) => {
+                let user = check_token(&token, conn)?;
+                settings::table
+                    .filter(settings::user_id.eq(user.id))
+                    .load::<Settings>(conn)
+                    .map(|settings_vec| {
+                        Results::GetSettingsVec(
+                            settings_vec,
+                        )
+                    })
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::AddSettings(token, new_settings) => {
+                let user = check_token(&token, conn)?;
+                match_ids(user.id, new_settings.user_id)?;
+                diesel::insert_into(settings::table)
+                    .values(new_settings)
+                    .get_result(conn)
+                    .map(|added| {
+                        Results::GetSettings(added)
+                    })
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::UpdateSettings(token, updated) => {
+                let user = check_token(&token, conn)?;
+                match_ids(user.id, updated.user_id)?;
+                diesel::update(&updated.clone())
+                    .set(updated)
+                    .get_result(conn)
+                    .map(|res| Results::GetSettings(res))
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::GetEmployees(token) => {
+                let _ = check_token(&token, conn)?;
+                employees::table
+                    .load::<Employee>(conn)
+                    .map(|emps_vec| {
+                        Results::GetEmployeesVec(emps_vec)
+                    })
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::GetEmployee(token, name) => {
+                let _ = check_token(&token, conn)?;
+                employees::table
+                    .filter(employees::first.eq(name.first))
+                    .filter(employees::last.eq(name.last))
+                    .first::<Employee>(conn)
+                    .map(|emp| Results::GetEmployee(emp))
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::AddEmployee(token, new_employee) => {
+                let user = check_token(&token, conn)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::insert_into(
+                            employees::table,
+                        )
+                        .values(new_employee)
+                        .get_result(conn)
+                        .map(|emp| {
+                            Results::GetEmployee(emp)
+                        })
+                        .map_err(|err| Error::Dsl(err))
+                    }
+                }
+            }
+            Messages::UpdateEmployee(
+                token,
+                updated_employee,
+            ) => {
+                let user = check_token(&token, conn)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::update(
+                            &updated_employee.clone(),
+                        )
+                        .set((
+                            employees::first.eq(
+                                updated_employee.name.first,
+                            ),
+                            employees::last.eq(
+                                updated_employee.name.last,
+                            ),
+                            employees::phone_number
+                                .eq(updated_employee
+                                    .phone_number),
+                        ))
+                        .get_result(conn)
+                        .map(|res| {
+                            Results::GetEmployee(res)
+                        })
+                        .map_err(|err| Error::Dsl(err))
+                    }
+                }
+            }
+            Messages::RemoveEmployee(token, employee) => {
+                let user = check_token(&token, conn)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::delete(&employee.clone())
+                            .execute(conn)
+                            .map(|_count| Results::Nothing)
+                            .map_err(|err| Error::Dsl(err))
+                    }
+                }
+            }
+            Messages::GetShifts(token, employee) => {
+                let _ = check_token(&token, conn)?;
+                shifts::table
+                    .filter(
+                        shifts::employee_id.eq(employee.id),
+                    )
+                    .load::<Shift>(conn)
+                    .map(|res| Results::GetShiftsVec(res))
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::AddShift(token, new_shift) => {
+                let user = check_token(&token, conn)?;
+                match_ids(user.id, new_shift.user_id)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::insert_into(shifts::table)
+                            .values(new_shift)
+                            .get_result(conn)
+                            .map(|added| {
+                                Results::GetShift(added)
+                            })
+                            .map_err(|err| Error::Dsl(err))
+                    }
+                }
+            }
+            Messages::UpdateShift(token, shift) => {
+                let user = check_token(&token, conn)?;
+                match_ids(user.id, shift.user_id)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::update(&shift.clone())
+                            .set(shift)
+                            .get_result(conn)
+                            .map(|updated| {
+                                Results::GetShift(updated)
+                            })
+                            .map_err(|err| Error::Dsl(err))
+                    }
+                }
+            }
+            Messages::RemoveShift(token, shift) => {
+                let user = check_token(&token, conn)?;
+                match_ids(user.id, shift.user_id)?;
+                match user.level {
+                    UserLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::delete(&shift)
+                            .execute(conn)
+                            .map(|_count| Results::Nothing)
+                            .map_err(|err| Error::Dsl(err))
                     }
                 }
             }
@@ -134,72 +399,64 @@ impl Handler<CreateUser> for DbExecutor {
     }
 }
 
-pub struct GetEmployees {}
-
-#[derive(Serialize, Debug)]
-pub struct EmployeesQuery {
-    pub employees: Vec<Employee>,
+fn user_by_email(
+    conn: &PgConnection,
+    email: &str,
+) -> Result<User, Error> {
+    users::table
+        .filter(users::email.eq(email))
+        .first::<User>(conn)
+        .map_err(|dsl_err| Error::Dsl(dsl_err))
 }
 
-type GetEmployeesResult =
-    std::result::Result<EmployeesQuery, Error>;
-impl Message for GetEmployees {
-    type Result = GetEmployeesResult;
-}
-
-impl Handler<GetEmployees> for DbExecutor {
-    type Result = GetEmployeesResult;
-
-    fn handle(
-        &mut self,
-        _: GetEmployees,
-        _: &mut Self::Context,
-    ) -> GetEmployeesResult {
-        let conn = &self.0.get().unwrap();
-        employee::get_employees(conn)
-            .map_err(|e| Error::Dsl(e.into()))
-            .map(|emps| EmployeesQuery { employees: emps })
+fn match_ids(lhs: i32, rhs: i32) -> Result<(), Error> {
+    if lhs == rhs {
+        Ok(())
+    } else {
+        Err(Error::IdentityMismatch)
     }
 }
 
-pub struct GetShifts(pub Employee);
-
-#[derive(Serialize, Debug)]
-pub struct ShiftsQuery {
-    pub shifts: Vec<Shift>,
-}
-
-pub type GetShiftsResult =
-    std::result::Result<ShiftsQuery, Error>;
-impl Message for GetShifts {
-    type Result = GetShiftsResult;
-}
-
-impl Handler<GetShifts> for DbExecutor {
-    type Result = GetShiftsResult;
-
-    fn handle(
-        &mut self,
-        msg: GetShifts,
-        _: &mut Self::Context,
-    ) -> GetShiftsResult {
-        let conn = &self.0.get().unwrap();
-        msg.0
-            .get_shifts(conn)
-            .map_err(|e| Error::Shft(e))
-            .map(|shifts| ShiftsQuery { shifts: shifts })
+fn check_token(
+    token: &str,
+    conn: &PgConnection,
+) -> std::result::Result<User, Error> {
+    use crate::schema::sessions;
+    match sessions::table
+        .filter(sessions::token.eq(token))
+        .first::<Session>(conn)
+    {
+        Ok(session) => {
+            let now = datetime::now();
+            let expires_at = session.expires();
+            match expires_at.cmp(&now) {
+                std::cmp::Ordering::Less => {
+                    users::table
+                        .filter(
+                            users::id.eq(session.user_id),
+                        )
+                        .first::<User>(conn)
+                        .map_err(|dsl_err| {
+                            Error::Dsl(dsl_err)
+                        })
+                }
+                _ => Err(Error::TokenExpired),
+            }
+        }
+        Err(_) => Err(Error::TokenNotFound),
     }
 }
 
 pub enum Error {
     Dsl(diesel::result::Error),
     R2(r2d2::Error),
-    Usr(dbuser::Error),
-    Emp(employee::Error),
-    Shft(shift::Error),
     InvalidPassword,
     UserExists,
-    Misc(&'static str),
+    TokenExpired,
+    TokenNotFound,
+    Unauthorized,
+    IdentityMismatch,
+    Misc(String),
 }
 
 impl Debug for Error {
@@ -207,9 +464,6 @@ impl Debug for Error {
         match self {
             Error::Dsl(d) => d.fmt(f),
             Error::R2(r) => r.fmt(f),
-            Error::Usr(u) => u.fmt(f),
-            Error::Emp(e) => e.fmt(f),
-            Error::Shft(s) => s.fmt(f),
             Error::InvalidPassword => {
                 write!(f, "Incorrect password was entered!")
             }
@@ -218,6 +472,21 @@ impl Debug for Error {
                     f,
                     "A user with that email already exists!"
                 )
+            }
+            Error::TokenExpired => {
+                write!(f, "The token is expired!")
+            }
+            Error::TokenNotFound => {
+                write!(
+                    f,
+                    "Token not found, unauthorized access!"
+                )
+            }
+            Error::Unauthorized => {
+                write!(f, "Unauthorized request!")
+            }
+            Error::IdentityMismatch => {
+                write!(f, "Identity was not expected")
             }
             Error::Misc(e) => write!(f, "Misc: {}", e),
         }

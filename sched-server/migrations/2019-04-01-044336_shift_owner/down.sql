@@ -1,0 +1,2 @@
+ALTER TABLE shifts
+DROP COLUMN user_id;
