@@ -27,7 +27,7 @@ pub struct NewUser {
 }
 
 impl NewUser {
-    pub fn new(login_info: LoginInfo) -> NewUser {
+    pub fn new(login_info: LoginInfo, level: UserLevel) -> NewUser {
         let new_user = NewUser {
             email: login_info.email,
             password_hash: crypt::pbkdf2_simple(
@@ -35,7 +35,7 @@ impl NewUser {
                 1,
             )
             .expect("Failed to hash password!"),
-            level: UserLevel::Read,
+            level,
         };
         println!("NewUser created: {:#?}", new_user);
         new_user

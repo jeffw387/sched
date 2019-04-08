@@ -11,9 +11,8 @@ use actix_web::{
 };
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
-use dotenv;
 use futures::Future;
-use sched_server::api;
+use sched_server::api::*;
 use sched_server::db::Error as DbError;
 use sched_server::db::{
     DbExecutor,
@@ -27,8 +26,9 @@ use sched_server::message::LoginInfo;
 use sched_server::user::{
     NewUser,
     User,
+    UserLevel
 };
-use std::env;
+use sched_server::env;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -37,10 +37,6 @@ struct AppState {
 }
 
 const SESSION_COOKIE_KEY: &str = "session";
-
-const ENV_DB_URL: &str = "DATABASE_URL";
-const ENV_INDEX_BASE: &str = "INDEX_BASE";
-const ENV_SERVER_PORT: &str = "SERVER_PORT";
 
 type DbFuture =
     Future<Item = HttpResponse, Error = actix_web::Error>;
@@ -91,7 +87,7 @@ fn add_user((req, state): DbRequest) -> Box<DbFuture> {
         .and_then(move |login_info: LoginInfo| {
             db.send(Messages::AddUser(
                 token,
-                NewUser::new(login_info),
+                NewUser::new(login_info, UserLevel::Read),
             ))
             .from_err()
             .and_then(handle_results)
@@ -323,18 +319,8 @@ fn handle_results(result: Result<Results, DbError>)
     }
 }
 
-fn get_env(key: &str) -> String {
-    env::vars()
-        .find(|(skey, _)| key == skey)
-        .expect(&format!(
-            "Can't find environment variable {}!",
-            key
-        ))
-        .1
-}
-
 fn load_static_js() -> String {
-    let mut js_url = get_env(ENV_INDEX_BASE);
+    let mut js_url = env::get_env(ENV_INDEX_BASE);
     js_url.push_str("/index.js");
     let static_js = File::open(js_url);
     match static_js {
@@ -367,7 +353,7 @@ fn load_static_js() -> String {
 }
 
 fn load_static_html() -> String {
-    let mut index_url = get_env(ENV_INDEX_BASE);
+    let mut index_url = env::get_env(ENV_INDEX_BASE);
     index_url.push_str("/index.html");
     let static_file = File::open(index_url);
     match static_file {
@@ -412,10 +398,9 @@ fn index_js(_: &HttpRequest<AppState>) -> HttpResponse {
 }
 
 fn main() {
-    dotenv::dotenv().ok();
     let sys = actix::System::new("database-system");
-    let db_url = get_env(ENV_DB_URL);
-    let port = get_env(ENV_SERVER_PORT);
+    let db_url = env::get_env(ENV_DB_URL);
+    let port = env::get_env(ENV_SERVER_PORT);
 
     println!("database url: {}", db_url);
     let manager =
@@ -440,59 +425,59 @@ fn main() {
                 actix_web::middleware::Logger::default(),
             )
             .default_resource(|r| r.get().f(index))
-            .resource(api::API_INDEX, |r| r.get().f(index))
+            .resource(API_INDEX, |r| r.get().f(index))
             .resource("/sched/index.js", |r| {
                 r.get().f(index_js)
             })
-            .resource(api::API_LOGIN_REQUEST, |r| {
+            .resource(API_LOGIN_REQUEST, |r| {
                 r.post().with_async(login)
             })
-            .resource(api::API_LOGOUT_REQUEST, |r| {
+            .resource(API_LOGOUT_REQUEST, |r| {
                 r.post().with_async(logout)
             })
-            .resource(api::API_ADD_USER, |r| {
+            .resource(API_ADD_USER, |r| {
                 r.post().with_async(add_user)
             })
-            .resource(api::API_CHANGE_PASSWORD, |r| {
+            .resource(API_CHANGE_PASSWORD, |r| {
                 r.post().with_async(change_password)
             })
-            .resource(api::API_REMOVE_USER, |r| {
+            .resource(API_REMOVE_USER, |r| {
                 r.post().with_async(remove_user)
             })
-            .resource(api::API_GET_SETTINGS, |r| {
+            .resource(API_GET_SETTINGS, |r| {
                 r.post().with_async(get_settings)
             })
-            .resource(api::API_ADD_SETTINGS, |r| {
+            .resource(API_ADD_SETTINGS, |r| {
                 r.post().with_async(add_settings)
             })
-            .resource(api::API_UPDATE_SETTINGS, |r| {
+            .resource(API_UPDATE_SETTINGS, |r| {
                 r.post().with_async(update_settings)
             })
-            .resource(api::API_GET_EMPLOYEES, |r| {
+            .resource(API_GET_EMPLOYEES, |r| {
                 r.post().with_async(get_employees)
             })
-            .resource(api::API_GET_EMPLOYEE, |r| {
+            .resource(API_GET_EMPLOYEE, |r| {
                 r.post().with_async(get_employee)
             })
-            .resource(api::API_ADD_EMPLOYEE, |r| {
+            .resource(API_ADD_EMPLOYEE, |r| {
                 r.post().with_async(add_employee)
             })
-            .resource(api::API_UPDATE_EMPLOYEE, |r| {
+            .resource(API_UPDATE_EMPLOYEE, |r| {
                 r.post().with_async(update_employee)
             })
-            .resource(api::API_REMOVE_EMPLOYEE, |r| {
+            .resource(API_REMOVE_EMPLOYEE, |r| {
                 r.post().with_async(remove_employee)
             })
-            .resource(api::API_GET_SHIFTS, |r| {
+            .resource(API_GET_SHIFTS, |r| {
                 r.post().with_async(get_shifts)
             })
-            .resource(api::API_ADD_SHIFT, |r| {
+            .resource(API_ADD_SHIFT, |r| {
                 r.post().with_async(add_shift)
             })
-            .resource(api::API_UPDATE_SHIFT, |r| {
+            .resource(API_UPDATE_SHIFT, |r| {
                 r.post().with_async(update_shift)
             })
-            .resource(api::API_REMOVE_SHIFT, |r| {
+            .resource(API_REMOVE_SHIFT, |r| {
                 r.post().with_async(remove_shift)
             })
     })

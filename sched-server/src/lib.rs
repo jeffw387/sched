@@ -11,3 +11,4 @@ pub mod schema;
 pub mod settings;
 pub mod shift;
 pub mod user;
+pub mod env;

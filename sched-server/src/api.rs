@@ -21,3 +21,7 @@ pub const API_GET_SHIFTS: &str = "/sched/get_shifts";
 pub const API_ADD_SHIFT: &str = "/sched/add_shift";
 pub const API_UPDATE_SHIFT: &str = "/sched/UPDATE_shift";
 pub const API_REMOVE_SHIFT: &str = "/sched/remove_shift";
+
+pub const ENV_DB_URL: &str = "DATABASE_URL";
+pub const ENV_INDEX_BASE: &str = "INDEX_BASE";
+pub const ENV_SERVER_PORT: &str = "SERVER_PORT";
