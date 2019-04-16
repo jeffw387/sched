@@ -1269,24 +1269,50 @@ shiftModalElement model shiftModalData =
         ]
         (Element.text (ymdToString shiftModalData.ymd)),
         
+      -- Employee search/select
+      Element.row
+      [
+        Element.spacingXY 20 0,
+        defaultShadow,
+        Border.solid,
+        Border.color borderColor,
+        Border.rounded 3,
+        Border.width 1
+      ]
+      [
+        Input.search 
+        [
+          Element.centerX,
+          Element.htmlAttribute (HtmlAttr.id "employeeSearch"),
+          Element.onRight
+            (
       Input.radio
       [
-        fillX
+                -- Element.padding 15,
+                Element.moveRight 15
+                -- BG.color modalColor,
+                -- Border.color borderColor,
+                -- Border.solid,
+                -- Border.rounded 3,
+                -- Border.width 1,
+                -- defaultShadow
       ]
       {
         onChange = ChooseShiftEmployee,
         selected = shiftModalData.employee,
-        label = Input.labelLeft [] (Element.text "Employee: "),
+                label = Input.labelHidden ("Employees"),
         options = employeeAutofillElement shiftModalData.employeeMatches
-      },
-      Input.text
-      []
+              }
+            )
+        ]
       {
-        onChange = ShiftModalUpdateDay,
-        text = shiftModalData.day,
-        placeholder = Just (Input.placeholder [] (Element.text "Day")),
-        label = Input.labelLeft [] (Element.text "Day: ")
-      },
+          onChange = ShiftEmployeeSearch,
+          text = shiftModalData.employeeSearch,
+          placeholder = Nothing,
+          label = Input.labelAbove [] (Element.text "Find employee: ")
+        }
+        
+      ],
       Element.row 
       [
         Element.spacing 10,
