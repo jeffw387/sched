@@ -1204,7 +1204,14 @@ shiftModalElement model shiftModalData =
       Element.centerX,
       Element.centerY,
       BG.color (Element.rgb 0.9 0.9 0.9),
-      Element.padding 15
+      Element.padding 15,
+      Border.shadow 
+        {
+          offset = (3, 3),
+          size = 3,
+          blur = 6,
+          color = (Element.rgba 0 0 0 0.25)
+        }
     ]
     [
       Input.search 
