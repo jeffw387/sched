@@ -1195,10 +1195,32 @@ employeeAutofillElement : List Employee -> List (Input.Option (Employee) Message
 employeeAutofillElement employeeList =
   (Debug.log "filtered list" (List.map 
     (\employee -> 
-      Input.option 
-      (employee)
+      Input.optionWith
+      employee <| 
+      (\state ->
+        Element.el 
       (
-        Element.text (nameToString employee.name)
+            List.append
+            [
+              Element.padding 5,
+              defaultShadow
+            ]
+            (
+              case state of
+                Input.Selected ->
+                  [
+                    BG.color white,
+                    Border.color black,
+                    Border.width 1
+                  ]
+                _ -> 
+                  [
+                    BG.color modalColor,
+                    Border.color borderColor
+                  ]
+            )
+          )
+          (Element.text (nameToString employee.name))
       ) 
     ) 
     employeeList))
