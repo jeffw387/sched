@@ -1195,36 +1195,15 @@ employeeAutofillElement : List Employee -> List (Input.Option (Employee) Message
 employeeAutofillElement employeeList =
   (Debug.log "filtered list" (List.map 
     (\employee -> 
-      Input.optionWith
-      employee <| 
-      (\state ->
-        Element.el 
+      Input.option 
+      (employee)
       (
-            List.append
-            [
-              Element.padding 5,
-              defaultShadow
-            ]
-            (
-              case state of
-                Input.Selected ->
-                  [
-                    BG.color white,
-                    Border.color black,
-                    Border.width 1
-                  ]
-                _ -> 
-                  [
-                    BG.color modalColor,
-                    Border.color borderColor
-                  ]
-      ) 
-    ) 
-          (Element.text (nameToString employee.name))
+        Element.text (nameToString employee.name)
       ) 
     ) 
     employeeList))
     
+modalColor = Element.rgb 0.9 0.9 0.9
 
 lightGreen = Element.rgb 0.65 0.85 0.65
 shiftModalElement : Model -> ShiftModalData -> Element Message
