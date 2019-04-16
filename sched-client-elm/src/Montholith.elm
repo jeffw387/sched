@@ -720,15 +720,6 @@ update message model =
         ShiftEditorModal _ ->
           ({ model | calendarModal = NoModal }, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, ShiftModalUpdateDay maybeDay) ->
-      case model.calendarModal of
-        ShiftEditorModal shiftModalData ->
-          (
-            { model | calendarModal = ShiftEditorModal 
-                { shiftModalData | day = maybeDay }}, 
-            Cmd.none
-          )
-        _ -> (model, Cmd.none)
     (CalendarPage, KeyDown maybeArrow) ->
       (model, Cmd.none)
     (CalendarPage, ShiftEmployeeSearch searchText) ->
