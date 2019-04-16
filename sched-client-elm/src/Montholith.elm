@@ -1252,17 +1252,14 @@ shiftModalElement model shiftModalData =
       Element.spacingXY 0 15
     ]
     [
-      Input.search 
+      -- Add shift header text
+      Element.el
       [
-        fillX,
-        Element.htmlAttribute (HtmlAttr.id "employeeSearch")
+          Element.centerX,
+          Element.centerY,
+          Font.size 30
       ]
-      {
-        onChange = ShiftEmployeeSearch,
-        text = shiftModalData.employeeSearch,
-        placeholder = Nothing,
-        label = Input.labelLeft [] (Element.text "Employee: ")
-      },
+        (Element.text "Add a shift:"),
       Input.radio
       [
         fillX
