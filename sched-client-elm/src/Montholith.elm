@@ -228,6 +228,17 @@ monthNumToString num =
     12 -> "December"
     _ -> "Unknown"
 
+weekdayNumToString num =
+  case num of
+    1 -> "Sunday"
+    2 -> "Monday"
+    3 -> "Tuesday"
+    4 -> "Wednesday"
+    5 -> "Thursday"
+    6 -> "Friday"
+    7 -> "Saturday"
+    _ -> "Unknown"
+
 -- SERIALIZATION
 encodeLoginInfo : LoginInfo -> E.Value
 encodeLoginInfo loginValue =
