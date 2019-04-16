@@ -1240,6 +1240,7 @@ black = Element.rgb 0 0 0
 white = Element.rgb 1 1 1
 lightGreen = Element.rgb 0.65 0.85 0.65
 borderColor = Element.rgb 0.7 0.7 0.7
+    
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
   Element.column
