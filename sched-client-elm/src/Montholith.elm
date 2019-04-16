@@ -1260,6 +1260,14 @@ shiftModalElement model shiftModalData =
           Font.size 30
       ]
         (Element.text "Add a shift:"),
+      -- Date display
+      Element.el
+        [
+          Element.centerX,
+          Element.centerY
+        ]
+        (Element.text (ymdToString shiftModalData.ymd)),
+        
       Input.radio
       [
         fillX
