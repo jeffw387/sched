@@ -1236,6 +1236,7 @@ defaultShadow =
       color = (Element.rgba 0 0 0 0.25)
     }
 
+black = Element.rgb 0 0 0
 lightGreen = Element.rgb 0.65 0.85 0.65
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
