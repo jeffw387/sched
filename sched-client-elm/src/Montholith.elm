@@ -412,7 +412,6 @@ type Message =
   OpenShiftModal YearMonthDay |
   AddShift ShiftModalData |
   CloseShiftModal |
-  ShiftModalUpdateDay String |
   ShiftEmployeeSearch String |
   ChooseShiftEmployee (Employee) |
   -- SettingsModal Messages
