@@ -605,9 +605,7 @@ shiftEditorForDay day employeeList =
     Nothing
     ""
     employeeList
-    (String.fromInt day.year)
-    (String.fromInt day.month)
-    (String.fromInt day.day)
+    day
     "7"
     "0"
     "8"
@@ -1183,9 +1181,7 @@ type alias ShiftModalData =
     employee : Maybe Employee,
     employeeSearch : String,
     employeeMatches : List Employee,
-    year : String,
-    month : String,
-    day : String,
+    ymd : YearMonthDay,
     hour : String,
     minute : String,
     hours : String,
