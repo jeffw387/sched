@@ -1153,7 +1153,7 @@ dayStyle ymdMaybe focused =
       True -> BG.color (Element.rgb 0.99 1 0.99)
       False -> BG.color (Element.rgb 1 1 1),
     if focused == True then
-      Border.innerGlow (Element.rgb 0.65 0.85 0.65) 3
+      Border.innerGlow lightGreen 3
     else Border.innerGlow (Element.rgba 0 0 0 0) 0
   ]
 
@@ -1204,6 +1204,7 @@ employeeAutofillElement employeeList =
     employeeList))
     
 
+lightGreen = Element.rgb 0.65 0.85 0.65
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
   Element.column
