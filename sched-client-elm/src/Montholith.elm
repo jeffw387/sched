@@ -1225,6 +1225,7 @@ employeeAutofillElement employeeList =
     ) 
     employeeList))
     
+modalColor = Element.rgb 0.9 0.9 0.9
 
 lightGreen = Element.rgb 0.65 0.85 0.65
 shiftModalElement : Model -> ShiftModalData -> Element Message
