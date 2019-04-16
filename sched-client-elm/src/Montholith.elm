@@ -726,18 +726,33 @@ update message model =
     (CalendarPage, ShiftEmployeeSearch searchText) ->
       case model.calendarModal of
         ShiftEditorModal shiftModalData ->
-          (
-            { model | calendarModal = ShiftEditorModal 
-                { shiftModalData | 
-                  employeeSearch = searchText,
-                  employeeMatches = 
-                    Fuzzy.filter
-                    (\emp -> nameToString emp.name)
-                    searchText
-                    model.employeesData.employees
-                     }}, 
-            Cmd.none
-          )
+          let newMatches = Fuzzy.filter
+                      (\emp -> nameToString emp.name)
+                      searchText
+                      model.employeesData.employees
+          in
+          let 
+            updatedModel = 
+              { 
+                model | calendarModal = ShiftEditorModal 
+                  { 
+                    shiftModalData | 
+                      employeeSearch = searchText,
+                      employeeMatches = newMatches
+                        
+                  }
+              } 
+          in
+            if List.length newMatches == 1 
+            then 
+              case List.head newMatches of
+                Just oneEmp -> 
+                  update 
+                  (ChooseShiftEmployee 
+                    (Debug.log "one employee" oneEmp)) 
+                  updatedModel
+                Nothing -> (updatedModel, Cmd.none)
+            else (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage, ChooseShiftEmployee employee) ->
       case model.calendarModal of
