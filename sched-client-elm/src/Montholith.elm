@@ -1308,14 +1308,15 @@ dayOfMonthElement day =
 addShiftElement day =
   Input.button
   [
-    BG.color lightGreen,
+    BG.color (Element.rgb 0.8 0.8 0.8),
     Border.rounded 5,
-    Font.size 16,
-    Element.paddingEach { top = 0, bottom = 0, right = 2, left = 1}
+    Font.size 16
   ]
   {
     onPress = Just (OpenShiftModal day),
-    label = Element.text "+"
+    label = 
+      Element.el [Element.moveUp 1]
+        (Element.text "+")
   }
 
 compareDays maybe1 maybe2 =
