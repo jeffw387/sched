@@ -3,7 +3,6 @@ import Browser.Navigation as Nav
 import Browser.Events
 import Browser.Dom as Dom
 import Url
-import Api
 import Json.Decode as D
 import Json.Encode as E
 import Task
@@ -472,7 +471,7 @@ requestEmployees : Cmd Message
 requestEmployees =
   Http.post 
   {
-    url=Api.getEmployees,
+    url="/sched/get_employees",
     body=Http.emptyBody,
     expect=Http.expectJson ReceiveEmployees employeesQueryDecoder
   }
@@ -481,7 +480,7 @@ requestShifts : Employee -> Cmd Message
 requestShifts emp =
   Debug.log ("Requesting shifts for employee" ++ (Debug.toString emp))
   Http.post {
-    url=Api.getShifts,
+    url="/sched/get_shifts",
     body=Http.jsonBody (employeeEncoder emp),
     expect=Http.expectJson (ReceiveShifts emp) shiftsQueryDecoder
   }
