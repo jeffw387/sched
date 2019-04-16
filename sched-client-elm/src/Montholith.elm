@@ -1308,9 +1308,10 @@ dayOfMonthElement day =
 addShiftElement day =
   Input.button
   [
-    BG.color (Element.rgb 0.8 0.8 0.8),
+    BG.color lightGreen,
     Border.rounded 5,
-    Font.size 16
+    Font.size 16,
+    Element.paddingEach { top = 0, bottom = 0, right = 2, left = 1}
   ]
   {
     onPress = Just (OpenShiftModal day),
