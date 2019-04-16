@@ -1227,6 +1227,15 @@ employeeAutofillElement employeeList =
     
 modalColor = Element.rgb 0.9 0.9 0.9
 
+defaultShadow = 
+  Border.shadow 
+    {
+      offset = (3, 3),
+      size = 3,
+      blur = 6,
+      color = (Element.rgba 0 0 0 0.25)
+    }
+
 lightGreen = Element.rgb 0.65 0.85 0.65
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
