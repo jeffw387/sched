@@ -1199,7 +1199,7 @@ employeeAutofillElement employeeList =
       employee <| 
       (\state ->
         Element.el 
-      (
+          (
             List.append
             [
               Element.padding 5,
@@ -1224,7 +1224,7 @@ employeeAutofillElement employeeList =
       ) 
     ) 
     employeeList))
-    
+
 modalColor = Element.rgb 0.9 0.9 0.9
 
 defaultShadow = 
@@ -1255,11 +1255,11 @@ shiftModalElement model shiftModalData =
     [
       -- Add shift header text
       Element.el
-      [
+        [
           Element.centerX,
           Element.centerY,
           Font.size 30
-      ]
+        ]
         (Element.text "Add a shift:"),
       -- Date display
       Element.el
@@ -1286,8 +1286,8 @@ shiftModalElement model shiftModalData =
           Element.htmlAttribute (HtmlAttr.id "employeeSearch"),
           Element.onRight
             (
-      Input.radio
-      [
+            Input.radio
+              [
                 -- Element.padding 15,
                 Element.moveRight 15
                 -- BG.color modalColor,
@@ -1296,16 +1296,16 @@ shiftModalElement model shiftModalData =
                 -- Border.rounded 3,
                 -- Border.width 1,
                 -- defaultShadow
-      ]
-      {
-        onChange = ChooseShiftEmployee,
-        selected = shiftModalData.employee,
+              ]
+              {
+                onChange = ChooseShiftEmployee,
+                selected = shiftModalData.employee,
                 label = Input.labelHidden ("Employees"),
-        options = employeeAutofillElement shiftModalData.employeeMatches
+                options = employeeAutofillElement shiftModalData.employeeMatches
               }
             )
         ]
-      {
+        {
           onChange = ShiftEmployeeSearch,
           text = shiftModalData.employeeSearch,
           placeholder = Nothing,
