@@ -1084,9 +1084,19 @@ makeGridFromMonth ym =
   in
     placeDays days monthDefault
 
--- monthToWeekdays : List YearMonthDay -> List Weekdays
--- monthToWeekdays days =
---   List.map toWeekday days |> List.map weekdayFromInt
+ymdToString : YearMonthDay -> String
+ymdToString ymd =
+  let 
+    yearStr = String.fromInt ymd.year
+    monthStr = monthNumToString ymd.month
+    dayStr = String.fromInt ymd.day
+    weekdayStr = weekdayNumToString (toWeekday ymd)
+  in
+    -- Weekday, Month Day, Year
+    weekdayStr ++ ", "
+    ++ monthStr ++ " "
+    ++ dayStr ++ ", "
+    ++ yearStr
 
 pairEmployeeShift : Settings -> (Employee, List Shift) -> List (Element Message)
 pairEmployeeShift settings (employee, shifts) = 
