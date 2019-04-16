@@ -1,6 +1,6 @@
 use super::schema::settings;
 
-use diesel::sql_types::VarChar;
+use diesel::sql_types::Text;
 use serde::{
     Deserialize,
     Serialize,
@@ -23,7 +23,7 @@ use strum_macros::{
     AsRefStr,
     Clone,
 )]
-#[sql_type = "VarChar"]
+#[sql_type = "Text"]
 pub enum HourFormat {
     Hour12,
     Hour24,
@@ -40,7 +40,7 @@ pub enum HourFormat {
     AsRefStr,
     Clone,
 )]
-#[sql_type = "VarChar"]
+#[sql_type = "Text"]
 pub enum LastNameStyle {
     FullName,
     FirstInitial,
@@ -58,7 +58,7 @@ pub enum LastNameStyle {
     AsRefStr,
     Clone,
 )]
-#[sql_type = "VarChar"]
+#[sql_type = "Text"]
 pub enum ViewType {
     Month,
     Week,

@@ -5,6 +5,7 @@ use super::message::{
 };
 use super::user::{
     NewUser,
+    ClientSideUser,
     Session,
     User,
     UserLevel,
@@ -37,6 +38,10 @@ use diesel::r2d2::{
     ConnectionManager,
     Pool,
 };
+use serde::{
+    Deserialize,
+    Serialize,
+};
 use std::fmt::{
     Debug,
     Formatter,
@@ -47,10 +52,8 @@ type Token = String;
 
 pub enum Messages {
     Login(LoginInfo),
-    Logout(Token, User),
-    AddUser(Token, NewUser),
+    Logout(Token),
     ChangePassword(ChangePasswordInfo),
-    RemoveUser(Token, User),
     GetSettings(Token),
     AddSettings(Token, NewSettings),
     UpdateSettings(Token, Settings),
@@ -69,14 +72,34 @@ impl Message for Messages {
     type Result = Result<Results, Error>;
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SettingsVecRoot {
+    pub settings: Vec<Settings>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EmployeesVecRoot {
+    pub employees: Vec<Employee>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ShiftsVecRoot {
+    pub shifts: Vec<Shift>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TokenRoot {
+    pub token: String,
+}
+
 pub enum Results {
-    GetSession(String),
-    GetUser(User),
-    GetSettingsVec(Vec<Settings>),
+    GetSession(TokenRoot),
+    GetUser(ClientSideUser),
+    GetSettingsVec(SettingsVecRoot),
     GetSettings(Settings),
-    GetEmployeesVec(Vec<Employee>),
+    GetEmployeesVec(EmployeesVecRoot),
     GetEmployee(Employee),
-    GetShiftsVec(Vec<Shift>),
+    GetShiftsVec(ShiftsVecRoot),
     GetShift(Shift),
     Nothing,
 }
@@ -101,6 +124,7 @@ impl Handler<Messages> for DbExecutor {
                 )
                 .is_ok()
                 {
+                    println!("Password matches!");
                     let session_length = match user.level {
                         UserLevel::Read => 24,
                         _ => 1,
@@ -114,48 +138,36 @@ impl Handler<Messages> for DbExecutor {
                         ))
                         .get_result::<Session>(conn)
                         .map(|session| {
-                            Results::GetSession(session.token)
+                            Results::GetSession(TokenRoot {
+                                token: session.token,
+                            })
                         })
                         .map_err(|dsl_err| {
                             Error::Dsl(dsl_err)
                         })
                 } else {
+                    println!("Password does not match!");
                     Err(Error::InvalidPassword)
                 }
             }
-            Messages::Logout(token, user) => {
+            Messages::Logout(token) => {
+                println!("Logout DB message");
                 match check_token(&token, conn) {
                     Ok(token_user) => {
-                        match_ids(token_user.id, user.id)?;
-                        let _n = diesel::delete(
+                        println!("Token to be deleted found");
+                        let delete_result = diesel::delete(
                             sessions::table.filter(
                                 sessions::token.eq(token),
                             ),
                         )
                         .execute(conn);
-
+                        match delete_result {
+                            Ok(n) => println!("{} tokens deleted", n),
+                            Err(e) => eprintln!("Error: {:?}", e)
+                        };
                         Ok(Results::Nothing)
                     }
                     Err(token_err) => Err(token_err),
-                }
-            }
-            Messages::AddUser(token, new_user) => {
-                let user = check_token(&token, conn)?;
-                match user.level {
-                    UserLevel::Read => {
-                        Err(Error::Unauthorized)
-                    }
-                    _ => {
-                        diesel::insert_into(users::table)
-                            .values(new_user)
-                            .get_result::<User>(conn)
-                            .map(|user| {
-                                Results::GetUser(user)
-                            })
-                            .map_err(|dsl_err| {
-                                Error::Dsl(dsl_err)
-                            })
-                    }
                 }
             }
             Messages::ChangePassword(
@@ -207,18 +219,6 @@ impl Handler<Messages> for DbExecutor {
                     false => Err(Error::InvalidPassword),
                 }
             }
-            Messages::RemoveUser(token, user) => {
-                let token_user = check_token(&token, conn)?;
-                match token_user.level {
-                    UserLevel::Admin => {
-                        diesel::delete(&user)
-                            .execute(conn)
-                            .map(|_count| Results::Nothing)
-                            .map_err(|err| Error::Dsl(err))
-                    }
-                    _ => Err(Error::Unauthorized),
-                }
-            }
             Messages::GetSettings(token) => {
                 let user = check_token(&token, conn)?;
                 settings::table
@@ -226,7 +226,9 @@ impl Handler<Messages> for DbExecutor {
                     .load::<Settings>(conn)
                     .map(|settings_vec| {
                         Results::GetSettingsVec(
-                            settings_vec,
+                            SettingsVecRoot {
+                                settings: settings_vec,
+                            },
                         )
                     })
                     .map_err(|err| Error::Dsl(err))
@@ -256,7 +258,11 @@ impl Handler<Messages> for DbExecutor {
                 employees::table
                     .load::<Employee>(conn)
                     .map(|emps_vec| {
-                        Results::GetEmployeesVec(emps_vec)
+                        Results::GetEmployeesVec(
+                            EmployeesVecRoot {
+                                employees: emps_vec,
+                            },
+                        )
                     })
                     .map_err(|err| Error::Dsl(err))
             }
@@ -341,7 +347,11 @@ impl Handler<Messages> for DbExecutor {
                         shifts::employee_id.eq(employee.id),
                     )
                     .load::<Shift>(conn)
-                    .map(|res| Results::GetShiftsVec(res))
+                    .map(|res| {
+                        Results::GetShiftsVec(
+                            ShiftsVecRoot { shifts: res },
+                        )
+                    })
                     .map_err(|err| Error::Dsl(err))
             }
             Messages::AddShift(token, new_shift) => {
@@ -371,7 +381,25 @@ impl Handler<Messages> for DbExecutor {
                     }
                     _ => {
                         diesel::update(&shift.clone())
-                            .set(shift)
+                            .set((
+                                shifts::employee_id
+                                    .eq(shift.employee_id),
+                                shifts::year.eq(shift.year),
+                                shifts::month
+                                    .eq(shift.month),
+                                shifts::day.eq(shift.day),
+                                shifts::hour.eq(shift.hour),
+                                shifts::minute
+                                    .eq(shift.minute),
+                                shifts::hours
+                                    .eq(shift.hours),
+                                shifts::minutes
+                                    .eq(shift.minutes),
+                                shifts::shift_repeat
+                                    .eq(shift.shift_repeat),
+                                shifts::every_x
+                                    .eq(shift.every_x),
+                            ))
                             .get_result(conn)
                             .map(|updated| {
                                 Results::GetShift(updated)
@@ -427,23 +455,32 @@ fn check_token(
         .first::<Session>(conn)
     {
         Ok(session) => {
+            println!("Session found");
             let now = datetime::now();
             let expires_at = session.expires();
             match expires_at.cmp(&now) {
-                std::cmp::Ordering::Less => {
+                std::cmp::Ordering::Greater => {
+                    println!("Token not expired");
                     users::table
                         .filter(
                             users::id.eq(session.user_id),
                         )
                         .first::<User>(conn)
+                        .map(|user| {println!("User associated with token: {:?}", user); user})
                         .map_err(|dsl_err| {
                             Error::Dsl(dsl_err)
                         })
                 }
-                _ => Err(Error::TokenExpired),
+                _ => {
+                    println!("Token expired!");
+                    Err(Error::TokenExpired)
+                }
             }
         }
-        Err(_) => Err(Error::TokenNotFound),
+        Err(_) => {
+            println!("Token not found!");
+            Err(Error::TokenNotFound)
+        }
     }
 }
 

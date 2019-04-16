@@ -1,5 +1,12 @@
 use super::employee::Employee;
 use super::schema::shifts;
+use diesel::sql_types::Text;
+use std::str::FromStr;
+use strum_macros::{
+    AsRefStr,
+    Display,
+    EnumString,
+};
 
 use serde::{
     Deserialize,
@@ -8,9 +15,29 @@ use serde::{
 
 #[derive(
     Clone,
+    Copy,
+    Debug,
+    AsExpression,
+    FromSqlRow,
+    EnumString,
+    Display,
+    Deserialize,
+    Serialize,
+)]
+#[sql_type = "Text"]
+pub enum ShiftRepeat {
+    NeverRepeat,
+    EveryWeek,
+    EveryDay,
+}
+
+enum_to_sql!(ShiftRepeat);
+enum_from_sql!(ShiftRepeat);
+
+#[derive(
+    Clone,
     Debug,
     Identifiable,
-    AsChangeset,
     Associations,
     Serialize,
     Deserialize,
@@ -20,6 +47,7 @@ use serde::{
 #[belongs_to(Employee)]
 pub struct Shift {
     pub id: i32,
+    pub user_id: i32,
     pub employee_id: i32,
     pub year: i32,
     pub month: i32,
@@ -28,7 +56,8 @@ pub struct Shift {
     pub minute: i32,
     pub hours: i32,
     pub minutes: i32,
-    pub user_id: i32,
+    pub shift_repeat: ShiftRepeat,
+    pub every_x: i32,
 }
 
 #[derive(Debug, Insertable, Deserialize)]
@@ -43,10 +72,13 @@ pub struct NewShift {
     pub hours: i32,
     pub minutes: i32,
     pub user_id: i32,
+    pub shift_repeat: ShiftRepeat,
+    pub every_x: i32,
 }
 
 impl NewShift {
     pub fn new(
+        user_id: i32,
         employee_id: i32,
         year: i32,
         month: i32,
@@ -55,7 +87,8 @@ impl NewShift {
         minute: i32,
         hours: i32,
         minutes: i32,
-        user_id: i32,
+        shift_repeat: ShiftRepeat,
+        every_x: i32,
     ) -> NewShift {
         NewShift {
             employee_id,
@@ -67,6 +100,8 @@ impl NewShift {
             hours,
             minutes,
             user_id,
+            shift_repeat,
+            every_x,
         }
     }
 }

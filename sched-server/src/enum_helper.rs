@@ -27,11 +27,8 @@ pub fn make_string_error(
 
 macro_rules! enum_to_sql {
     ($enum_type:ty) => {
-        impl
-            diesel::serialize::ToSql<
-                VarChar,
-                diesel::pg::Pg,
-            > for $enum_type
+        impl diesel::serialize::ToSql<Text, diesel::pg::Pg>
+            for $enum_type
         {
             fn to_sql<W: std::io::Write>(
                 &self,
@@ -49,7 +46,7 @@ macro_rules! enum_to_sql {
 
 macro_rules! enum_from_sql {
     ($enum_type:ident) => {
-        impl diesel::deserialize::FromSql<VarChar, diesel::pg::Pg> for $enum_type {
+        impl diesel::deserialize::FromSql<Text, diesel::pg::Pg> for $enum_type {
             fn from_sql(bytes: Option<&[u8]>) -> diesel::deserialize::Result<Self> {
                 match bytes {
                     Some(sbytes) => {

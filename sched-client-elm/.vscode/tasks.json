@@ -6,7 +6,7 @@
     {
       "label": "elm build",
       "type": "shell",
-      "command": "./build.sh",
+      "command": "cd $PWD && ./build.sh",
       "group": {
         "kind": "build",
         "isDefault": true

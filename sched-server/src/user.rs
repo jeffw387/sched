@@ -6,7 +6,7 @@ use super::message::LoginInfo;
 use super::schema::sessions;
 use super::schema::users;
 use crypto::pbkdf2 as crypt;
-use diesel::sql_types::VarChar;
+use diesel::sql_types::Text;
 use serde::{
     Deserialize,
     Serialize,
@@ -27,7 +27,10 @@ pub struct NewUser {
 }
 
 impl NewUser {
-    pub fn new(login_info: LoginInfo, level: UserLevel) -> NewUser {
+    pub fn new(
+        login_info: LoginInfo,
+        level: UserLevel,
+    ) -> NewUser {
         let new_user = NewUser {
             email: login_info.email,
             password_hash: crypt::pbkdf2_simple(
@@ -53,7 +56,7 @@ impl NewUser {
     Deserialize,
     Serialize,
 )]
-#[sql_type = "VarChar"]
+#[sql_type = "Text"]
 pub enum UserLevel {
     Read,
     Supervisor,
@@ -67,8 +70,7 @@ enum_to_sql!(UserLevel);
     Identifiable,
     Queryable,
     AsChangeset,
-    Serialize,
-    Deserialize,
+    Debug,
 )]
 pub struct User {
     pub id: i32,
@@ -76,6 +78,21 @@ pub struct User {
     pub password_hash: String,
     pub startup_settings: Option<i32>,
     pub level: UserLevel,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ClientSideUser {
+    pub id: i32,
+    pub level: UserLevel
+}
+
+impl ClientSideUser {
+    pub fn from(user: User) -> Self {
+        ClientSideUser {
+            id: user.id,
+            level: user.level
+        }
+    }
 }
 
 #[derive(Insertable, Debug)]

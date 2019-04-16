@@ -1,6 +1,7 @@
 use actix::prelude::*;
 use actix::Addr;
 use actix_web::{
+    fs::NamedFile,
     server,
     App,
     AsyncResponder,
@@ -9,6 +10,7 @@ use actix_web::{
     HttpResponse,
     State,
 };
+use cookie::Cookie;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use futures::Future;
@@ -19,16 +21,14 @@ use sched_server::db::{
     Messages,
     Results,
 };
-use sched_server::employee::{
-    Employee,
-};
+use sched_server::employee::Employee;
+use sched_server::env;
 use sched_server::message::LoginInfo;
 use sched_server::user::{
     NewUser,
-    User,
-    UserLevel
+    ClientSideUser,
+    UserLevel,
 };
-use sched_server::env;
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -64,35 +64,14 @@ fn login((req, state): DbRequest) -> Box<DbFuture> {
 }
 
 fn logout((req, state): DbRequest) -> Box<DbFuture> {
+    println!("logout request received");
     let token = get_token(&req);
-    req.json()
+    state
+        .db
+        .clone()
+        .send(Messages::Logout(token))
         .from_err()
-        .and_then(move |user: User| {
-            state
-                .db
-                .clone()
-                .send(Messages::Logout(token, user))
-                .from_err()
-                .and_then(handle_results)
-                .responder()
-        })
-        .responder()
-}
-
-fn add_user((req, state): DbRequest) -> Box<DbFuture> {
-    let db = state.db.clone();
-    let token = get_token(&req);
-    req.json()
-        .from_err()
-        .and_then(move |login_info: LoginInfo| {
-            db.send(Messages::AddUser(
-                token,
-                NewUser::new(login_info, UserLevel::Read),
-            ))
-            .from_err()
-            .and_then(handle_results)
-            .responder()
-        })
+        .and_then(handle_results)
         .responder()
 }
 
@@ -116,22 +95,6 @@ fn change_password(
         .responder()
 }
 
-fn remove_user((req, state): DbRequest) -> Box<DbFuture> {
-    let token = get_token(&req);
-    req.json()
-        .from_err()
-        .and_then(move |user| {
-            state
-                .db
-                .clone()
-                .send(Messages::RemoveUser(token, user))
-                .from_err()
-                .and_then(handle_results)
-                .responder()
-        })
-        .responder()
-}
-
 fn get_settings((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     state
@@ -148,8 +111,13 @@ fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
     req.json()
         .from_err()
         .and_then(move |new_settings| {
-            state.db.clone()
-                .send(Messages::AddSettings(token, new_settings))
+            state
+                .db
+                .clone()
+                .send(Messages::AddSettings(
+                    token,
+                    new_settings,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -164,8 +132,13 @@ fn update_settings(
     req.json()
         .from_err()
         .and_then(move |updated_settings| {
-            state.db.clone()
-                .send(Messages::UpdateSettings(token, updated_settings))
+            state
+                .db
+                .clone()
+                .send(Messages::UpdateSettings(
+                    token,
+                    updated_settings,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -188,12 +161,15 @@ fn get_employee((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .from_err()
-        .and_then(move |name| 
-            state.db.clone()
-            .send(Messages::GetEmployee(token, name))
-            .from_err()
-            .and_then(handle_results)
-            .responder())
+        .and_then(move |name| {
+            state
+                .db
+                .clone()
+                .send(Messages::GetEmployee(token, name))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
         .responder()
 }
 
@@ -201,35 +177,55 @@ fn add_employee((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .from_err()
-        .and_then(move |new_employee| 
-            state.db.clone()
-            .send(Messages::AddEmployee(token, new_employee))
-            .from_err()
-            .and_then(handle_results)
-            .responder())
+        .and_then(move |new_employee| {
+            state
+                .db
+                .clone()
+                .send(Messages::AddEmployee(
+                    token,
+                    new_employee,
+                ))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
         .responder()
 }
 
-fn update_employee((req, state): DbRequest) -> Box<DbFuture> {
+fn update_employee(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .from_err()
-        .and_then(move |updated_employee| 
-            state.db.clone()
-            .send(Messages::UpdateEmployee(token, updated_employee))
-            .from_err()
-            .and_then(handle_results)
-            .responder())
+        .and_then(move |updated_employee| {
+            state
+                .db
+                .clone()
+                .send(Messages::UpdateEmployee(
+                    token,
+                    updated_employee,
+                ))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
         .responder()
 }
 
-fn remove_employee((req, state): DbRequest) -> Box<DbFuture> {
+fn remove_employee(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .from_err()
         .and_then(move |employee| {
-            state.db.clone()
-                .send(Messages::RemoveEmployee(token, employee))
+            state
+                .db
+                .clone()
+                .send(Messages::RemoveEmployee(
+                    token, employee,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -256,7 +252,9 @@ fn add_shift((req, state): DbRequest) -> Box<DbFuture> {
     req.json()
         .from_err()
         .and_then(move |new_shift| {
-            state.db.clone()
+            state
+                .db
+                .clone()
                 .send(Messages::AddShift(token, new_shift))
                 .from_err()
                 .and_then(handle_results)
@@ -270,7 +268,9 @@ fn update_shift((req, state): DbRequest) -> Box<DbFuture> {
     req.json()
         .from_err()
         .and_then(move |updated| {
-            state.db.clone()
+            state
+                .db
+                .clone()
                 .send(Messages::UpdateShift(token, updated))
                 .from_err()
                 .and_then(handle_results)
@@ -284,7 +284,9 @@ fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
     req.json()
         .from_err()
         .and_then(move |shift| {
-            state.db.clone()
+            state
+                .db
+                .clone()
                 .send(Messages::RemoveShift(token, shift))
                 .from_err()
                 .and_then(handle_results)
@@ -293,108 +295,63 @@ fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn handle_results(result: Result<Results, DbError>)
-    -> Result<HttpResponse, actix_web::Error> {
+fn handle_results(
+    result: Result<Results, DbError>,
+) -> Result<HttpResponse, actix_web::Error> {
     match result {
-        Ok(ok) => match ok {
-            Results::GetSession(token) => 
-                Ok(HttpResponse::Ok().json(token)),
-            Results::GetUser(user) =>
-                Ok(HttpResponse::Ok().json(user)),
-            Results::GetSettingsVec(settings_vec) =>
-                Ok(HttpResponse::Ok().json(settings_vec)),
-            Results::GetSettings(settings) =>
-                Ok(HttpResponse::Ok().json(settings)),
-            Results::GetEmployeesVec(employees_vec) =>
-                Ok(HttpResponse::Ok().json(employees_vec)),
-            Results::GetEmployee(employee) =>
-                Ok(HttpResponse::Ok().json(employee)),
-            Results::GetShiftsVec(shifts_vec) =>
-                Ok(HttpResponse::Ok().json(shifts_vec)),
-            Results::GetShift(shift) =>
-                Ok(HttpResponse::Ok().json(shift)),
-            Results::Nothing => Ok(HttpResponse::Ok().finish())
-        }
-        Err(err) => Ok(HttpResponse::from_error(err.into()))
-    }
-}
-
-fn load_static_js() -> String {
-    let mut js_url = env::get_env(ENV_INDEX_BASE);
-    js_url.push_str("/index.js");
-    let static_js = File::open(js_url);
-    match static_js {
-        Ok(mut file) => {
-            let mut result = String::new();
-            match file.read_to_string(&mut result) {
-                Ok(_) => {
-                    println!("Loaded static js");
-                    result
+        Ok(ok) => {
+            match ok {
+                Results::GetSession(token) => {
+                    Ok(HttpResponse::Ok()
+                        .cookie(
+                            Cookie::build(
+                                SESSION_COOKIE_KEY,
+                                token.token,
+                            )
+                            .http_only(true)
+                            .secure(false)
+                            .finish(),
+                        )
+                        .finish())
                 }
-                Err(e) => {
-                    let msg = format!(
-                        "Error reading from static resource: {:#?}",
-                        e
-                    );
-                    println!("{}", msg);
-                    msg
+                Results::GetUser(user) => {
+                    Ok(HttpResponse::Ok().json(user))
+                }
+                Results::GetSettingsVec(settings_vec) => {
+                    Ok(HttpResponse::Ok()
+                        .json(settings_vec))
+                }
+                Results::GetSettings(settings) => {
+                    Ok(HttpResponse::Ok().json(settings))
+                }
+                Results::GetEmployeesVec(employees_vec) => {
+                    Ok(HttpResponse::Ok()
+                        .json(employees_vec))
+                }
+                Results::GetEmployee(employee) => {
+                    Ok(HttpResponse::Ok().json(employee))
+                }
+                Results::GetShiftsVec(shifts_vec) => {
+                    Ok(HttpResponse::Ok().json(shifts_vec))
+                }
+                Results::GetShift(shift) => {
+                    Ok(HttpResponse::Ok().json(shift))
+                }
+                Results::Nothing => {
+                    Ok(HttpResponse::Ok().finish())
                 }
             }
         }
-        Err(e) => {
-            let msg = format!(
-                "Error loading static resource: {:#?}",
-                e
-            );
-            println!("{}", msg);
-            msg
+        Err(err) => {
+            Ok(HttpResponse::from_error(err.into()))
         }
     }
 }
 
-fn load_static_html() -> String {
-    let mut index_url = env::get_env(ENV_INDEX_BASE);
-    index_url.push_str("/index.html");
-    let static_file = File::open(index_url);
-    match static_file {
-        Ok(mut file) => {
-            let mut result = String::new();
-            match file.read_to_string(&mut result) {
-                Ok(_) => {
-                    println!("Loaded static html");
-                    result
-                }
-                Err(e) => {
-                    let msg = format!(
-                        "Error reading from static resource: {:#?}",
-                        e
-                    );
-                    println!("{}", msg);
-                    msg
-                }
-            }
-        }
-        Err(e) => {
-            let msg = format!(
-                "Error loading static resource: {:#?}",
-                e
-            );
-            println!("{}", msg);
-            msg
-        }
-    }
-}
-
-fn index(_: &HttpRequest<AppState>) -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(load_static_html())
-}
-
-fn index_js(_: &HttpRequest<AppState>) -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("text/javascript")
-        .body(load_static_js())
+fn index(
+    _: &HttpRequest<AppState>,
+) -> actix_web::Result<NamedFile> {
+    Ok(NamedFile::open("static/index.html")?)
 }
 
 fn main() {
@@ -419,15 +376,20 @@ fn main() {
         println!("Failed to connect to database.");
     }
 
+    println!(
+        "CWD {:?}",
+        std::fs::canonicalize("./").unwrap()
+    );
+
     server::HttpServer::new(move || {
         App::with_state(AppState { db: addr.clone() })
             .middleware(
                 actix_web::middleware::Logger::default(),
             )
-            .default_resource(|r| r.get().f(index))
-            .resource(API_INDEX, |r| r.get().f(index))
-            .resource("/sched/index.js", |r| {
-                r.get().f(index_js)
+            .resource("/sched", |r| r.get().f(index))
+            .resource("/sched/login", |r| r.get().f(index))
+            .resource("/sched/calendar", |r| {
+                r.get().f(index)
             })
             .resource(API_LOGIN_REQUEST, |r| {
                 r.post().with_async(login)
@@ -435,14 +397,8 @@ fn main() {
             .resource(API_LOGOUT_REQUEST, |r| {
                 r.post().with_async(logout)
             })
-            .resource(API_ADD_USER, |r| {
-                r.post().with_async(add_user)
-            })
             .resource(API_CHANGE_PASSWORD, |r| {
                 r.post().with_async(change_password)
-            })
-            .resource(API_REMOVE_USER, |r| {
-                r.post().with_async(remove_user)
             })
             .resource(API_GET_SETTINGS, |r| {
                 r.post().with_async(get_settings)
@@ -480,6 +436,11 @@ fn main() {
             .resource(API_REMOVE_SHIFT, |r| {
                 r.post().with_async(remove_shift)
             })
+            .handler(
+                API_INDEX,
+                actix_web::fs::StaticFiles::new("static")
+                    .unwrap(),
+            )
     })
     .bind(format!("localhost:{}", port))
     .unwrap()
