@@ -1336,47 +1336,39 @@ shiftModalElement model shiftModalData =
         (Element.text (ymdToString shiftModalData.ymd)),
         
       -- Employee search/select
-      Element.row
+      Element.column
       [
-        Element.spacingXY 20 0,
-        defaultShadow,
-        Border.solid,
-        Border.color borderColor,
-        Border.rounded 3,
-        Border.width 1
+          Element.spacing 15,
+          Element.paddingXY 0 15
       ]
       [
         Input.search 
         [
+              defaultShadow,
           Element.centerX,
-          Element.htmlAttribute (HtmlAttr.id "employeeSearch"),
-          Element.onRight
-            (
+              Element.htmlAttribute (HtmlAttr.id "employeeSearch")
+                
+            ]
+            {
+              onChange = ShiftEmployeeSearch,
+              text = shiftModalData.employeeSearch,
+              placeholder = Nothing,
+              label = Input.labelAbove [Element.centerX, Element.padding 2] (Element.text "Find employee: ")
+            },
+
             Input.radio
-              [
-                -- Element.padding 15,
-                Element.moveRight 15
-                -- BG.color modalColor,
-                -- Border.color borderColor,
-                -- Border.solid,
-                -- Border.rounded 3,
-                -- Border.width 1,
-                -- defaultShadow
-              ]
+            ([
+              Element.clipY,
+              Element.scrollbarY,
+              Element.height (Element.px 150),
+              fillX
+            ] ++ defaultBorder)
               {
                 onChange = ChooseShiftEmployee,
                 selected = shiftModalData.employee,
                 label = Input.labelHidden ("Employees"),
                 options = employeeAutofillElement shiftModalData.employeeMatches
               }
-            )
-        ]
-        {
-          onChange = ShiftEmployeeSearch,
-          text = shiftModalData.employeeSearch,
-          placeholder = Nothing,
-          label = Input.labelAbove [] (Element.text "Find employee: ")
-        }
       ],
 
       -- Shift start slider
