@@ -3,7 +3,6 @@ use super::schema::shifts;
 use diesel::sql_types::Text;
 use std::str::FromStr;
 use strum_macros::{
-    AsRefStr,
     Display,
     EnumString,
 };

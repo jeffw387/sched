@@ -24,13 +24,6 @@ use sched_server::db::{
 use sched_server::employee::Employee;
 use sched_server::env;
 use sched_server::message::LoginInfo;
-use sched_server::user::{
-    NewUser,
-    ClientSideUser,
-    UserLevel,
-};
-use std::fs::File;
-use std::io::prelude::*;
 
 struct AppState {
     db: Addr<DbExecutor>,

@@ -4,7 +4,6 @@ use super::message::{
     LoginInfo,
 };
 use super::user::{
-    NewUser,
     ClientSideUser,
     Session,
     User,
