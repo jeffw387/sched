@@ -700,6 +700,26 @@ update message model =
         Err e -> 
           (model, Cmd.none)
     (_, DoneLoading) -> (model, Cmd.none)
+    (CalendarPage, OpenSettingsModal) ->
+      case model.calendarModal of
+        NoModal ->
+          (
+            {
+              model | calendarModal = SettingsModal
+            },
+            Cmd.none
+          )
+        _ -> (model, Cmd.none)
+    (CalendarPage, CloseSettingsModal) ->
+      case model.calendarModal of
+        SettingsModal ->
+          (
+            {
+              model | calendarModal = NoModal
+            },
+            Cmd.none
+          )
+        _ -> (model, Cmd.none)
     (CalendarPage, OpenShiftModal day) ->
       case model.calendarModal of
         NoModal -> 
