@@ -1210,15 +1210,18 @@ floatToTime f hourFormat =
       let 
         suffix = chooseSuffix f
         hour = floor f |> modBy 12
-        hourFixed = if hour == 0 then 12 else hour
-        hourStr = String.fromInt hourFixed
+        hourFixed = 
+          if hour == 0 then 12 else hour
+        hourStr = if hourFixed < 10 then "0" ++ (String.fromInt hourFixed)
+          else String.fromInt hourFixed
         minutesStr = floatFractionToMinutes f
       in
         hourStr ++ ":" ++ minutesStr ++ suffix
     Hour24 ->
       let
         hour = modBy 24 (floor f)
-        hourStr = String.fromInt hour
+        hourStr = if hour < 10 then "0" ++ (String.fromInt hour)
+          else String.fromInt hour
         minutesStr = floatFractionToMinutes f
       in
         hourStr ++ ":" ++ minutesStr
@@ -1227,7 +1230,8 @@ floatToDuration : Float -> String
 floatToDuration f =
   let
       hours = floor f
-      hoursStr = String.fromInt hours
+      hoursStr = if hours < 10 then "0" ++ (String.fromInt hours)
+        else String.fromInt hours
       minutesStr = floatFractionToMinutes f
   in
     hoursStr ++ ":" ++ minutesStr
@@ -1391,7 +1395,11 @@ shiftModalElement model shiftModalData =
                 Border.color borderColor,
                 Border.width 1,
                 Border.rounded 3,
-                Element.padding 3
+                Element.padding 3,
+                Font.family
+                  [
+                    Font.monospace
+                  ]
               ]
               (
                 Element.text
@@ -1460,7 +1468,11 @@ shiftModalElement model shiftModalData =
             Element.el
               ([
                 BG.color white,
-                Element.padding 3
+                Element.padding 3,
+                Font.family
+                  [
+                    Font.monospace
+                  ]
               ] ++ defaultBorder)
               (
                 Element.text
