@@ -54,7 +54,9 @@ type alias Settings =
   {
     viewType : ViewType,
     hourFormat : HourFormat,
-    lastNameStyle : LastNameStyle
+    lastNameStyle : LastNameStyle,
+    viewDate : YearMonthDay,
+    viewEmployees : List Employee
   }
 
 type alias Employees =
@@ -358,6 +360,8 @@ settingsDefault =
     MonthView 
     Hour12 
     FirstInitial
+    (YearMonthDay 2019 3 23)
+    []
 
 loadData =
   Task.perform ReceiveTime ymdNow
