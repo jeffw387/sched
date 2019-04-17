@@ -1681,28 +1681,8 @@ monthRowElement settings focusDay employeeShifts row =
       (
         Array.map 
         (dayElement settings employeeShifts focusDay) 
-        row
-      )
+        rowElement
     )
-
-settingsToggleElement =
-  Element.el 
-    [
-      Element.alignLeft,
-      Element.alignBottom,
-      Element.padding 20,
-      Events.onClick OpenSettingsModal,
-      Element.width (Element.px 32),
-      Element.height (Element.px 32)
-    ]
-    (
-      Element.image 
-        [
-        ]
-        {
-          src = "/sched/gear.png",
-          description = "Toggle settings panel"
-        }
     )
 
 settingsElement = 
