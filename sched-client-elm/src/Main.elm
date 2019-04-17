@@ -1453,7 +1453,9 @@ shiftModalElement model shiftModalData =
       [
         -- Label for duration slider
         Element.row
-          []
+          [
+            fillX
+          ]
           [
             Element.text "Duration: ",
             Element.el
