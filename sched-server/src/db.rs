@@ -153,7 +153,7 @@ impl Handler<Messages> for DbExecutor {
             Messages::Logout(token) => {
                 println!("Logout DB message");
                 match check_token(&token, conn) {
-                    Ok(token_user) => {
+                    Ok(_) => {
                         println!("Token to be deleted found");
                         let delete_result = diesel::delete(
                             sessions::table.filter(
