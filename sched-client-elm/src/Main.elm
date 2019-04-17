@@ -10,7 +10,7 @@ import Task
 import Http
 import Url
 import Url.Builder as UB
-import Element exposing (Element, Attribute)
+import Element exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Element.Background as BG
@@ -826,11 +826,11 @@ toDocument rootElement =
     title = "Scheduler",
     body = 
     [
-      Element.layoutWith
+      layoutWith
       {
         options = 
         [
-          -- Element.focusStyle
+          -- focusStyle
           -- {
           --   borderColor = Nothing,
           --   backgroundColor = Nothing,
@@ -852,105 +852,108 @@ toDocument rootElement =
 viewSettingsToggle =
   Input.button
   [
-    Element.alignLeft
+    alignLeft
   ]
   {
     onPress = Just OpenSettingsModal,
-    label = Element.text "Settings"
+    label = text "Settings"
   }
 
 viewLogoutButton =
   Input.button
   [
-    Element.alignRight
+    alignRight
   ]
   {
     onPress = Just Logout,
-    label = Element.text "Log out"
+    label = text "Log out"
   }
 
 viewCalendarFooter : Element Message
 viewCalendarFooter =
-  Element.row
+  row
     [
-      Element.height (Element.px 32),
-      Element.width Element.fill,
+      height (px 32),
+      width fill,
       Border.solid,
-      Border.color (Element.rgb 1 1 1),
+      Border.color (rgb 1 1 1),
       Border.width 1
     ]
-    [viewSettingsToggle, viewLogoutButton]
+    [
+      viewSettingsToggle, 
+      viewLogoutButton
+    ]
 
 viewLogin model =
-  Element.column 
+  column 
     [
-      Element.padding 100, 
-      Element.width Element.fill,
-      BG.color (Element.rgb 0.85 0.9 0.95),
-      Element.centerY
+      padding 100, 
+      width fill,
+      BG.color (rgb 0.85 0.9 0.95),
+      centerY
     ] 
     [
-      Element.column 
+      column 
         [
-          Element.centerX
+          centerX
         ]
         [
-          Element.el 
+          el 
             [
-              Element.alignRight,
-              Element.width (Element.px 300),
-              Element.padding 15
-            ] (Element.el [Element.centerX] (Element.text "Login to Scheduler")),
-          Element.column
+              alignRight,
+              width (px 300),
+              padding 15
+            ] (el [centerX] (text "Login to Scheduler")),
+          column
             [
-              Element.spacing 15
+              spacing 15
             ]
             [
               Input.username
                 [
                   Input.focusedOnLoad,
-                  Element.alignRight,
-                  Element.width (Element.px 300),
-                  Element.padding 15,
-                  Element.spacing 15
+                  alignRight,
+                  width (px 300),
+                  padding 15,
+                  spacing 15
                 ]
                 {
-                  label = Input.labelLeft [] (Element.text "Email"),
+                  label = Input.labelLeft [] (text "Email"),
                   onChange = UpdateEmail,
-                  placeholder = Just (Input.placeholder [] (Element.text "you@something.com")),
+                  placeholder = Just (Input.placeholder [] (text "you@something.com")),
                   text = model.login_info.email
                 },
               Input.currentPassword
                 [
-                  Element.alignRight,
-                  Element.width (Element.px 300),
-                  Element.padding 15,
-                  Element.spacing 15
+                  alignRight,
+                  width (px 300),
+                  padding 15,
+                  spacing 15
                 ]
                 {
                   onChange = UpdatePassword,
                   text = model.login_info.password,
-                  label = Input.labelLeft [] (Element.text "Password"),
-                  placeholder = Just (Input.placeholder [] (Element.text "Password")),
+                  label = Input.labelLeft [] (text "Password"),
+                  placeholder = Just (Input.placeholder [] (text "Password")),
                   show = False
                 }
             ],
-          Element.row
+          row
             [
-              Element.alignRight,
-              Element.width (Element.px 300),
-              Element.paddingXY 0 15
+              alignRight,
+              width (px 300),
+              paddingXY 0 15
             ]
             [
               Input.button 
                 [ 
-                  Element.alignLeft,
-                  BG.color (Element.rgb 0.25 0.8 0.25),
+                  alignLeft,
+                  BG.color (rgb 0.25 0.8 0.25),
                   defaultShadow,
-                  Element.padding 10
+                  padding 10
                 ]
                 {
-                  label = Element.text "Login",
+                  label = text "Login",
                   onPress = Just LoginRequest
                 }
             ]
@@ -1006,10 +1009,10 @@ formatHours settings start duration =
   case settings.hourFormat of
     Hour12 -> 
       let (_, end) = endsFromStartDur (start, duration)
-      in (Element.text (formatHour12 start ++ "-" ++ formatHour12 end))
+      in (text (formatHour12 start ++ "-" ++ formatHour12 end))
     Hour24 -> 
       let (_, end) = endsFromStartDur (start, duration)
-      in (Element.text (formatHour24 start ++ "-" ++ formatHour24 end))
+      in (text (formatHour24 start ++ "-" ++ formatHour24 end))
 
 
 type alias Row =
@@ -1145,18 +1148,18 @@ shiftElement :
   -> Shift 
   -> Element Message
 shiftElement settings employee shift =
-  Element.row
+  row
     [
       Font.size 14,
-      Element.paddingXY 0 2,
-      Border.color (Element.rgb 1 0 0),
-      BG.color (Element.rgba 1 0 0 0.1),
+      paddingXY 0 2,
+      Border.color (rgb 1 0 0),
+      BG.color (rgba 1 0 0 0.1),
       Border.width 2,
       Border.rounded 3,
-      Element.width Element.fill
+      width fill
     ] 
     [
-      Element.text 
+      text 
         (employee.name.first
         ++ " "
         ++ formatLastName settings employee.name.last
@@ -1166,15 +1169,15 @@ shiftElement settings employee shift =
 
 dayStyle ymdMaybe dayState = 
   ([
-    Element.width Element.fill,
-    Element.height Element.fill,
+    width fill,
+    height fill,
     Border.widthEach {bottom = 0, left = 1, right = 0, top = 0},
-    Border.color (Element.rgb 0.2 0.2 0.2)
+    Border.color (rgb 0.2 0.2 0.2)
   ] ++
   case dayState of
     Today -> 
       [
-        BG.color (Element.rgb 0.99 1 0.99),
+        BG.color (rgb 0.99 1 0.99),
         Border.innerGlow lightGreen 3
       ]
     Future -> []
@@ -1186,10 +1189,10 @@ dayStyle ymdMaybe dayState =
     None -> [])
 
 shiftColumn settings day employeeShifts =
-  Element.column 
+  column 
   [
-    Element.centerX,
-    Element.width Element.fill
+    centerX,
+    width fill
   ] 
   (
     combineElementLists 
@@ -1277,11 +1280,11 @@ employeeAutofillElement employeeList =
       Input.optionWith
       employee <| 
       (\state ->
-        Element.el 
+        el 
           (
             List.append
             [
-              Element.padding 5,
+              padding 5,
               defaultShadow
             ]
             (
@@ -1299,12 +1302,12 @@ employeeAutofillElement employeeList =
                   ]
             )
           )
-          (Element.text (nameToString employee.name))
+          (text (nameToString employee.name))
       ) 
     ) 
     employeeList)
 
-modalColor = Element.rgb 0.9 0.9 0.9
+modalColor = rgb 0.9 0.9 0.9
 
 defaultShadow = 
   Border.shadow 
@@ -1312,15 +1315,15 @@ defaultShadow =
       offset = (3, 3),
       size = 3,
       blur = 6,
-      color = (Element.rgba 0 0 0 0.25)
+      color = (rgba 0 0 0 0.25)
     }
 
-black = Element.rgb 0 0 0
-grey = Element.rgb 0.5 0.5 0.5
-white = Element.rgb 1 1 1
-lightGreen = Element.rgb 0.65 0.85 0.65
-lightGrey = Element.rgb 0.85 0.85 0.85
-borderColor = Element.rgb 0.7 0.7 0.7
+black = rgb 0 0 0
+grey = rgb 0.5 0.5 0.5
+white = rgb 1 1 1
+lightGreen = rgb 0.65 0.85 0.65
+lightGrey = rgb 0.85 0.85 0.85
+borderColor = rgb 0.7 0.7 0.7
 
 defaultBorder =
   [
@@ -1328,69 +1331,69 @@ defaultBorder =
     Border.color borderColor,
     Border.width 1,
     Border.rounded 3,
-    Element.padding 3
+    padding 3
   ]
     
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
-  Element.column
+  column
     [
-      Element.centerX,
-      Element.centerY,
+      centerX,
+      centerY,
       BG.color modalColor,
-      Element.padding 15,
+      padding 15,
       defaultShadow,
-      Element.spacingXY 0 15
+      spacingXY 0 15
     ]
     [
       -- Add shift header text
-      Element.el
+      el
         [
           fillX,
           fillY,
           Font.size 30,
           BG.color white,
-          Element.padding 15
+          padding 15
         ]
-        (Element.el 
+        (el 
           [
-            Element.centerX,
-            Element.centerY
-          ] (Element.text "Add a shift:")),
+            centerX,
+            centerY
+          ] (text "Add a shift:")),
       -- Date display
-      Element.el
+      el
         [
-          Element.centerX,
-          Element.centerY
+          centerX,
+          centerY
         ]
-        (Element.text (ymdToString shiftModalData.ymd)),
+        (text (ymdToString shiftModalData.ymd)),
         
       -- Employee search/select
-      Element.column
+      column
         [
-          Element.spacing 15,
-          Element.paddingXY 0 15
+          spacing 15,
+          paddingXY 0 15
         ]
         [
           Input.search 
             [
               defaultShadow,
-              Element.centerX,
-              Element.htmlAttribute (HtmlAttr.id "employeeSearch")
+              centerX,
+              htmlAttribute (HtmlAttr.id "employeeSearch")
                 
             ]
             {
               onChange = ShiftEmployeeSearch,
               text = shiftModalData.employeeSearch,
               placeholder = Nothing,
-              label = Input.labelAbove [Element.centerX, Element.padding 2] (Element.text "Find employee: ")
+              label = Input.labelAbove [centerX, padding 2] (text "Find employee: ")
             },
 
           Input.radio
             ([
-              Element.clipY,
-              Element.scrollbarY,
-              Element.height (Element.px 150),
+              clipY,
+              scrollbarY,
+              height (px 150),
               fillX
             ] ++ defaultBorder)
             {
@@ -1402,7 +1405,7 @@ shiftModalElement model shiftModalData =
         ],
 
       -- Shift start slider
-      Element.column
+      column
       (
         [
           fillX
@@ -1410,25 +1413,25 @@ shiftModalElement model shiftModalData =
         defaultBorder
       )
       [
-        Element.row
+        row
           []
           [
-            Element.text "Start at: ",
-            Element.el
+            text "Start at: ",
+            el
               [
                 BG.color white,
                 Border.solid,
                 Border.color borderColor,
                 Border.width 1,
                 Border.rounded 3,
-                Element.padding 3,
+                padding 3,
                 Font.family
                   [
                     Font.monospace
                   ]
               ]
               (
-                Element.text
+                text
                   (
                     floatToTime 
                     shiftModalData.start 
@@ -1439,16 +1442,16 @@ shiftModalElement model shiftModalData =
           Input.slider
           [
             -- Slider BG
-            Element.behindContent
+            behindContent
               (
-                Element.el
+                el
                 [
                   BG.color white,
-                  Element.centerY,
+                  centerY,
                   fillX,
-                  Element.height (Element.px 5)
+                  height (px 5)
                 ]
-                Element.none
+                none
               )
 
           ]
@@ -1465,7 +1468,7 @@ shiftModalElement model shiftModalData =
       ],
 
       -- Shift duration slider
-      Element.column
+      column
       (
         [
           fillX
@@ -1474,40 +1477,40 @@ shiftModalElement model shiftModalData =
       )
       [
         -- Label for duration slider
-        Element.row
+        row
           [
             fillX
           ]
           [
-            Element.text "Duration: ",
-            Element.el
+            text "Duration: ",
+            el
               ([
                 BG.color white,
-                Element.padding 3,
+                padding 3,
                 Font.family
                   [
                     Font.monospace
                   ]
               ] ++ defaultBorder)
               (
-                Element.text
+                text
                   (
                     floatToDuration 
                     shiftModalData.duration 
                   )
               ),
-            Element.text " Ends: ",
-            Element.el
+            text " Ends: ",
+            el
               ([
                 BG.color white,
-                Element.padding 3,
+                padding 3,
                 Font.family
                   [
                     Font.monospace
                   ]
               ] ++ defaultBorder)
               (
-                Element.text
+                text
                   (
                     floatToTime
                     (shiftModalData.start +
@@ -1519,16 +1522,16 @@ shiftModalElement model shiftModalData =
           Input.slider
           [
             -- Slider BG
-            Element.behindContent
+            behindContent
               (
-                Element.el
+                el
                 [
                   BG.color white,
-                  Element.centerY,
+                  centerY,
                   fillX,
-                  Element.height (Element.px 5)
+                  height (px 5)
                 ]
-                Element.none
+                none
               )
 
           ]
@@ -1545,44 +1548,44 @@ shiftModalElement model shiftModalData =
       ],
       
       -- Save/Cancel buttons
-      Element.row 
+      row 
       [
-        Element.spacing 10,
-        Element.padding 5,
+        spacing 10,
+        padding 5,
         fillX
       ]
       [
         Input.button
         [
-          BG.color (Element.rgb 0.2 0.9 0.2),
-          Element.padding 5,
+          BG.color (rgb 0.2 0.9 0.2),
+          padding 5,
           defaultShadow
         ]
         {
           onPress = Just (AddShift shiftModalData),
-          label = Element.text "Save"
+          label = text "Save"
         },
         Input.button
         [
-          BG.color (Element.rgb 0.9 0.2 0.2),
-          Element.padding 5,
+          BG.color (rgb 0.9 0.2 0.2),
+          padding 5,
           defaultShadow,
-          Element.alignRight
+          alignRight
         ]
         {
           onPress = Just CloseShiftModal,
-          label = Element.text "Cancel"
+          label = text "Cancel"
         }
       ]
     ]
 
 dayOfMonthElement day =
-  Element.el 
+  el 
   [
     Font.size 16
   ] 
   (
-    Element.text (String.fromInt day.day)
+    text (String.fromInt day.day)
   )
 
 addShiftElement day =
@@ -1591,13 +1594,13 @@ addShiftElement day =
     BG.color lightGreen,
     Border.rounded 5,
     Font.size 16,
-    Element.paddingEach { top = 0, bottom = 0, right = 2, left = 1}
+    paddingEach { top = 0, bottom = 0, right = 2, left = 1}
   ]
   {
     onPress = Just (OpenShiftModal day),
     label = 
-      Element.el [Element.moveUp 1]
-        (Element.text "+")
+      el [moveUp 1]
+        (text "+")
   }
 
 compareDays maybe1 maybe2 =
@@ -1639,15 +1642,15 @@ dayElement settings employeeShifts focusDay maybeYMD =
   let dayState = (compareDays maybeYMD focusDay) in
   case maybeYMD of
     Just day -> 
-      Element.el
+      el
       (dayStyle maybeYMD dayState)
       (
-        Element.column 
+        column 
         []
         [
-          Element.row
+          row
           [
-            Element.padding 5
+            padding 5
           ]
           [
             dayOfMonthElement day,
@@ -1658,9 +1661,9 @@ dayElement settings employeeShifts focusDay maybeYMD =
       )
       
     Nothing -> 
-      Element.el 
+      el 
       (dayStyle maybeYMD dayState)
-      Element.none
+      none
 
 monthRowElement : 
   Settings 
@@ -1668,12 +1671,12 @@ monthRowElement :
   -> List (Employee, List Shift)
   -> Row
   -> Element Message
-monthRowElement settings focusDay employeeShifts row =
-  Element.row 
+monthRowElement settings focusDay employeeShifts rowElement =
+  row 
     [
-      Element.height Element.fill,
-      Element.width Element.fill,
-      Element.spacing 0,
+      height fill,
+      width fill,
+      spacing 0,
       Border.widthEach {top = 0, bottom = 1, right = 0, left = 0}
     ] 
     (
@@ -1682,26 +1685,26 @@ monthRowElement settings focusDay employeeShifts row =
         Array.map 
         (dayElement settings employeeShifts focusDay) 
         rowElement
-    )
+      )
     )
 
 settingsElement = 
-  Element.el
+  el
     [
-      Element.alignLeft,
-      BG.color (Element.rgb 0.9 0.1 0.1),
-      Element.height Element.fill,
-      Element.width (Element.px 300),
+      alignLeft,
+      BG.color (rgb 0.9 0.1 0.1),
+      height fill,
+      width (px 300),
       Events.onClick CloseSettingsModal
     ]
-    Element.none
+    none
 
 viewMonthRows month focusDay settings shiftDict employees =
-  Element.column
+  column
   [
-    Element.width Element.fill,
-    Element.height Element.fill,
-    Element.spacing 1
+    width fill,
+    height fill,
+    spacing 1
   ] 
   (Array.toList 
     (Array.map 
@@ -1711,31 +1714,31 @@ viewMonthRows month focusDay settings shiftDict employees =
       (mapEmployeeShifts shiftDict employees))
     month))
 
-fillX = Element.width Element.fill
-fillY = Element.height Element.fill
+fillX = width fill
+fillY = height fill
 
 viewMonth ymdMaybe month settings shiftDict employees =
   case ymdMaybe of
     Just ymd ->
-      Element.column
+      column
       [
         fillX,
         fillY
       ]
       [
-        Element.el
+        el
           [
-            Element.centerX
+            centerX
           ]
-          (Element.text (monthNumToString ymd.month)),
+          (text (monthNumToString ymd.month)),
         viewMonthRows month ymdMaybe settings shiftDict employees
       ]
-    Nothing -> Element.text "Loading..."
+    Nothing -> text "Loading..."
 
 
 viewModal model =
   case model.calendarModal of
-    NoModal -> Element.none
+    NoModal -> none
     ShiftEditorModal shiftModalData ->
       shiftModalElement model shiftModalData
     SettingsModal -> settingsElement
@@ -1753,20 +1756,20 @@ viewCalendar model =
         shiftDict = model.employeeShifts
         employees = model.employees
       in
-        Element.column
+        column
         [
-          Element.width Element.fill,
-          Element.height Element.fill,
-          Element.inFront (viewModal model)
+          width fill,
+          height fill,
+          inFront (viewModal model)
         ]
         [
           viewMonth model.today month settings shiftDict employees,
           viewCalendarFooter
         ]
     WeekView ->
-      Element.none
+      none
     DayView ->
-      Element.none
+      none
 
 view : Model -> Browser.Document Message
 view model =
