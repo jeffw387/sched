@@ -13,7 +13,7 @@ pub fn now() -> DateTime {
 }
 
 pub fn now_plus_hours(hours: u32) -> DateTime {
-    let mut n = now();
+    let n = now();
     let mut days = n.2;
     let mut hours = hours as i32 + n.3;
     loop {
