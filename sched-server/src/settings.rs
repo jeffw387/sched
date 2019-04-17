@@ -90,6 +90,10 @@ pub struct Settings {
     pub view_type: ViewType,
     pub hour_format: HourFormat,
     pub last_name_style: LastNameStyle,
+    pub view_year: i32,
+    pub view_month: i32,
+    pub view_day: i32,
+    pub view_employees: Vec<i32>
 }
 
 #[derive(Serialize, Deserialize, Debug, Insertable)]
@@ -99,4 +103,8 @@ pub struct NewSettings {
     pub view_type: ViewType,
     pub hour_format: HourFormat,
     pub last_name_style: LastNameStyle,
+    pub view_year: i32,
+    pub view_month: i32,
+    pub view_day: i32,
+    pub view_employees: Vec<i32>
 }

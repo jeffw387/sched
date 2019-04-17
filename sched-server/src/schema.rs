@@ -39,6 +39,10 @@ table! {
         view_type -> Text,
         hour_format -> Text,
         last_name_style -> Text,
+        view_year -> Int4,
+        view_month -> Int4,
+        view_day -> Int4,
+        view_employees -> Array<Int4>,
     }
 }
 
