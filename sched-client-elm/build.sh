@@ -1,3 +1,3 @@
 #!/bin/bash
 
-elm make src/Montholith.elm --output ../sched-server/static/index.js
+elm make src/Main.elm --output ../sched-server/static/index.js

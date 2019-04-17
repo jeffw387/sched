@@ -1,3 +1,4 @@
+module Main exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Browser.Events
@@ -106,12 +107,6 @@ type alias Employee =
 employeeDefault =
   Employee 0 (Name "" "") Nothing
 
-type alias EmployeesData =
-  {
-    employees : List Employee,
-    employeeShifts : Dict Int (List Shift)
-  }
-
 type alias HoverData =
   {
 
@@ -136,7 +131,8 @@ type alias Model =
     password_state : InputState,
     button_state : InputState,
     user : Maybe User,
-    employeesData : EmployeesData,
+    employees : List Employee,
+    employeeShifts : Dict Int (List Shift),
     loaded : Dict Int Bool,
     hover : Maybe HoverData,
     focusDay : Maybe YearMonthDay,
@@ -363,8 +359,6 @@ settingsDefault =
     Hour12 
     FirstInitial
 
-employeeDataDefault = EmployeesData [] Dict.empty
-
 loadData =
   Task.perform ReceiveTime ymdNow
 
@@ -381,7 +375,8 @@ init _ url key =
         Normal
         Normal
         Nothing
-        employeeDataDefault
+        []
+        Dict.empty
         Dict.empty
         Nothing
         Nothing
@@ -414,6 +409,8 @@ type Message =
   CloseShiftModal |
   ShiftEmployeeSearch String |
   ChooseShiftEmployee (Employee) |
+  UpdateShiftStart Float |
+  UpdateShiftDuration Float |
   -- SettingsModal Messages
   OpenSettingsModal |
   CloseSettingsModal |
@@ -488,7 +485,6 @@ requestEmployees =
 
 requestShifts : Employee -> Cmd Message
 requestShifts emp =
-  Debug.log ("Requesting shifts for employee" ++ (Debug.toString emp))
   Http.post {
     url="/sched/get_shifts",
     body=Http.jsonBody (employeeEncoder emp),
@@ -606,10 +602,8 @@ shiftEditorForDay day employeeList =
     ""
     employeeList
     day
-    "7"
-    "0"
-    "8"
-    "0"
+    8
+    8
     NeverRepeat
     "1"
 
@@ -627,7 +621,7 @@ router model url =
 
 update : Message -> Model -> (Model, Cmd Message)
 update message model =
-  case (Debug.log "page, message" (model.page, message)) of
+  case (model.page, message) of
     (_, UrlRequest request) ->
       case request of
         Browser.Internal url ->
@@ -664,12 +658,14 @@ update message model =
         Ok employees ->
           let 
             loadingModel = setLoadTasks employees.employees model
+            sortedEmps = 
+              List.sortWith 
+              (\e1 e2 -> 
+                compare (nameToString e1.name) (nameToString e2.name)) 
+                employees.employees
           in
-            ({ loadingModel | employeesData = 
-              EmployeesData 
-              employees.employees 
-              Dict.empty }, 
-            Cmd.batch (List.map requestShifts employees.employees))
+            ({ loadingModel | employees = sortedEmps }, 
+            Cmd.batch (List.map requestShifts sortedEmps))
         Err e ->
           (model, Nav.pushUrl model.navkey "/sched/login")
     (_, ReceiveShifts employee shiftsResult) ->
@@ -680,25 +676,20 @@ update message model =
           in
               
             if tasksComplete markedModel then
-              ({ markedModel | employeesData = 
-                EmployeesData
-                  model.employeesData.employees
+              ({ markedModel | employeeShifts = 
                   (Dict.insert 
                     employee.id
                     shifts.shifts
-                    model.employeesData.employeeShifts)}, 
+                    model.employeeShifts)}, 
                   Task.succeed DoneLoading 
                   |> Task.perform identity)
             else
-              ({ markedModel | employeesData = 
-                EmployeesData
-                  model.employeesData.employees
+              ({ markedModel | employeeShifts = 
                   (Dict.insert 
                     employee.id
                     shifts.shifts
-                    model.employeesData.employeeShifts)}, Cmd.none)
+                    model.employeeShifts)}, Cmd.none)
         Err e -> 
-          -- (Debug.log "receive shifts error" e)
           (model, Cmd.none)
     (_, DoneLoading) -> (model, Cmd.none)
     (CalendarPage, DayClick maybeYMD) ->
@@ -709,7 +700,7 @@ update message model =
           (
             { model | calendarModal = 
               ShiftEditorModal 
-                (shiftEditorForDay day model.employeesData.employees) }, 
+                (shiftEditorForDay day model.employees) }, 
             Task.attempt 
             FocusResult
             (Dom.focus "employeeSearch")
@@ -728,7 +719,7 @@ update message model =
           let newMatches = Fuzzy.filter
                       (\emp -> nameToString emp.name)
                       searchText
-                      model.employeesData.employees
+                      model.employees
           in
           let 
             updatedModel = 
@@ -747,8 +738,7 @@ update message model =
               case List.head newMatches of
                 Just oneEmp -> 
                   update 
-                  (ChooseShiftEmployee 
-                    (Debug.log "one employee" oneEmp)) 
+                  (ChooseShiftEmployee oneEmp) 
                   updatedModel
                 Nothing -> (updatedModel, Cmd.none)
             else (updatedModel, Cmd.none)
@@ -762,7 +752,32 @@ update message model =
               Cmd.none
           )
         _ -> (model, Cmd.none)
-
+    (CalendarPage, UpdateShiftStart f) ->
+      case model.calendarModal of
+        ShiftEditorModal shiftModalData ->
+          (
+            {
+              model | calendarModal = ShiftEditorModal
+              {
+                shiftModalData | start = f
+              }
+            },
+            Cmd.none
+          )
+        _ -> (model, Cmd.none)
+    (CalendarPage, UpdateShiftDuration f) ->
+      case model.calendarModal of
+        ShiftEditorModal shiftModalData ->
+          (
+            {
+              model | calendarModal = ShiftEditorModal
+              {
+                shiftModalData | duration = f
+              }
+            },
+            Cmd.none
+          )
+        _ -> (model, Cmd.none)
     (_, Logout) ->
       (
         model, 
@@ -832,7 +847,6 @@ viewCalendarFooter : Element Message
 viewCalendarFooter =
   Element.row
     [
-      -- Element.explain Debug.todo,
       Element.height (Element.px 32),
       Element.width Element.fill,
       Border.solid,
@@ -840,15 +854,6 @@ viewCalendarFooter =
       Border.width 1
     ]
     [viewSettingsToggle, viewLogoutButton]
-
-elementShadow =
-  Border.shadow
-    {
-      offset = (4, 4),
-      size = 3,
-      blur = 10,
-      color = Element.rgba 0 0 0 0.5
-    }
 
 viewLogin model =
   Element.column 
@@ -877,8 +882,8 @@ viewLogin model =
             [
               Input.username
                 [
-                  Element.alignRight,
                   Input.focusedOnLoad,
+                  Element.alignRight,
                   Element.width (Element.px 300),
                   Element.padding 15,
                   Element.spacing 15
@@ -915,23 +920,12 @@ viewLogin model =
                 [ 
                   Element.alignLeft,
                   BG.color (Element.rgb 0.25 0.8 0.25),
-                  elementShadow,
+                  defaultShadow,
                   Element.padding 10
                 ]
                 {
                   label = Element.text "Login",
                   onPress = Just LoginRequest
-                },
-              Input.button 
-                [ 
-                  Element.alignRight,
-                  BG.color (Element.rgb 0.45 0.45 0.8),
-                  elementShadow,
-                  Element.padding 10
-                ]
-                {
-                  label = Element.text "Create User",
-                  onPress = Just CreateUser
                 }
             ]
         ]
@@ -1098,7 +1092,9 @@ ymdToString ymd =
     ++ dayStr ++ ", "
     ++ yearStr
 
-pairEmployeeShift : Settings -> (Employee, List Shift) -> List (Element Message)
+pairEmployeeShift : Settings 
+  -> (Employee, List Shift) 
+  -> List (Element Message)
 pairEmployeeShift settings (employee, shifts) = 
   List.map (shiftElement settings employee) shifts
 
@@ -1183,17 +1179,64 @@ type alias ShiftModalData =
     employeeSearch : String,
     employeeMatches : List Employee,
     ymd : YearMonthDay,
-    hour : String,
-    minute : String,
-    hours : String,
-    minutes : String,
+    start : Float,
+    duration : Float,
     shiftRepeat : ShiftRepeat,
     everyX : String
   }
 
+chooseSuffix : Float -> String
+chooseSuffix f =
+  let 
+    h24 = modBy 24 (floor f)
+  in
+    if h24 >= 12 then "PM" else "AM"
+
+floatFractionToMinutes : Float -> String
+floatFractionToMinutes f =
+  let
+    fractional = f - (toFloat (truncate f))
+    minutes = fractional * 60
+    nearestQuarter = round (minutes / 15)
+  in
+    case nearestQuarter of
+      0 -> "00"
+      _ -> String.fromInt (nearestQuarter * 15)
+
+floatToTime : Float -> HourFormat -> String
+floatToTime f hourFormat =
+  case hourFormat of
+    Hour12 ->
+      let 
+        suffix = chooseSuffix f
+        hour = floor f |> modBy 12
+        hourFixed = if hour == 0 then 12 else hour
+        hourStr = String.fromInt hourFixed
+        minutesStr = floatFractionToMinutes f
+      in
+        hourStr ++ ":" ++ minutesStr ++ suffix
+    Hour24 ->
+      let
+        hour = modBy 24 (floor f)
+        hourStr = String.fromInt hour
+        minutesStr = floatFractionToMinutes f
+      in
+        hourStr ++ ":" ++ minutesStr
+
+floatToDuration : Float -> String
+floatToDuration f =
+  let
+      hours = floor f
+      hoursStr = String.fromInt hours
+      minutesStr = floatFractionToMinutes f
+  in
+    hoursStr ++ ":" ++ minutesStr
+  
+
+
 employeeAutofillElement : List Employee -> List (Input.Option (Employee) Message)
 employeeAutofillElement employeeList =
-  (Debug.log "filtered list" (List.map 
+  (List.map 
     (\employee -> 
       Input.optionWith
       employee <| 
@@ -1223,7 +1266,7 @@ employeeAutofillElement employeeList =
           (Element.text (nameToString employee.name))
       ) 
     ) 
-    employeeList))
+    employeeList)
 
 modalColor = Element.rgb 0.9 0.9 0.9
 
@@ -1240,6 +1283,15 @@ black = Element.rgb 0 0 0
 white = Element.rgb 1 1 1
 lightGreen = Element.rgb 0.65 0.85 0.65
 borderColor = Element.rgb 0.7 0.7 0.7
+
+defaultBorder =
+  [
+    Border.solid,
+    Border.color borderColor,
+    Border.width 1,
+    Border.rounded 3,
+    Element.padding 3
+  ]
     
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
@@ -1256,11 +1308,17 @@ shiftModalElement model shiftModalData =
       -- Add shift header text
       Element.el
         [
-          Element.centerX,
-          Element.centerY,
-          Font.size 30
+          fillX,
+          fillY,
+          Font.size 30,
+          BG.color white,
+          Element.padding 15
         ]
-        (Element.text "Add a shift:"),
+        (Element.el 
+          [
+            Element.centerX,
+            Element.centerY
+          ] (Element.text "Add a shift:")),
       -- Date display
       Element.el
         [
@@ -1311,18 +1369,150 @@ shiftModalElement model shiftModalData =
           placeholder = Nothing,
           label = Input.labelAbove [] (Element.text "Find employee: ")
         }
-        
       ],
+
+      -- Shift start slider
+      Element.column
+      (
+        [
+          fillX
+        ] ++
+        defaultBorder
+      )
+      [
+        Element.row
+          []
+          [
+            Element.text "Start at: ",
+            Element.el
+              [
+                BG.color white,
+                Border.solid,
+                Border.color borderColor,
+                Border.width 1,
+                Border.rounded 3,
+                Element.padding 3
+              ]
+              (
+                Element.text
+                  (
+                    floatToTime 
+                    shiftModalData.start 
+                    model.settings.hourFormat
+                  )
+              )
+          ],
+          Input.slider
+          [
+            -- Slider BG
+            Element.behindContent
+              (
+                Element.el
+                [
+                  BG.color white,
+                  Element.centerY,
+                  fillX,
+                  Element.height (Element.px 5)
+                ]
+                Element.none
+              )
+
+          ]
+          {
+            onChange = UpdateShiftStart,
+            label = 
+              Input.labelHidden "Start Time", 
+            min = 0,
+            max = 23.75,
+            value = shiftModalData.start,
+            step = Just 0.25,
+            thumb = Input.defaultThumb
+          }
+      ],
+
+      -- Shift duration slider
+      Element.column
+      (
+        [
+          fillX
+        ] ++
+        defaultBorder
+      )
+      [
+        -- Label for duration slider
+        Element.row
+          []
+          [
+            Element.text "Duration: ",
+            Element.el
+              ([
+                BG.color white,
+                Element.padding 3
+              ] ++ defaultBorder)
+              (
+                Element.text
+                  (
+                    floatToDuration 
+                    shiftModalData.duration 
+                  )
+              ),
+            Element.text "Ends at: ",
+            Element.el
+              ([
+                BG.color white,
+                Element.padding 3
+              ] ++ defaultBorder)
+              (
+                Element.text
+                  (
+                    floatToTime
+                    (shiftModalData.start +
+                    shiftModalData.duration) 
+                    model.settings.hourFormat
+                  )
+              )
+          ],
+          Input.slider
+          [
+            -- Slider BG
+            Element.behindContent
+              (
+                Element.el
+                [
+                  BG.color white,
+                  Element.centerY,
+                  fillX,
+                  Element.height (Element.px 5)
+                ]
+                Element.none
+              )
+
+          ]
+          {
+            onChange = UpdateShiftDuration,
+            label = 
+              Input.labelHidden "Shift Duration", 
+            min = 0,
+            max = 16,
+            value = shiftModalData.duration,
+            step = Just 0.25,
+            thumb = Input.defaultThumb
+          }
+      ],
+      
+      -- Save/Cancel buttons
       Element.row 
       [
         Element.spacing 10,
-        Element.padding 5
+        Element.padding 5,
+        fillX
       ]
       [
         Input.button
         [
           BG.color (Element.rgb 0.2 0.9 0.2),
-          Element.padding 5
+          Element.padding 5,
+          defaultShadow
         ]
         {
           onPress = Just (AddShift shiftModalData),
@@ -1331,7 +1521,9 @@ shiftModalElement model shiftModalData =
         Input.button
         [
           BG.color (Element.rgb 0.9 0.2 0.2),
-          Element.padding 5
+          Element.padding 5,
+          defaultShadow,
+          Element.alignRight
         ]
         {
           onPress = Just CloseShiftModal,
@@ -1460,7 +1652,6 @@ settingsElement =
 viewMonthRows month focusDay settings shiftDict employees =
   Element.column
   [
-    -- Element.explain Debug.todo,
     Element.width Element.fill,
     Element.height Element.fill,
     Element.spacing 1
@@ -1512,12 +1703,11 @@ viewCalendar model =
             Just ymd -> YearMonth ymd.year ymd.month
             Nothing -> (YearMonth 2019 4))
         settings = model.settings
-        shiftDict = model.employeesData.employeeShifts
-        employees = model.employeesData.employees
+        shiftDict = model.employeeShifts
+        employees = model.employees
       in
         Element.column
         [
-          -- Element.explain Debug.todo,
           Element.width Element.fill,
           Element.height Element.fill,
           Element.inFront (viewModal model)
