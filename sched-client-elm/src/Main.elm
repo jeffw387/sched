@@ -1147,8 +1147,8 @@ dayStyle ymdMaybe dayState =
     Today -> 
       [
         BG.color (Element.rgb 0.99 1 0.99),
-      Border.innerGlow lightGreen 3
-  ]
+        Border.innerGlow lightGreen 3
+      ]
     Future -> []
     Past -> 
       [
@@ -1339,15 +1339,15 @@ shiftModalElement model shiftModalData =
         
       -- Employee search/select
       Element.column
-      [
+        [
           Element.spacing 15,
           Element.paddingXY 0 15
-      ]
-      [
-        Input.search 
+        ]
         [
+          Input.search 
+            [
               defaultShadow,
-          Element.centerX,
+              Element.centerX,
               Element.htmlAttribute (HtmlAttr.id "employeeSearch")
                 
             ]
@@ -1358,20 +1358,20 @@ shiftModalElement model shiftModalData =
               label = Input.labelAbove [Element.centerX, Element.padding 2] (Element.text "Find employee: ")
             },
 
-            Input.radio
+          Input.radio
             ([
               Element.clipY,
               Element.scrollbarY,
               Element.height (Element.px 150),
               fillX
             ] ++ defaultBorder)
-              {
-                onChange = ChooseShiftEmployee,
-                selected = shiftModalData.employee,
-                label = Input.labelHidden ("Employees"),
-                options = employeeAutofillElement shiftModalData.employeeMatches
-              }
-      ],
+            {
+              onChange = ChooseShiftEmployee,
+              selected = shiftModalData.employee,
+              label = Input.labelHidden ("Employees"),
+              options = employeeAutofillElement shiftModalData.employeeMatches
+            }
+        ],
 
       -- Shift start slider
       Element.column
