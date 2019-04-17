@@ -22,7 +22,11 @@ CREATE TABLE settings (
   user_id INTEGER NOT NULL,
   view_type TEXT NOT NULL,
   hour_format TEXT NOT NULL,
-  last_name_style TEXT NOT NULL
+  last_name_style TEXT NOT NULL,
+  view_year INTEGER NOT NULL,
+  view_month INTEGER NOT NULL,
+  view_day INTEGER NOT NULL,
+  view_employees INTEGER[] NOT NULL
 );
 
 CREATE TABLE employees (
