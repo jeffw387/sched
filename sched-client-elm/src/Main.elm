@@ -135,7 +135,7 @@ type alias Model =
     employeeShifts : Dict Int (List Shift),
     loaded : Dict Int Bool,
     hover : Maybe HoverData,
-    focusDay : Maybe YearMonthDay,
+    today : Maybe YearMonthDay,
     calendarModal : CalendarModal
   }
 
@@ -630,7 +630,7 @@ update message model =
     (_, UrlChanged url) ->
       router model url
     (_, ReceiveTime ymd) ->
-      ({ model | focusDay = Just ymd }, requestEmployees)
+      ({ model | today = Just ymd }, requestEmployees)
     (LoginPage, CreateUser) ->
       (model, createUser model.login_info)
     (LoginPage, LoginRequest) ->
@@ -692,8 +692,6 @@ update message model =
         Err e -> 
           (model, Cmd.none)
     (_, DoneLoading) -> (model, Cmd.none)
-    (CalendarPage, DayClick maybeYMD) ->
-      ({ model | focusDay = maybeYMD }, Cmd.none)
     (CalendarPage, OpenShiftModal day) ->
       case model.calendarModal of
         NoModal -> 
@@ -1138,20 +1136,26 @@ shiftElement settings employee shift =
       (formatHours settings shift.hour shift.hours)
     ]
 
-dayStyle ymdMaybe focused = 
-  [
+dayStyle ymdMaybe dayState = 
+  ([
     Element.width Element.fill,
     Element.height Element.fill,
     Border.widthEach {bottom = 0, left = 1, right = 0, top = 0},
-    Border.color (Element.rgb 0.2 0.2 0.2),
-    Events.onClick (DayClick ymdMaybe),
-    case focused of
-      True -> BG.color (Element.rgb 0.99 1 0.99)
-      False -> BG.color (Element.rgb 1 1 1),
-    if focused == True then
+    Border.color (Element.rgb 0.2 0.2 0.2)
+  ] ++
+  case dayState of
+    Today -> 
+      [
+        BG.color (Element.rgb 0.99 1 0.99),
       Border.innerGlow lightGreen 3
-    else Border.innerGlow (Element.rgba 0 0 0 0) 0
   ]
+    Future -> []
+    Past -> 
+      [
+        -- Border.innerGlow grey 3,
+        BG.color lightGrey
+      ]
+    None -> [])
 
 shiftColumn settings day employeeShifts =
   Element.column 
@@ -1455,7 +1459,11 @@ shiftModalElement model shiftModalData =
             Element.el
               ([
                 BG.color white,
-                Element.padding 3
+                Element.padding 3,
+                Font.family
+                  [
+                    Font.monospace
+                  ]
               ] ++ defaultBorder)
               (
                 Element.text
@@ -1571,8 +1579,31 @@ addShiftElement day =
 compareDays maybe1 maybe2 =
   case (maybe1, maybe2) of
     (Just d1, Just d2) -> 
-      d1.year == d2.year && d1.month == d2.month && d1.day == d2.day
-    (_, _) -> False
+      if 
+        d1.year == d2.year && 
+        d1.month == d2.month && 
+        d1.day == d2.day
+      then Today
+      else if
+        d1.year < d2.year
+      then Past
+      else if
+        d1.year <= d2.year &&
+        d1.month < d2.month
+      then Past
+      else if
+        d1.year <= d2.year &&
+        d1.month <= d2.month &&
+        d1.day < d2.day
+      then Past
+      else Future
+    (_, _) -> None
+
+type DayState =
+  None |
+  Past |
+  Today |
+  Future
 
 dayElement : 
   Settings 
@@ -1581,11 +1612,11 @@ dayElement :
   -> Maybe YearMonthDay
   -> Element Message
 dayElement settings employeeShifts focusDay maybeYMD =
-  let focused = (compareDays maybeYMD focusDay) in
+  let dayState = (compareDays maybeYMD focusDay) in
   case maybeYMD of
     Just day -> 
       Element.el
-      (dayStyle maybeYMD focused)
+      (dayStyle maybeYMD dayState)
       (
         Element.column 
         []
@@ -1604,7 +1635,7 @@ dayElement settings employeeShifts focusDay maybeYMD =
       
     Nothing -> 
       Element.el 
-      (dayStyle maybeYMD focused)
+      (dayStyle maybeYMD dayState)
       Element.none
 
 monthRowElement : 
@@ -1711,7 +1742,7 @@ viewCalendar model =
     MonthView ->
       let 
         month = makeGridFromMonth 
-          (case model.focusDay of
+          (case model.today of
             Just ymd -> YearMonth ymd.year ymd.month
             Nothing -> (YearMonth 2019 4))
         settings = model.settings
@@ -1725,7 +1756,7 @@ viewCalendar model =
           Element.inFront (viewModal model)
         ]
         [
-          viewMonth model.focusDay month settings shiftDict employees,
+          viewMonth model.today month settings shiftDict employees,
           viewCalendarFooter
         ]
     WeekView ->
