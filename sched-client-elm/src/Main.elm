@@ -332,27 +332,31 @@ userDecoder = D.succeed User
   |> JPipe.required "id" D.int
   |> JPipe.required "level" userLevelDecoder
 
-type Arrows =
+type Keys =
   Left |
   Up |
   Right |
-  Down
+  Down |
+  Enter |
+  Escape
 
-arrowDecoder =
-  D.map arrowMap (D.field "key" D.string)
+keyDecoder =
+  D.map keyMap (D.field "key" D.string)
 
-arrowMap string =
+keyMap string =
   case string of
     "ArrowLeft" -> Just Left
     "ArrowUp" -> Just Up
     "ArrowRight" -> Just Right
     "ArrowDown" -> Just Down
+    "Enter" -> Just Enter
+    "Escape" -> Just Escape
     _ -> Nothing
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Message
 subscriptions _ =
-    Sub.map KeyDown (Browser.Events.onKeyDown arrowDecoder)
+    Sub.map KeyDown (Browser.Events.onKeyDown keyDecoder)
 
 -- INIT
 settingsDefault = 
@@ -395,7 +399,7 @@ type Message =
   UrlRequest Browser.UrlRequest |
   Logout |
   LogoutResponse (Result Http.Error ()) |
-  KeyDown (Maybe Arrows) |
+  KeyDown (Maybe Keys) |
   FocusResult (Result Dom.Error ()) |
 -- Login Messages
   CreateUser |
