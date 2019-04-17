@@ -1288,8 +1288,10 @@ defaultShadow =
     }
 
 black = Element.rgb 0 0 0
+grey = Element.rgb 0.5 0.5 0.5
 white = Element.rgb 1 1 1
 lightGreen = Element.rgb 0.65 0.85 0.65
+lightGrey = Element.rgb 0.85 0.85 0.85
 borderColor = Element.rgb 0.7 0.7 0.7
 
 defaultBorder =
