@@ -1472,7 +1472,7 @@ shiftModalElement model shiftModalData =
                     shiftModalData.duration 
                   )
               ),
-            Element.text "Ends at: ",
+            Element.text " Ends: ",
             Element.el
               ([
                 BG.color white,
