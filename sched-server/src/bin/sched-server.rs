@@ -299,7 +299,7 @@ fn handle_results(
                         .cookie(
                             Cookie::build(
                                 SESSION_COOKIE_KEY,
-                                token.token,
+                                token.contents,
                             )
                             .http_only(true)
                             .secure(false)
