@@ -128,7 +128,8 @@ type CalendarModal =
 type alias Model =
   {
     navkey : Nav.Key,
-    settings : Settings,
+    settingsList : List Settings,
+    activeSettings : Settings,
     page : Page,
     login_info : LoginInfo,
     email_state : InputState,
