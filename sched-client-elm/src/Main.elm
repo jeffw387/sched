@@ -131,10 +131,10 @@ type alias Model =
     settingsList : List Settings,
     activeSettings : Settings,
     page : Page,
-    login_info : LoginInfo,
-    email_state : InputState,
-    password_state : InputState,
-    button_state : InputState,
+    loginInfo : LoginInfo,
+    emailState : InputState,
+    passwordState : InputState,
+    buttonState : InputState,
     user : Maybe User,
     employees : List Employee,
     employeeShifts : Dict Int (List Shift),
@@ -147,7 +147,7 @@ type alias Model =
 type alias Shift =
   {
     id : Int,
-    employee_id : Int,
+    employeeID : Int,
     year : Int,
     month : Int,
     day : Int,
@@ -544,10 +544,10 @@ createUser loginInfo =
 
 updateLoginButton : Model -> Model
 updateLoginButton page =
-  if page.email_state == Success && 
-    page.password_state == Success
-    then { page | button_state = Success }
-    else { page | button_state = Normal }
+  if page.emailState == Success && 
+    page.passwordState == Success
+    then { page | buttonState = Success }
+    else { page | buttonState = Normal }
 
 nameToString : Name -> String
 nameToString name =
@@ -736,11 +736,11 @@ update message model =
     (_, ReceiveTime ymd) ->
       ({ model | today = Just ymd }, requestEmployees)
     (LoginPage, CreateUser) ->
-      (model, createUser model.login_info)
+      (model, createUser model.loginInfo)
     (LoginPage, LoginRequest) ->
-      (model, loginRequest model.login_info)
+      (model, loginRequest model.loginInfo)
     (LoginPage, LoginResponse r) ->
-      let updatedModel = { model | login_info = LoginInfo "" "" } in
+      let updatedModel = { model | loginInfo = LoginInfo "" "" } in
       case r of
         Ok _ ->
           (updatedModel, 
@@ -750,12 +750,12 @@ update message model =
           )
         Err _ -> (updatedModel, Cmd.none)
     (LoginPage, UpdateEmail email) ->
-      let oldInfo = model.login_info in
-        ({ model | login_info = 
+      let oldInfo = model.loginInfo in
+        ({ model | loginInfo = 
           { oldInfo | email = email } }, Cmd.none)
     (LoginPage, UpdatePassword password) ->
-      let oldInfo = model.login_info in
-        ({ model | login_info =
+      let oldInfo = model.loginInfo in
+        ({ model | loginInfo =
           { oldInfo | password = password } }, Cmd.none)
     (_, ReceiveEmployees employeesResult) ->
       case employeesResult of
@@ -990,6 +990,7 @@ viewCalendarFooter =
       viewLogoutButton
     ]
 
+viewLogin : Model -> Element Message
 viewLogin model =
   column 
     [
@@ -1027,7 +1028,7 @@ viewLogin model =
                   label = Input.labelLeft [] (text "Email"),
                   onChange = UpdateEmail,
                   placeholder = Just (Input.placeholder [] (text "you@something.com")),
-                  text = model.login_info.email
+                  text = model.loginInfo.email
                 },
               Input.currentPassword
                 [
@@ -1038,7 +1039,7 @@ viewLogin model =
                 ]
                 {
                   onChange = UpdatePassword,
-                  text = model.login_info.password,
+                  text = model.loginInfo.password,
                   label = Input.labelLeft [] (text "Password"),
                   placeholder = Just (Input.placeholder [] (text "Password")),
                   show = False
