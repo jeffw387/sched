@@ -407,16 +407,16 @@ shiftDecoder =
     |> JPipe.required "hours" D.int
     |> JPipe.required "minutes" D.int
 
-stringToUserLevel levelString =
-  case levelString of
-    "Supervisor" -> D.succeed Supervisor
-    "Admin" -> D.succeed Admin
-    _ -> D.succeed Read
-
 userLevelDecoder : D.Decoder UserLevel
 userLevelDecoder =
   D.string
-  |> D.andThen stringToUserLevel
+  |> D.andThen 
+    (
+      \levelString -> case levelString of
+    "Supervisor" -> D.succeed Supervisor
+    "Admin" -> D.succeed Admin
+    _ -> D.succeed Read
+    )
 
 userDecoder = D.succeed User
   |> JPipe.required "id" D.int
