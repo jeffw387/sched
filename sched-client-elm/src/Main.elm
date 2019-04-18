@@ -806,6 +806,16 @@ update message model =
             Cmd.none
           )
         _ -> (model, Cmd.none)
+    (CalendarPage, SaveSettings) ->
+      (
+        model, 
+        Http.post
+        {
+          url = "/sched/add_settings",
+          body = Http.jsonBody (newSettingsEncoder model.activeSettings),
+          expect = Http.expectJson ReceiveSettings settingsDecoder
+        }
+      )
     (CalendarPage, CloseSettingsModal) ->
       case model.calendarModal of
         SettingsModal ->
