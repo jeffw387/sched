@@ -52,11 +52,13 @@ type LastNameStyle =
 
 type alias Settings =
   {
+    id : Int,
+    userID : Int,
     viewType : ViewType,
     hourFormat : HourFormat,
     lastNameStyle : LastNameStyle,
     viewDate : YearMonthDay,
-    viewEmployees : List Employee
+    viewEmployees : List Int
   }
 
 type alias Employees =
