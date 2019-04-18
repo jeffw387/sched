@@ -468,6 +468,7 @@ init _ url key =
     (
       Model 
         key
+        []
         settingsDefault
         LoginPage
         (LoginInfo "" "")
