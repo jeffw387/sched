@@ -413,9 +413,9 @@ userLevelDecoder =
   |> D.andThen 
     (
       \levelString -> case levelString of
-    "Supervisor" -> D.succeed Supervisor
-    "Admin" -> D.succeed Admin
-    _ -> D.succeed Read
+        "Supervisor" -> D.succeed Supervisor
+        "Admin" -> D.succeed Admin
+        _ -> D.succeed Read
     )
 
 userDecoder = D.succeed User
@@ -450,7 +450,7 @@ subscriptions _ =
 
 -- INIT
 settingsDefault = 
-  Settings 
+  Settings
     0
     0
     MonthView 
