@@ -1541,7 +1541,7 @@ shiftModalElement model shiftModalData =
                   (
                     floatToTime 
                     shiftModalData.start 
-                    model.settings.hourFormat
+                    model.activeSettings.hourFormat
                   )
               )
           ],
@@ -1621,7 +1621,7 @@ shiftModalElement model shiftModalData =
                     floatToTime
                     (shiftModalData.start +
                     shiftModalData.duration) 
-                    model.settings.hourFormat
+                    model.activeSettings.hourFormat
                   )
               )
           ],
@@ -1851,14 +1851,14 @@ viewModal model =
 
 viewCalendar : Model -> Element Message
 viewCalendar model =
-  case model.settings.viewType of
+  case model.activeSettings.viewType of
     MonthView ->
       let 
         month = makeGridFromMonth 
           (case model.today of
             Just ymd -> YearMonth ymd.year ymd.month
             Nothing -> (YearMonth 2019 4))
-        settings = model.settings
+        settings = model.activeSettings
         shiftDict = model.employeeShifts
         employees = model.employees
       in
