@@ -93,7 +93,7 @@ pub struct Settings {
     pub view_year: i32,
     pub view_month: i32,
     pub view_day: i32,
-    pub view_employees: Vec<i32>
+    pub view_employees: Vec<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Insertable)]
@@ -106,5 +106,5 @@ pub struct NewSettings {
     pub view_year: i32,
     pub view_month: i32,
     pub view_day: i32,
-    pub view_employees: Vec<i32>
+    pub view_employees: Vec<i32>,
 }

@@ -65,12 +65,7 @@ pub enum UserLevel {
 enum_from_sql!(UserLevel);
 enum_to_sql!(UserLevel);
 
-#[derive(
-    Identifiable,
-    Queryable,
-    AsChangeset,
-    Debug,
-)]
+#[derive(Identifiable, Queryable, AsChangeset, Debug)]
 pub struct User {
     pub id: i32,
     pub email: String,
@@ -82,15 +77,12 @@ pub struct User {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClientSideUser {
     pub id: i32,
-    pub level: UserLevel
+    pub level: UserLevel,
 }
 
 impl ClientSideUser {
     pub fn from(user: User) -> Self {
-        ClientSideUser {
-            id: user.id,
-            level: user.level
-        }
+        ClientSideUser { id: user.id, level: user.level }
     }
 }
 
