@@ -488,10 +488,10 @@ init _ url key =
 type Message =
 -- General Messages
   NoOp |
+  IgnoreReply (Result Http.Error ()) |
   UrlChanged Url.Url |
   UrlRequest Browser.UrlRequest |
   Logout |
-  LogoutResponse (Result Http.Error ()) |
   KeyDown (Maybe Keys) |
   FocusResult (Result Dom.Error ()) |
   ReceiveSettings (Result Http.Error Settings) |
@@ -813,7 +813,7 @@ update message model =
         {
           url = "/sched/add_settings",
           body = Http.jsonBody (newSettingsEncoder model.activeSettings),
-          expect = Http.expectJson ReceiveSettings settingsDecoder
+          expect = Http.expectWhatever IgnoreReply
         }
       )
     (CalendarPage, CloseSettingsModal) ->
@@ -917,10 +917,10 @@ update message model =
         {
           url = UB.absolute ["sched", "logout_request"] [],
           body = Http.emptyBody,
-          expect = Http.expectWhatever LogoutResponse
+          expect = Http.expectWhatever IgnoreReply
         }
       )
-    (_, LogoutResponse _) ->
+    (_, IgnoreReply _) ->
       (model, Nav.pushUrl model.navkey "/sched/login")
     (_, _) ->
       (model, Cmd.none)
