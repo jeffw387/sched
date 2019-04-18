@@ -234,7 +234,10 @@ impl Handler<Messages> for DbExecutor {
             }
             Messages::AddSettings(token, new_settings) => {
                 let user = check_token(&token, conn)?;
-                match_ids(user.id, new_settings.user_id)?;
+                let new_settings = NewSettings {
+                    user_id: user.id,
+                    ..new_settings
+                };
                 diesel::insert_into(settings::table)
                     .values(new_settings)
                     .get_result(conn)
