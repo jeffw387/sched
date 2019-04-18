@@ -495,6 +495,7 @@ type Message =
   KeyDown (Maybe Keys) |
   FocusResult (Result Dom.Error ()) |
   ReceiveSettings (Result Http.Error Settings) |
+  ReceiveSettingsList (Result Http.Error (List Settings)) |
 -- Login Messages
   CreateUser |
   LoginRequest |
