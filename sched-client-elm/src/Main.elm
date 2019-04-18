@@ -497,7 +497,6 @@ type Message =
   ReceiveSettings (Result Http.Error Settings) |
   ReceiveSettingsList (Result Http.Error (List Settings)) |
 -- Login Messages
-  CreateUser |
   LoginRequest |
   LoginResponse (Result Http.Error ()) |
   UpdateEmail String |
@@ -529,15 +528,6 @@ loginRequest loginInfo =
   Http.post
     {
       url = UB.absolute ["sched", "login_request"][],
-      body = Http.jsonBody (encodeLoginInfo loginInfo),
-      expect = Http.expectWhatever LoginResponse
-    }
-
-createUser : LoginInfo -> (Cmd Message)
-createUser loginInfo =
-  Http.post
-    {
-      url = UB.absolute ["sched", "add_user"][],
       body = Http.jsonBody (encodeLoginInfo loginInfo),
       expect = Http.expectWhatever LoginResponse
     }
@@ -735,8 +725,6 @@ update message model =
       router model url
     (_, ReceiveTime ymd) ->
       ({ model | today = Just ymd }, requestEmployees)
-    (LoginPage, CreateUser) ->
-      (model, createUser model.loginInfo)
     (LoginPage, LoginRequest) ->
       (model, loginRequest model.loginInfo)
     (LoginPage, LoginResponse r) ->
