@@ -451,6 +451,8 @@ subscriptions _ =
 -- INIT
 settingsDefault = 
   Settings 
+    0
+    0
     MonthView 
     Hour12 
     FirstInitial
