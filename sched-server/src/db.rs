@@ -55,6 +55,7 @@ pub enum Messages {
     ChangePassword(ChangePasswordInfo),
     GetSettings(Token),
     AddSettings(Token, NewSettings),
+    DefaultSettings(Token),
     UpdateSettings(Token, Settings),
     GetEmployees(Token),
     GetEmployee(Token, Name),
@@ -254,6 +255,10 @@ impl Handler<Messages> for DbExecutor {
                         Results::GetSettings(added)
                     })
                     .map_err(|err| Error::Dsl(err))
+            }
+            Messages::DefaultSettings(token) => {
+                let user = check_token(&token, conn)?;
+                Ok(Results::GetSettingsID(IDRoot{id: user.startup_settings}))
             }
             Messages::UpdateSettings(token, updated) => {
                 let user = check_token(&token, conn)?;
