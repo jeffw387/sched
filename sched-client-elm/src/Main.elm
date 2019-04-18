@@ -318,13 +318,13 @@ newSettingsEncoder settings =
     ]
 
 
+-- DESERIALIZATION
 viewYMDDecoder =
   D.succeed YearMonthDay
   |> JPipe.required "view_year" D.int
   |> JPipe.required "view_month" D.int
   |> JPipe.required "view_day" D.int
 
--- DESERIALIZATION
 settingsDecoder : D.Decoder Settings
 settingsDecoder =
   D.succeed Settings
