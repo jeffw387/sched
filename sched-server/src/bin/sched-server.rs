@@ -317,6 +317,9 @@ fn handle_results(
                 Results::GetSettings(settings) => {
                     Ok(HttpResponse::Ok().json(settings))
                 }
+                Results::GetSettingsID(id) => {
+                    Ok(HttpResponse::Ok().json(id))
+                }
                 Results::GetEmployeesVec(employees_vec) => {
                     Ok(HttpResponse::Ok()
                         .json(employees_vec))
