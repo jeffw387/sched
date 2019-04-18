@@ -796,6 +796,21 @@ update message model =
         Err e -> 
           (model, Cmd.none)
     (_, DoneLoading) -> (model, Cmd.none)
+    (_, ReceiveSettingsList settingsResult) ->
+      (case settingsResult of
+        Ok settingsList ->
+          (
+            {
+              model | settingsList = settingsList
+            },
+            Http.post
+              {
+                url = "/sched/default_settings",
+                body = Http.emptyBody,
+                expect = Http.expectJson ReceiveSettingsList (D.list settingsDecoder)
+              }
+          )
+        Err e -> (model, Cmd.none))
     (CalendarPage, OpenSettingsModal) ->
       case model.calendarModal of
         NoModal ->
