@@ -73,39 +73,25 @@ impl Message for Messages {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SettingsVecRoot {
-    pub settings: Vec<Settings>,
+pub struct JsonObject<T> {
+    pub contents: T
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EmployeesVecRoot {
-    pub employees: Vec<Employee>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ShiftsVecRoot {
-    pub shifts: Vec<Shift>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TokenRoot {
-    pub token: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IDRoot {
-    pub id: Option<i32>
+impl<T> JsonObject<T> {
+    pub fn new(t: T) -> Self {
+        Self { contents: t }
+    }
 }
 
 pub enum Results {
-    GetSession(TokenRoot),
+    GetSession(JsonObject<String>),
     GetUser(ClientSideUser),
-    GetSettingsVec(SettingsVecRoot),
+    GetSettingsVec(JsonObject<Vec<Settings>>),
     GetSettings(Settings),
-    GetSettingsID(IDRoot),
-    GetEmployeesVec(EmployeesVecRoot),
+    GetSettingsID(JsonObject<Option<i32>>),
+    GetEmployeesVec(JsonObject<Vec<Employee>>),
     GetEmployee(Employee),
-    GetShiftsVec(ShiftsVecRoot),
+    GetShiftsVec(JsonObject<Vec<Shift>>),
     GetShift(Shift),
     Nothing,
 }
@@ -144,9 +130,7 @@ impl Handler<Messages> for DbExecutor {
                         ))
                         .get_result::<Session>(conn)
                         .map(|session| {
-                            Results::GetSession(TokenRoot {
-                                token: session.token,
-                            })
+                            Results::GetSession(JsonObject::new(session.token))
                         })
                         .map_err(|dsl_err| {
                             Error::Dsl(dsl_err)
@@ -241,9 +225,7 @@ impl Handler<Messages> for DbExecutor {
                     .load::<Settings>(conn)
                     .map(|settings_vec| {
                         Results::GetSettingsVec(
-                            SettingsVecRoot {
-                                settings: settings_vec,
-                            },
+                            JsonObject::new(settings_vec)
                         )
                     })
                     .map_err(|err| Error::Dsl(err))
@@ -264,7 +246,7 @@ impl Handler<Messages> for DbExecutor {
             }
             Messages::DefaultSettings(token) => {
                 let user = check_token(&token, conn)?;
-                Ok(Results::GetSettingsID(IDRoot{id: user.startup_settings}))
+                Ok(Results::GetSettingsID(JsonObject::new(user.startup_settings)))
             }
             Messages::UpdateSettings(token, updated) => {
                 let user = check_token(&token, conn)?;
@@ -281,9 +263,7 @@ impl Handler<Messages> for DbExecutor {
                     .load::<Employee>(conn)
                     .map(|emps_vec| {
                         Results::GetEmployeesVec(
-                            EmployeesVecRoot {
-                                employees: emps_vec,
-                            },
+                                JsonObject::new(emps_vec)
                         )
                     })
                     .map_err(|err| Error::Dsl(err))
@@ -371,7 +351,7 @@ impl Handler<Messages> for DbExecutor {
                     .load::<Shift>(conn)
                     .map(|res| {
                         Results::GetShiftsVec(
-                            ShiftsVecRoot { shifts: res },
+                            JsonObject::new(res)
                         )
                     })
                     .map_err(|err| Error::Dsl(err))
