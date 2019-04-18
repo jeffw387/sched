@@ -516,6 +516,7 @@ type Message =
   UpdateShiftDuration Float |
   -- SettingsModal Messages
   OpenSettingsModal |
+  SaveSettings |
   CloseSettingsModal |
 -- Loading Messages
   ReceiveEmployees (Result Http.Error (Employees)) |
