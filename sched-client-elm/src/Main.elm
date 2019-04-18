@@ -61,17 +61,6 @@ type alias Settings =
     viewEmployees : List Int
   }
 
-type alias Employees =
-  {
-    employees : List Employee
-  }
-
-type alias Shifts =
-  {
-    shifts : List Shift
-  }
-
-
 type InputState =
   Normal |
   Success |
@@ -377,15 +366,9 @@ nameDecoder =
   |> JPipe.required "first" D.string
   |> JPipe.required "last" D.string
 
-employeesQueryDecoder : D.Decoder Employees
-employeesQueryDecoder =
-  D.succeed Employees
-  |> JPipe.requiredAt ["employees"] (D.list employeeDecoder)
-
-shiftsQueryDecoder : D.Decoder Shifts
-shiftsQueryDecoder =
-  D.succeed Shifts
-  |> JPipe.requiredAt ["shifts"] (D.list shiftDecoder)
+genericObjectDecoder : D.Decoder a -> D.Decoder a
+genericObjectDecoder f =
+  D.field "contents" f
 
 employeeDecoder : D.Decoder Employee
 employeeDecoder =
@@ -494,7 +477,6 @@ type Message =
   Logout |
   KeyDown (Maybe Keys) |
   FocusResult (Result Dom.Error ()) |
-  ReceiveSettings (Result Http.Error Settings) |
   ReceiveSettingsList (Result Http.Error (List Settings)) |
 -- Login Messages
   LoginRequest |
@@ -518,8 +500,8 @@ type Message =
   SaveSettings |
   CloseSettingsModal |
 -- Loading Messages
-  ReceiveEmployees (Result Http.Error (Employees)) |
-  ReceiveShifts Employee (Result Http.Error (Shifts)) |
+  ReceiveEmployees (Result Http.Error (List Employee)) |
+  ReceiveShifts Employee (Result Http.Error (List Shift)) |
   ReceiveTime YearMonthDay |
   DoneLoading
 
@@ -574,7 +556,7 @@ requestEmployees =
   {
     url="/sched/get_employees",
     body=Http.emptyBody,
-    expect=Http.expectJson ReceiveEmployees employeesQueryDecoder
+    expect=Http.expectJson ReceiveEmployees (genericObjectDecoder (D.list employeeDecoder))
   }
 
 requestShifts : Employee -> Cmd Message
@@ -582,7 +564,7 @@ requestShifts emp =
   Http.post {
     url="/sched/get_shifts",
     body=Http.jsonBody (employeeEncoder emp),
-    expect=Http.expectJson (ReceiveShifts emp) shiftsQueryDecoder
+    expect=Http.expectJson (ReceiveShifts emp) (genericObjectDecoder (D.list shiftDecoder))
   }
 
 monthCode : Dict Int Int
@@ -749,12 +731,12 @@ update message model =
       case employeesResult of
         Ok employees ->
           let 
-            loadingModel = setLoadTasks employees.employees model
+            loadingModel = setLoadTasks employees model
             sortedEmps = 
               List.sortWith 
               (\e1 e2 -> 
                 compare (nameToString e1.name) (nameToString e2.name)) 
-                employees.employees
+                employees
           in
             ({ loadingModel | employees = sortedEmps }, 
             Cmd.batch (List.map requestShifts sortedEmps))
@@ -771,7 +753,7 @@ update message model =
               ({ markedModel | employeeShifts = 
                   (Dict.insert 
                     employee.id
-                    shifts.shifts
+                    shifts
                     model.employeeShifts)}, 
                   Task.succeed DoneLoading 
                   |> Task.perform identity)
@@ -779,7 +761,7 @@ update message model =
               ({ markedModel | employeeShifts = 
                   (Dict.insert 
                     employee.id
-                    shifts.shifts
+                    shifts
                     model.employeeShifts)}, Cmd.none)
         Err e -> 
           (model, Cmd.none)
