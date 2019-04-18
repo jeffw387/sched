@@ -494,6 +494,7 @@ type Message =
   LogoutResponse (Result Http.Error ()) |
   KeyDown (Maybe Keys) |
   FocusResult (Result Dom.Error ()) |
+  ReceiveSettings (Result Http.Error Settings) |
 -- Login Messages
   CreateUser |
   LoginRequest |
