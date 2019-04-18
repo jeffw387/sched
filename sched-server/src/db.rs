@@ -92,11 +92,17 @@ pub struct TokenRoot {
     pub token: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IDRoot {
+    pub id: Option<i32>
+}
+
 pub enum Results {
     GetSession(TokenRoot),
     GetUser(ClientSideUser),
     GetSettingsVec(SettingsVecRoot),
     GetSettings(Settings),
+    GetSettingsID(IDRoot),
     GetEmployeesVec(EmployeesVecRoot),
     GetEmployee(Employee),
     GetShiftsVec(ShiftsVecRoot),
