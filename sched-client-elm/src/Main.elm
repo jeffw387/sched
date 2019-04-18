@@ -283,7 +283,94 @@ userEncoder user =
       ("level", userLevelEncoder user.level)
     ]
 
+viewTypeEncoder : ViewType -> E.Value
+viewTypeEncoder viewType =
+  case viewType of
+    MonthView -> E.string "Month"
+    WeekView -> E.string "Week"
+    DayView -> E.string "Day"
+
+hourFormatEncoder : HourFormat -> E.Value
+hourFormatEncoder hourFormat =
+  case hourFormat of
+    Hour12 -> E.string "Hour12"
+    Hour24 -> E.string "Hour24"
+
+lastNameStyleEncoder : LastNameStyle -> E.Value
+lastNameStyleEncoder lastNameStyle =
+  case lastNameStyle of
+    FullName -> E.string "FullName"
+    FirstInitial -> E.string "FirstInitial"
+    Hidden -> E.string "Hidden"
+
+newSettingsEncoder : Settings -> E.Value
+newSettingsEncoder settings =
+  E.object
+    [
+      ("user_id", E.int settings.userID),
+      ("view_type", viewTypeEncoder settings.viewType),
+      ("hour_format", hourFormatEncoder settings.hourFormat),
+      ("last_name_style", lastNameStyleEncoder settings.lastNameStyle),
+      ("view_year", E.int settings.viewDate.year),
+      ("view_month", E.int settings.viewDate.month),
+      ("view_day", E.int settings.viewDate.day),
+      ("viewEmployees", E.list E.int settings.viewEmployees)
+    ]
+
+
+viewYMDDecoder =
+  D.succeed YearMonthDay
+  |> JPipe.required "view_year" D.int
+  |> JPipe.required "view_month" D.int
+  |> JPipe.required "view_day" D.int
+
 -- DESERIALIZATION
+settingsDecoder : D.Decoder Settings
+settingsDecoder =
+  D.succeed Settings
+  |> JPipe.required "id" D.int
+  |> JPipe.required "user_id" D.int
+  |> JPipe.required "view_type" viewTypeDecoder
+  |> JPipe.required "hour_format" hourFormatDecoder
+  |> JPipe.required "last_name_style" lastNameStyleDecoder
+  |> JPipe.custom viewYMDDecoder
+  |> JPipe.required "view_employees" (D.list D.int)
+
+viewTypeDecoder : D.Decoder ViewType
+viewTypeDecoder =
+  D.string
+  |> D.andThen
+    (
+      \viewTypeString ->
+        case viewTypeString of
+          "Week" -> D.succeed WeekView
+          "Day" -> D.succeed DayView
+          _ -> D.succeed MonthView
+    )
+
+hourFormatDecoder : D.Decoder HourFormat
+hourFormatDecoder =
+  D.string
+  |> D.andThen
+    (
+      \hourFormatString ->
+        case hourFormatString of
+          "Hour24" -> D.succeed Hour24
+          _ -> D.succeed Hour12
+    )
+
+lastNameStyleDecoder : D.Decoder LastNameStyle
+lastNameStyleDecoder =
+  D.string
+  |> D.andThen
+    (
+      \styleString ->
+        case styleString of
+          "FirstInitial" -> D.succeed FirstInitial
+          "Hidden" -> D.succeed Hidden
+          _ -> D.succeed FullName
+    )
+
 nameDecoder : D.Decoder Name
 nameDecoder =
   D.succeed Name
