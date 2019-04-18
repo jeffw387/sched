@@ -511,7 +511,7 @@ type Message =
   AddShift ShiftModalData |
   CloseShiftModal |
   ShiftEmployeeSearch String |
-  ChooseShiftEmployee (Employee) |
+  ChooseShiftEmployee Employee |
   UpdateShiftStart Float |
   UpdateShiftDuration Float |
   -- SettingsModal Messages
