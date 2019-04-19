@@ -2117,6 +2117,22 @@ viewMonth ymdMaybe month settings shifts employees =
             centerX
           ]
           (text (monthNumToString ymd.month)),
+        row
+        [
+          fillX, 
+          height shrink,
+          Border.widthEach 
+            {top = 1, bottom = 1, left = 0, right = 0}
+        ]
+        [
+          el [fillX, borderL] (el [centerX] (text "Sunday")),
+          el [fillX, borderL] (el [centerX] (text "Monday")),
+          el [fillX, borderL] (el [centerX] (text "Tuesday")),
+          el [fillX, borderL] (el [centerX] (text "Wednesday")),
+          el [fillX, borderL] (el [centerX] (text "Thursday")),
+          el [fillX, borderL] (el [centerX] (text "Friday")),
+          el [fillX, borderL] (el [centerX] (text "Saturday"))
+        ],
         viewMonthRows month ymdMaybe settings shifts employees
       ]
     Nothing -> text "Loading..."
