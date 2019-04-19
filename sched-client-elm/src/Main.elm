@@ -1818,6 +1818,51 @@ shiftModalElement model shiftModalData =
               }
           ],
           
+          -- Repeat controls
+          row 
+            (
+            [
+              width shrink,
+              spacing 5
+            ] ++ defaultBorder
+            )
+          [
+            Input.radio
+            [
+              BG.color white,
+              padding 5
+            ]
+            {
+              onChange = UpdateShiftRepeat,
+              selected = Just shiftModalData.shiftRepeat,
+              label = Input.labelAbove 
+                [BG.color lightGrey, fillX, padding 5] 
+                (el [centerX] (text "Repeat:")),
+              options =
+                [
+                  Input.option NeverRepeat (text "Never"),
+                  Input.option EveryWeek (text "Weekly"),
+                  Input.option EveryDay (text "Daily")
+                ]
+            },
+            Input.text
+            [
+              width (px 50),
+              padding 5,
+              alignTop
+            ]
+            {
+              onChange = UpdateShiftRepeatRate,
+              text = shiftModalData.everyX,
+              placeholder = Nothing,
+              label = Input.labelAbove
+                [
+                  BG.color lightGrey, 
+                  padding 5]
+                (text "Every:")
+            }
+          ],
+          
           -- Save/Cancel buttons
           row 
           [
