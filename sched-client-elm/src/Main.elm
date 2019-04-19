@@ -176,23 +176,7 @@ type alias YearMonthDay =
     day : Int
   }
 
-withNow : (Time.Posix -> Task.Task () a) -> (Task.Task () a)
-withNow timeFunc =
-  Time.now |> Task.andThen timeFunc
 
-ymdNow =
-  Time.now |> Task.andThen 
-  (\time -> 
-    Time.here 
-    |> Task.andThen 
-    (\zone -> 
-      Task.succeed 
-        (YearMonthDay 
-        (Time.toYear zone time) 
-        (monthToNum (Time.toMonth zone time))
-        (Time.toDay zone time))
-    )
-  )
 
 type alias YearMonth =
   {
