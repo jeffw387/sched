@@ -529,6 +529,7 @@ type Message =
   ChooseShiftEmployee Employee |
   UpdateShiftStart Float |
   UpdateShiftDuration Float |
+  UpdateShiftRepeat ShiftRepeat |
   -- SettingsModal Messages
   OpenSettingsModal |
   SaveSettings |
@@ -975,6 +976,19 @@ update message model =
                   expect = Http.expectWhatever ReloadData
                 })
             Nothing -> (model, Cmd.none)
+        _ -> (model, Cmd.none)
+    (CalendarPage page, UpdateShiftRepeat shiftRepeat) -> 
+      case page.modal of
+        ShiftModal shiftData ->
+          let
+            updatedShiftData = 
+              { 
+                shiftData | 
+                  shiftRepeat = shiftRepeat
+              }
+            updatedPage = { page | modal = ShiftModal updatedShiftData }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftStart f) ->
       case page.modal of
