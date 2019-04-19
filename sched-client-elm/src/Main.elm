@@ -1181,7 +1181,8 @@ dayRepeatMatch startDay matchDay everyX =
       else False
     Nothing -> False
 
-weekRepeatMatch startDay matchDay everyX = True
+weekRepeatMatch startDay matchDay everyX =
+  dayRepeatMatch startDay matchDay (everyX * 7)
 
 exactShiftMatch : YearMonthDay -> YearMonthDay -> Bool
 exactShiftMatch day shift =
