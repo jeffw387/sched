@@ -1100,13 +1100,22 @@ dayRepeatMatch startDay matchDay everyX = True
 
 weekRepeatMatch startDay matchDay everyX = True
 
-mapEmployeeShifts : Dict Int (List Shift) -> List Employee -> List (Employee, List Shift)
-mapEmployeeShifts shiftDict employees =
-  List.map2 swapFirst employees (Dict.toList shiftDict)
+exactShiftMatch : YearMonthDay -> YearMonthDay -> Bool
+exactShiftMatch day shift =
+  shift.year == day.year 
+  && shift.month == day.month 
+  && shift.day == day.day
 
-matchYearMonthDay : YearMonthDay -> Shift -> Bool
-matchYearMonthDay day shift =
-  shift.year == day.year && shift.month == day.month && shift.day == day.day
+shiftMatch : YearMonthDay -> Shift -> Bool
+shiftMatch ymd shift =
+  let shiftYMD = YearMonthDay shift.year shift.month shift.day in
+  case shift.repeat of
+    NeverRepeat ->
+      exactShiftMatch ymd shiftYMD
+    EveryWeek ->
+      weekRepeatMatch shiftYMD ymd shift.everyX
+    EveryDay ->
+      dayRepeatMatch shiftYMD ymd shift.everyX
 
 filterByYearMonthDay : YearMonthDay -> 
   (Employee, List Shift) -> (Employee, List Shift)
