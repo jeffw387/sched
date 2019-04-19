@@ -146,7 +146,7 @@ type alias Model =
     activeSettings : Maybe Int,
     user : Maybe User,
     employees : Maybe (List Employee),
-    employeeShifts : Maybe (Dict Int (List Shift)),
+    shifts : Maybe (List Shift),
     posixNow : Maybe Time.Posix,
     here : Maybe Time.Zone,
 
@@ -409,25 +409,6 @@ shiftDecoder =
     |> JPipe.required "shift_repeat" shiftRepeatDecoder
     |> JPipe.required "every_x" D.int
 
-shiftsDecoder : D.Decoder (Dict String (List Shift))
-shiftsDecoder =
-  D.dict (D.list shiftDecoder)
-
-shiftsIDParse : Dict String (List Shift) -> Dict Int (List Shift)
-shiftsIDParse dict =
-  dict
-  |> Dict.toList
-  |> List.map 
-    (
-      \(k, v) -> 
-        let parsed = String.toInt k in
-        case parsed of
-          Just p -> 
-            (p, v)
-          Nothing -> (0, v)
-    )
-  |> Dict.fromList
-
 userLevelDecoder : D.Decoder UserLevel
 userLevelDecoder =
   D.string
@@ -529,7 +510,7 @@ type Message =
   CloseSettingsModal |
 -- Loading Messages
   ReceiveEmployees (Result Http.Error (List Employee)) |
-  ReceiveShifts (Result Http.Error (Dict String (List Shift))) |
+  ReceiveShifts (Result Http.Error (List Shift)) |
   ReceiveDefaultSettings (Result Http.Error (Maybe Int)) |
   ReceiveSettingsList (Result Http.Error (List Settings)) |
   ReceivePosixTime Time.Posix |
@@ -570,7 +551,7 @@ requestShifts =
   Http.post {
     url = "/sched/get_shifts",
     body = Http.emptyBody,
-    expect = Http.expectJson ReceiveShifts (genericObjectDecoder shiftsDecoder)
+    expect = Http.expectJson ReceiveShifts (genericObjectDecoder (D.list shiftDecoder))
   } 
 
 monthCode : Dict Int Int
@@ -834,8 +815,8 @@ update message model =
     (_, ReceiveShifts shiftsResult) ->
       case shiftsResult of
         Ok shifts ->
-              ({ model | employeeShifts = 
-                  Just (shiftsIDParse shifts) }, Cmd.none)
+              ({ model | shifts = 
+                  Just shifts }, Cmd.none)
         Err e -> 
           (model, Cmd.none)
     (_, ReceiveSettingsList settingsResult) ->
@@ -1204,14 +1185,9 @@ shiftMatch ymd shift =
       dayRepeatMatch shiftYMD ymd shift.everyX
 
 filterByYearMonthDay : YearMonthDay -> 
-  (Int, List Shift) -> (Int, List Shift)
-filterByYearMonthDay day (id, shifts) =
-    (id, List.filter (shiftMatch day) shifts)
-
-mapShiftsToYearMonthDay : YearMonthDay -> 
-  List (Int, List Shift) -> List (Int, List Shift)
-mapShiftsToYearMonthDay day employeeShifts =
-  List.map (filterByYearMonthDay day) employeeShifts
+  List Shift -> List Shift
+filterByYearMonthDay day shifts =
+    List.filter (shiftMatch day) shifts
 
 endsFromStartDur : (Int, Int) -> (Int, Int)
 endsFromStartDur (start, duration) =
@@ -1356,30 +1332,6 @@ getEmployee employees id =
   List.filter (\emp -> emp.id == id) employees
   |> List.head
 
-pairEmployeeShift : 
-  Settings 
-  -> List Employee
-  -> (Int, List Shift) 
-  -> List (Element Message)
-pairEmployeeShift settings employees (id, shifts) = 
-  case getEmployee employees id of
-    Just employee ->
-      List.map (shiftElement settings employee) shifts
-    Nothing -> []
-
-foldElementList : 
-  List (Element Message) 
-  -> List (Element Message) 
-  -> List (Element Message)
-foldElementList nextList soFar =
-  List.append soFar nextList
-
-combineElementLists : 
-  List (List (Element Message)) 
-  -> List (Element Message)
-combineElementLists lists =
-  List.foldl foldElementList [] lists
-
 formatLastName : Settings -> String -> String
 formatLastName settings name =
   case settings.lastNameStyle of
@@ -1389,10 +1341,12 @@ formatLastName settings name =
 
 shiftElement : 
   Settings 
-  -> Employee
+  -> List Employee
   -> Shift 
   -> Element Message
-shiftElement settings employee shift =
+shiftElement settings employees shift =
+  case getEmployee employees shift.employeeID of
+    Just employee ->
   row
     [
       Font.size 14,
@@ -1411,6 +1365,7 @@ shiftElement settings employee shift =
         ++ ": "),
       (formatHours settings shift.hour shift.hours)
     ]
+    Nothing -> none
 
 dayStyle ymdMaybe dayState = 
   ([
@@ -1433,19 +1388,22 @@ dayStyle ymdMaybe dayState =
       ]
     None -> [])
 
-shiftColumn settings day employeeShifts employees =
+shiftColumn : 
+  Settings -> 
+  YearMonthDay -> 
+  List Shift -> 
+  List Employee -> 
+  Element Message
+shiftColumn settings day shifts employees =
   column 
   [
     centerX,
     width fill
   ] 
   (
-    combineElementLists 
-    (
       List.map 
-      (pairEmployeeShift settings employees)
-      (mapShiftsToYearMonthDay day employeeShifts)
-    )
+      (shiftElement settings employees)
+      (filterByYearMonthDay day shifts)
   )
 
 type ShiftRepeat =
@@ -1882,12 +1840,12 @@ type DayState =
 
 dayElement : 
   Settings 
-  -> List (Int, List Shift)
+  -> List Shift
   -> List Employee
   -> Maybe YearMonthDay
   -> Maybe YearMonthDay
   -> Element Message
-dayElement settings employeeShifts employees focusDay maybeYMD =
+dayElement settings shifts employees focusDay maybeYMD =
   let dayState = (compareDays maybeYMD focusDay) in
   case maybeYMD of
     Just day -> 
@@ -1905,7 +1863,7 @@ dayElement settings employeeShifts employees focusDay maybeYMD =
             dayOfMonthElement day,
             addShiftElement day
           ],
-          shiftColumn settings day employeeShifts employees
+          shiftColumn settings day shifts employees
         ]
       )
       
@@ -1917,11 +1875,11 @@ dayElement settings employeeShifts employees focusDay maybeYMD =
 monthRowElement : 
   Settings 
   -> Maybe YearMonthDay
-  -> List (Int, List Shift)
+  -> List Shift
   -> List Employee
   -> Row
   -> Element Message
-monthRowElement settings focusDay employeeShifts employees rowElement =
+monthRowElement settings focusDay shifts employees rowElement =
   row 
     [
       height fill,
@@ -1933,7 +1891,7 @@ monthRowElement settings focusDay employeeShifts employees rowElement =
       Array.toList 
       (
         Array.map 
-        (dayElement settings employeeShifts employees focusDay) 
+        (dayElement settings shifts employees focusDay) 
         rowElement
       )
     )
@@ -1949,7 +1907,7 @@ settingsElement =
     ]
     none
 
-viewMonthRows month focusDay settings shiftDict employees =
+viewMonthRows month focusDay settings shifts employees =
   column
   [
     width fill,
@@ -1961,14 +1919,14 @@ viewMonthRows month focusDay settings shiftDict employees =
       (monthRowElement 
       settings 
       focusDay
-      shiftDict 
+      shifts 
       employees)
     month))
 
 fillX = width fill
 fillY = height fill
 
-viewMonth ymdMaybe month settings shiftDict employees =
+viewMonth ymdMaybe month settings shifts employees =
   case ymdMaybe of
     Just ymd ->
       column
@@ -1982,7 +1940,7 @@ viewMonth ymdMaybe month settings shiftDict employees =
             centerX
           ]
           (text (monthNumToString ymd.month)),
-        viewMonthRows month ymdMaybe settings shiftDict employees
+        viewMonthRows month ymdMaybe settings shifts employees
       ]
     Nothing -> text "Loading..."
 
@@ -2002,11 +1960,11 @@ viewCalendar model =
   case 
   (
     (model.settingsList, getActiveSettings model),
-    (model.employees, model.employeeShifts),
+    (model.employees, model.shifts),
     (model.here, model.posixNow)
   ) of
     ((Just settingsList, Just activeSettings), 
-      (Just employees, Just shiftDict),
+      (Just employees, Just shifts),
       (Just here, Just now)) ->
       let today = getTime now here in
       case activeSettings.viewType of
@@ -2023,7 +1981,7 @@ viewCalendar model =
               inFront (viewModal model)
             ]
             [
-              viewMonth (Just today) month activeSettings (Dict.toList shiftDict) employees,
+              viewMonth (Just today) month activeSettings shifts employees,
               viewCalendarFooter
             ]
         WeekView ->

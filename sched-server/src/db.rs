@@ -93,7 +93,7 @@ pub enum Results {
     GetEmployeesVec(JsonObject<Vec<Employee>>),
     GetEmployee(Employee),
     GetShiftsVec(JsonObject<Vec<Shift>>),
-    GetEmployeeShifts(JsonObject<HashMap<i32, Vec<Shift>>>),
+    GetEmployeeShifts(JsonObject<Vec<Shift>>),
     GetShift(Shift),
     Nothing,
 }
@@ -351,15 +351,8 @@ impl Handler<Messages> for DbExecutor {
                 shifts::table
                     .load::<Shift>(conn)
                     .map(|res| {
-                        println!("loaded shifts: {:#?}", res);
-                        let mut shift_map = HashMap::new();
-                        for shift in res {
-                            shift_map
-                                .entry(shift.user_id)
-                                .or_insert(vec![shift]);
-                        };
                         Results::GetEmployeeShifts(
-                            JsonObject::new(shift_map)
+                            JsonObject::new(res)
                         )
                     })
                     .map_err(|err| {
