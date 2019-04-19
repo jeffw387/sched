@@ -523,7 +523,7 @@ type Message =
   DayClick (Maybe YearMonthDay) |
   -- ShiftModal Messages
   OpenShiftModal YearMonthDay |
-  AddShift ShiftModalData |
+  AddShift |
   CloseShiftModal |
   ShiftEmployeeSearch String |
   ChooseShiftEmployee Employee |
@@ -958,6 +958,23 @@ update message model =
             updatedPage = { page | modal = ShiftModal updatedModal }
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
+        _ -> (model, Cmd.none)
+    (CalendarPage page, AddShift) ->
+      case page.modal of
+        ShiftModal shiftData ->
+          case shiftFromModal shiftData of
+            Just shift ->
+              let
+                updatedPage = { page | modal = NoModal }
+                updatedModel = { model | page = CalendarPage updatedPage }
+              in
+              (updatedModel, Http.post
+                {
+                  url = "/sched/add_shift",
+                  body = Http.jsonBody (newShiftEncoder shift),
+                  expect = Http.expectWhatever ReloadData
+                })
+            Nothing -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftStart f) ->
       case page.modal of
