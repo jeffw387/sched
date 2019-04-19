@@ -157,6 +157,7 @@ type alias Model =
 type alias Shift =
   {
     id : Int,
+    userID : Int,
     employeeID : Int,
     year : Int,
     month : Int,
