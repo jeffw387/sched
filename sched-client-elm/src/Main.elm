@@ -873,6 +873,20 @@ update message model =
               in (updated, Cmd.none)
             Nothing -> (model, Cmd.none)
         Err _ -> (model, Cmd.none)
+    (CalendarPage page, ReloadData _) ->
+      let 
+        updated = 
+          { 
+            model | 
+              settingsList = Nothing,
+              activeSettings = Nothing,
+              user = Nothing,
+              employees = Nothing,
+              shifts = Nothing,
+              posixNow = Nothing,
+              here = Nothing
+          }
+      in (model, loadData)
     (CalendarPage page, OpenSettingsModal) ->
       case page.modal of
         NoModal ->
