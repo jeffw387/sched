@@ -1878,7 +1878,7 @@ shiftModalElement model shiftModalData =
               defaultShadow
             ]
             {
-              onPress = Just (AddShift shiftModalData),
+              onPress = Just (AddShift),
               label = text "Save"
             },
             Input.button
