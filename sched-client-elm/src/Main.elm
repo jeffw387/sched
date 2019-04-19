@@ -1174,7 +1174,12 @@ daysApart day1 day2 =
     Today -> Just 0
     _ -> Nothing
 
-dayRepeatMatch startDay matchDay everyX = True
+dayRepeatMatch startDay matchDay everyX =
+  case daysApart startDay matchDay of
+    Just apart ->
+      if modBy everyX apart == 0 then True
+      else False
+    Nothing -> False
 
 weekRepeatMatch startDay matchDay everyX = True
 
