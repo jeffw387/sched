@@ -1024,6 +1024,15 @@ update message model =
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
+    (CalendarPage page, UpdateShiftRepeatRate rate) ->
+      case page.modal of
+        ShiftModal shiftData ->
+          let
+            updatedShiftData = { shiftData | everyX = rate }
+            updatedPage = { page | modal = ShiftModal updatedShiftData }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
+        _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftStart f) ->
       case page.modal of
         ShiftModal shiftModalData ->
