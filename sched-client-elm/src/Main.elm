@@ -164,7 +164,9 @@ type alias Shift =
     hour : Int,
     minute : Int,
     hours : Int,
-    minutes : Int
+    minutes : Int,
+    repeat : ShiftRepeat,
+    everyX : Int
   }
 
 type alias YearMonthDay =
@@ -398,6 +400,18 @@ employeeDecoder =
   |> JPipe.requiredAt ["name"] nameDecoder
   |> JPipe.required "phone_number" (D.maybe D.string)
 
+shiftRepeatDecoder : D.Decoder ShiftRepeat
+shiftRepeatDecoder =
+  D.string
+  |> D.andThen 
+    (
+      \string -> 
+      case string of
+        "EveryWeek" -> D.succeed EveryWeek
+        "EveryDay" -> D.succeed EveryDay
+        _ -> D.succeed NeverRepeat
+    )
+
 shiftDecoder : D.Decoder Shift
 shiftDecoder =
   D.succeed Shift
@@ -410,6 +424,27 @@ shiftDecoder =
     |> JPipe.required "minute" D.int
     |> JPipe.required "hours" D.int
     |> JPipe.required "minutes" D.int
+    |> JPipe.required "shift_repeat" shiftRepeatDecoder
+    |> JPipe.required "every_x" D.int
+
+shiftsDecoder : D.Decoder (Dict String (List Shift))
+shiftsDecoder =
+  D.dict (D.list shiftDecoder)
+
+shiftsIDParse : Dict String (List Shift) -> Dict Int (List Shift)
+shiftsIDParse dict =
+  dict
+  |> Dict.toList
+  |> List.map 
+    (
+      \(k, v) -> 
+        let parsed = String.toInt k in
+        case parsed of
+          Just p -> 
+            (p, v)
+          Nothing -> (0, v)
+    )
+  |> Dict.fromList
 
 userLevelDecoder : D.Decoder UserLevel
 userLevelDecoder =
