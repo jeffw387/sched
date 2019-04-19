@@ -463,9 +463,6 @@ settingsDefault =
     (YearMonthDay 2019 3 23)
     []
 
-loadData =
-  Task.perform ReceiveTime ymdNow
-
 init : () -> Url.Url -> Nav.Key -> (Model, Cmd Message)
 init _ url key =
   router 
