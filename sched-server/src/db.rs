@@ -246,6 +246,7 @@ impl Handler<Messages> for DbExecutor {
             }
             Messages::DefaultSettings(token) => {
                 let user = check_token(&token, conn)?;
+                println!("token accepted, user: {:#?}", user);
                 Ok(Results::GetSettingsID(JsonObject::new(user.startup_settings)))
             }
             Messages::UpdateSettings(token, updated) => {
@@ -344,17 +345,17 @@ impl Handler<Messages> for DbExecutor {
             }
             Messages::GetShifts(token, employee) => {
                 let _ = check_token(&token, conn)?;
+                println!("token accepted");
                 shifts::table
                     .filter(
                         shifts::employee_id.eq(employee.id),
                     )
                     .load::<Shift>(conn)
                     .map(|res| {
-                        Results::GetShiftsVec(
-                            JsonObject::new(res)
+                        println!("loaded shifts: {:#?}", res);
                         )
                     })
-                    .map_err(|err| Error::Dsl(err))
+                        eprintln!("Error: {:?}", err);
             }
             Messages::AddShift(token, new_shift) => {
                 let user = check_token(&token, conn)?;

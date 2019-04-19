@@ -227,6 +227,7 @@ fn remove_employee(
 }
 
 fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
+    println!("get_shifts");
     let token = get_token(&req);
     req.json()
         .from_err()
