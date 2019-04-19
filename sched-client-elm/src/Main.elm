@@ -1305,6 +1305,7 @@ filterByYearMonthDay : YearMonthDay ->
   List Shift -> List Shift
 filterByYearMonthDay day shifts =
     List.filter (shiftMatch day) shifts
+    |> List.sortWith shiftCompare
 
 endsFromStartDur : (Int, Int) -> (Int, Int)
 endsFromStartDur (start, duration) =
