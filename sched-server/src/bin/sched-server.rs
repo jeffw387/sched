@@ -21,7 +21,6 @@ use sched_server::db::{
     Messages,
     Results,
 };
-use sched_server::employee::Employee;
 use sched_server::env;
 use sched_server::message::LoginInfo;
 
@@ -94,6 +93,14 @@ fn get_settings((req, state): DbRequest) -> Box<DbFuture> {
         .db
         .clone()
         .send(Messages::GetSettings(token))
+        .from_err()
+        .and_then(handle_results)
+        .responder()
+}
+
+fn default_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    state.db.send(Messages::DefaultSettings(token))
         .from_err()
         .and_then(handle_results)
         .responder()
@@ -229,15 +236,11 @@ fn remove_employee(
 fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
     println!("get_shifts");
     let token = get_token(&req);
-    req.json()
-        .from_err()
-        .and_then(move |emp: Employee| {
             state
                 .db
-                .send(Messages::GetShifts(token, emp))
+        .send(Messages::GetShifts(token))
                 .from_err()
                 .and_then(handle_results)
-        })
         .responder()
 }
 
@@ -334,6 +337,9 @@ fn handle_results(
                 Results::GetShift(shift) => {
                     Ok(HttpResponse::Ok().json(shift))
                 }
+                Results::GetEmployeeShifts(shifts) => {
+                    Ok(HttpResponse::Ok().json(shifts))
+                }
                 Results::Nothing => {
                     Ok(HttpResponse::Ok().finish())
                 }
@@ -399,6 +405,9 @@ fn main() {
             })
             .resource(API_GET_SETTINGS, |r| {
                 r.post().with_async(get_settings)
+            })
+            .resource(API_DEFAULT_SETTINGS, |r| {
+                r.post().with_async(default_settings)
             })
             .resource(API_ADD_SETTINGS, |r| {
                 r.post().with_async(add_settings)

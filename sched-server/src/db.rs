@@ -46,6 +46,7 @@ use std::fmt::{
     Formatter,
 };
 use std::result::Result;
+use std::collections::HashMap;
 
 type Token = String;
 
@@ -62,7 +63,7 @@ pub enum Messages {
     AddEmployee(Token, NewEmployee),
     UpdateEmployee(Token, Employee),
     RemoveEmployee(Token, Employee),
-    GetShifts(Token, Employee),
+    GetShifts(Token),
     AddShift(Token, NewShift),
     UpdateShift(Token, Shift),
     RemoveShift(Token, Shift),
@@ -92,6 +93,7 @@ pub enum Results {
     GetEmployeesVec(JsonObject<Vec<Employee>>),
     GetEmployee(Employee),
     GetShiftsVec(JsonObject<Vec<Shift>>),
+    GetEmployeeShifts(JsonObject<HashMap<i32, Vec<Shift>>>),
     GetShift(Shift),
     Nothing,
 }
@@ -343,19 +345,26 @@ impl Handler<Messages> for DbExecutor {
                     }
                 }
             }
-            Messages::GetShifts(token, employee) => {
+            Messages::GetShifts(token) => {
                 let _ = check_token(&token, conn)?;
                 println!("token accepted");
                 shifts::table
-                    .filter(
-                        shifts::employee_id.eq(employee.id),
-                    )
                     .load::<Shift>(conn)
                     .map(|res| {
                         println!("loaded shifts: {:#?}", res);
+                        let mut shift_map = HashMap::new();
+                        for shift in res {
+                            shift_map
+                                .entry(shift.user_id)
+                                .or_insert(vec![shift]);
+                        };
+                        Results::GetEmployeeShifts(
+                            JsonObject::new(shift_map)
                         )
                     })
+                    .map_err(|err| {
                         eprintln!("Error: {:?}", err);
+                        Error::Dsl(err)})
             }
             Messages::AddShift(token, new_shift) => {
                 let user = check_token(&token, conn)?;
