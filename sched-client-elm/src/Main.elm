@@ -176,8 +176,6 @@ type alias YearMonthDay =
     day : Int
   }
 
-
-
 type alias YearMonth =
   {
     year : Int,
