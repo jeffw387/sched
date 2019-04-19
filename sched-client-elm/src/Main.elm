@@ -1283,6 +1283,13 @@ shiftMatch ymd shift =
     EveryDay ->
       dayRepeatMatch shiftYMD ymd shift.everyX
 
+ymdFromShift : Shift -> YearMonthDay
+ymdFromShift shift =
+  YearMonthDay
+    shift.year
+    shift.month
+    shift.day
+
 filterByYearMonthDay : YearMonthDay -> 
   List Shift -> List Shift
 filterByYearMonthDay day shifts =
