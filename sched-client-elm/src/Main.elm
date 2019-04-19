@@ -571,7 +571,7 @@ requestShifts =
     url = "/sched/get_shifts",
     body = Http.emptyBody,
     expect = Http.expectJson ReceiveShifts (genericObjectDecoder shiftsDecoder)
-  }
+  } 
 
 monthCode : Dict Int Int
 monthCode = 
@@ -686,15 +686,15 @@ shiftEditorForDay day maybeList =
         Just list -> list
         Nothing -> []
   in
-  ShiftModalData
-    Nothing
-    ""
-    employeeList
-    day
-    8
-    8
-    NeverRepeat
-    "1"
+    ShiftModalData
+      Nothing
+      ""
+      employeeList
+      day
+      8
+      8
+      NeverRepeat
+      "1"
 
 loadData =
   Cmd.batch 
@@ -795,14 +795,14 @@ update message model =
             model | page = LoginPage updatedPage
           } 
       in
-      case r of
-        Ok _ ->
-          (updatedModel, 
-            Nav.pushUrl 
-              model.navkey
-              "/sched/calendar"
-          )
-        Err _ -> (updatedModel, Cmd.none)
+        case r of
+          Ok _ ->
+            (updatedModel, 
+              Nav.pushUrl 
+                model.navkey
+                "/sched/calendar"
+            )
+          Err _ -> (updatedModel, Cmd.none)
     (LoginPage page, UpdateEmail email) ->
       let 
         info = page.loginInfo
@@ -877,15 +877,15 @@ update message model =
     (CalendarPage page, SaveSettings) ->
       case getActiveSettings model of
         Just settings ->
-      (
-        model, 
-        Http.post
-        {
-          url = "/sched/add_settings",
+          (
+            model, 
+            Http.post
+            {
+              url = "/sched/add_settings",
               body = Http.jsonBody (newSettingsEncoder settings),
-          expect = Http.expectWhatever IgnoreReply
-        }
-      )
+              expect = Http.expectWhatever IgnoreReply
+            }
+          )
         Nothing -> (model, Cmd.none)
     (CalendarPage page, CloseSettingsModal) ->
       case page.modal of
@@ -905,7 +905,7 @@ update message model =
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, 
             Task.attempt 
-            FocusResult
+            FocusResult 
             (Dom.focus "employeeSearch"))
         _ -> (model, Cmd.none)
     (CalendarPage page, CloseShiftModal) ->
@@ -924,8 +924,8 @@ update message model =
         ShiftModal shiftModalData ->
           let 
             newMatches = Fuzzy.filter
-                      (\emp -> nameToString emp.name)
-                      searchText
+              (\emp -> nameToString emp.name)
+              searchText
               (Maybe.withDefault [] model.employees)
             updatedModal = { shiftModalData | 
               employeeSearch = searchText,
@@ -1055,80 +1055,80 @@ viewLogin : Model -> Element Message
 viewLogin model =
   case model.page of
     LoginPage page ->
-  column 
-    [
-      padding 100, 
-      width fill,
-      BG.color (rgb 0.85 0.9 0.95),
-      centerY
-    ] 
-    [
       column 
         [
-          centerX
-        ]
+          padding 100, 
+          width fill,
+          BG.color (rgb 0.85 0.9 0.95),
+          centerY
+        ] 
         [
-          el 
+          column 
             [
-              alignRight,
-              width (px 300),
-              padding 15
-            ] (el [centerX] (text "Login to Scheduler")),
-          column
-            [
-              spacing 15
+              centerX
             ]
             [
-              Input.username
+              el 
                 [
-                  Input.focusedOnLoad,
                   alignRight,
                   width (px 300),
-                  padding 15,
+                  padding 15
+                ] (el [centerX] (text "Login to Scheduler")),
+              column
+                [
                   spacing 15
                 ]
-                {
-                  label = Input.labelLeft [] (text "Email"),
-                  onChange = UpdateEmail,
-                  placeholder = Just (Input.placeholder [] (text "you@something.com")),
+                [
+                  Input.username
+                    [
+                      Input.focusedOnLoad,
+                      alignRight,
+                      width (px 300),
+                      padding 15,
+                      spacing 15
+                    ]
+                    {
+                      label = Input.labelLeft [] (text "Email"),
+                      onChange = UpdateEmail,
+                      placeholder = Just (Input.placeholder [] (text "you@something.com")),
                       text = page.loginInfo.email
-                },
-              Input.currentPassword
+                    },
+                  Input.currentPassword
+                    [
+                      alignRight,
+                      width (px 300),
+                      padding 15,
+                      spacing 15
+                    ]
+                    {
+                      onChange = UpdatePassword,
+                      text = page.loginInfo.password,
+                      label = Input.labelLeft [] (text "Password"),
+                      placeholder = Just (Input.placeholder [] (text "Password")),
+                      show = False
+                    }
+                ],
+              row
                 [
                   alignRight,
                   width (px 300),
-                  padding 15,
-                  spacing 15
+                  paddingXY 0 15
                 ]
-                {
-                  onChange = UpdatePassword,
-                      text = page.loginInfo.password,
-                  label = Input.labelLeft [] (text "Password"),
-                  placeholder = Just (Input.placeholder [] (text "Password")),
-                  show = False
-                }
-            ],
-          row
-            [
-              alignRight,
-              width (px 300),
-              paddingXY 0 15
-            ]
-            [
-              Input.button 
-                [ 
-                  alignLeft,
-                  BG.color (rgb 0.25 0.8 0.25),
-                  defaultShadow,
-                  padding 10
+                [
+                  Input.button 
+                    [ 
+                      alignLeft,
+                      BG.color (rgb 0.25 0.8 0.25),
+                      defaultShadow,
+                      padding 10
+                    ]
+                    {
+                      label = text "Login",
+                      onPress = Just LoginRequest
+                    }
                 ]
-                {
-                  label = text "Login",
-                  onPress = Just LoginRequest
-                }
             ]
         ]
-    ]
     _ -> text "Error: viewing login while on another page"  
 
 foldDaysLeftInYear : YearMonthDay -> Int -> Int
@@ -1356,7 +1356,7 @@ pairEmployeeShift :
 pairEmployeeShift settings employees (id, shifts) = 
   case getEmployee employees id of
     Just employee ->
-  List.map (shiftElement settings employee) shifts
+      List.map (shiftElement settings employee) shifts
     Nothing -> []
 
 foldElementList : 
@@ -1575,250 +1575,250 @@ shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
   case (model.page, getActiveSettings model) of
     (CalendarPage page, Just activeSettings) ->
-  column
-    [
-      centerX,
-      centerY,
-      BG.color modalColor,
-      padding 15,
-      defaultShadow,
-      spacingXY 0 15
-    ]
-    [
-      -- Add shift header text
-      el
-        [
-          fillX,
-          fillY,
-          Font.size 30,
-          BG.color white,
-          padding 15
-        ]
-        (el 
-          [
-            centerX,
-            centerY
-          ] (text "Add a shift:")),
-      -- Date display
-      el
+      column
         [
           centerX,
-          centerY
-        ]
-        (text (ymdToString shiftModalData.ymd)),
-        
-      -- Employee search/select
-      column
-        [
-          spacing 15,
-          paddingXY 0 15
+          centerY,
+          BG.color modalColor,
+          padding 15,
+          defaultShadow,
+          spacingXY 0 15
         ]
         [
-          Input.search 
+          -- Add shift header text
+          el
             [
-              defaultShadow,
-              centerX,
-              htmlAttribute (HtmlAttr.id "employeeSearch")
-                
+              fillX,
+              fillY,
+              Font.size 30,
+              BG.color white,
+              padding 15
             ]
-            {
-              onChange = ShiftEmployeeSearch,
-              text = shiftModalData.employeeSearch,
-              placeholder = Nothing,
-              label = Input.labelAbove [centerX, padding 2] (text "Find employee: ")
-            },
-
-          Input.radio
-            ([
-              clipY,
-              scrollbarY,
-              height (px 150),
-              fillX
-            ] ++ defaultBorder)
-            {
-              onChange = ChooseShiftEmployee,
-              selected = shiftModalData.employee,
-              label = Input.labelHidden ("Employees"),
-              options = employeeAutofillElement shiftModalData.employeeMatches
-            }
-        ],
-
-      -- Shift start slider
-      column
-      (
-        [
-          fillX
-        ] ++
-        defaultBorder
-      )
-      [
-        row
-          []
-          [
-            text "Start at: ",
-            el
+            (el 
               [
-                BG.color white,
-                Border.solid,
-                Border.color borderColor,
-                Border.width 1,
-                Border.rounded 3,
-                padding 3,
-                Font.family
-                  [
-                    Font.monospace
-                  ]
-              ]
-              (
-                text
-                  (
-                    floatToTime 
-                    shiftModalData.start 
-                        activeSettings.hourFormat
-                  )
-              )
-          ],
-          Input.slider
-          [
-            -- Slider BG
-            behindContent
-              (
-                el
+                centerX,
+                centerY
+              ] (text "Add a shift:")),
+          -- Date display
+          el
+            [
+              centerX,
+              centerY
+            ]
+            (text (ymdToString shiftModalData.ymd)),
+            
+          -- Employee search/select
+          column
+            [
+              spacing 15,
+              paddingXY 0 15
+            ]
+            [
+              Input.search 
                 [
-                  BG.color white,
-                  centerY,
-                  fillX,
-                  height (px 5)
+                  defaultShadow,
+                  centerX,
+                  htmlAttribute (HtmlAttr.id "employeeSearch")
+                    
                 ]
-                none
-              )
+                {
+                  onChange = ShiftEmployeeSearch,
+                  text = shiftModalData.employeeSearch,
+                  placeholder = Nothing,
+                  label = Input.labelAbove [centerX, padding 2] (text "Find employee: ")
+                },
 
-          ]
-          {
-            onChange = UpdateShiftStart,
-            label = 
-              Input.labelHidden "Start Time", 
-            min = 0,
-            max = 23.75,
-            value = shiftModalData.start,
-            step = Just 0.25,
-            thumb = Input.defaultThumb
-          }
-      ],
+              Input.radio
+                ([
+                  clipY,
+                  scrollbarY,
+                  height (px 150),
+                  fillX
+                ] ++ defaultBorder)
+                {
+                  onChange = ChooseShiftEmployee,
+                  selected = shiftModalData.employee,
+                  label = Input.labelHidden ("Employees"),
+                  options = employeeAutofillElement shiftModalData.employeeMatches
+                }
+            ],
 
-      -- Shift duration slider
-      column
-      (
-        [
-          fillX
-        ] ++
-        defaultBorder
-      )
-      [
-        -- Label for duration slider
-        row
+          -- Shift start slider
+          column
+          (
+            [
+              fillX
+            ] ++
+            defaultBorder
+          )
           [
+            row
+              []
+              [
+                text "Start at: ",
+                el
+                  [
+                    BG.color white,
+                    Border.solid,
+                    Border.color borderColor,
+                    Border.width 1,
+                    Border.rounded 3,
+                    padding 3,
+                    Font.family
+                      [
+                        Font.monospace
+                      ]
+                  ]
+                  (
+                    text
+                      (
+                        floatToTime 
+                        shiftModalData.start 
+                        activeSettings.hourFormat
+                      )
+                  )
+              ],
+              Input.slider
+              [
+                -- Slider BG
+                behindContent
+                  (
+                    el
+                    [
+                      BG.color white,
+                      centerY,
+                      fillX,
+                      height (px 5)
+                    ]
+                    none
+                  )
+
+              ]
+              {
+                onChange = UpdateShiftStart,
+                label = 
+                  Input.labelHidden "Start Time", 
+                min = 0,
+                max = 23.75,
+                value = shiftModalData.start,
+                step = Just 0.25,
+                thumb = Input.defaultThumb
+              }
+          ],
+
+          -- Shift duration slider
+          column
+          (
+            [
+              fillX
+            ] ++
+            defaultBorder
+          )
+          [
+            -- Label for duration slider
+            row
+              [
+                fillX
+              ]
+              [
+                text "Duration: ",
+                el
+                  ([
+                    BG.color white,
+                    padding 3,
+                    Font.family
+                      [
+                        Font.monospace
+                      ]
+                  ] ++ defaultBorder)
+                  (
+                    text
+                      (
+                        floatToDuration 
+                        shiftModalData.duration 
+                      )
+                  ),
+                text " Ends: ",
+                el
+                  ([
+                    BG.color white,
+                    padding 3,
+                    Font.family
+                      [
+                        Font.monospace
+                      ]
+                  ] ++ defaultBorder)
+                  (
+                    text
+                      (
+                        floatToTime
+                        (shiftModalData.start +
+                        shiftModalData.duration) 
+                        activeSettings.hourFormat
+                      )
+                  )
+              ],
+              Input.slider
+              [
+                -- Slider BG
+                behindContent
+                  (
+                    el
+                    [
+                      BG.color white,
+                      centerY,
+                      fillX,
+                      height (px 5)
+                    ]
+                    none
+                  )
+
+              ]
+              {
+                onChange = UpdateShiftDuration,
+                label = 
+                  Input.labelHidden "Shift Duration", 
+                min = 0,
+                max = 16,
+                value = shiftModalData.duration,
+                step = Just 0.25,
+                thumb = Input.defaultThumb
+              }
+          ],
+          
+          -- Save/Cancel buttons
+          row 
+          [
+            spacing 10,
+            padding 5,
             fillX
           ]
           [
-            text "Duration: ",
-            el
-              ([
-                BG.color white,
-                padding 3,
-                Font.family
-                  [
-                    Font.monospace
-                  ]
-              ] ++ defaultBorder)
-              (
-                text
-                  (
-                    floatToDuration 
-                    shiftModalData.duration 
-                  )
-              ),
-            text " Ends: ",
-            el
-              ([
-                BG.color white,
-                padding 3,
-                Font.family
-                  [
-                    Font.monospace
-                  ]
-              ] ++ defaultBorder)
-              (
-                text
-                  (
-                    floatToTime
-                    (shiftModalData.start +
-                    shiftModalData.duration) 
-                        activeSettings.hourFormat
-                  )
-              )
-          ],
-          Input.slider
-          [
-            -- Slider BG
-            behindContent
-              (
-                el
-                [
-                  BG.color white,
-                  centerY,
-                  fillX,
-                  height (px 5)
-                ]
-                none
-              )
-
+            Input.button
+            [
+              BG.color (rgb 0.2 0.9 0.2),
+              padding 5,
+              defaultShadow
+            ]
+            {
+              onPress = Just (AddShift shiftModalData),
+              label = text "Save"
+            },
+            Input.button
+            [
+              BG.color (rgb 0.9 0.2 0.2),
+              padding 5,
+              defaultShadow,
+              alignRight
+            ]
+            {
+              onPress = Just CloseShiftModal,
+              label = text "Cancel"
+            }
           ]
-          {
-            onChange = UpdateShiftDuration,
-            label = 
-              Input.labelHidden "Shift Duration", 
-            min = 0,
-            max = 16,
-            value = shiftModalData.duration,
-            step = Just 0.25,
-            thumb = Input.defaultThumb
-          }
-      ],
-      
-      -- Save/Cancel buttons
-      row 
-      [
-        spacing 10,
-        padding 5,
-        fillX
-      ]
-      [
-        Input.button
-        [
-          BG.color (rgb 0.2 0.9 0.2),
-          padding 5,
-          defaultShadow
         ]
-        {
-          onPress = Just (AddShift shiftModalData),
-          label = text "Save"
-        },
-        Input.button
-        [
-          BG.color (rgb 0.9 0.2 0.2),
-          padding 5,
-          defaultShadow,
-          alignRight
-        ]
-        {
-          onPress = Just CloseShiftModal,
-          label = text "Cancel"
-        }
-      ]
-    ]
     _ -> text "Error: viewing calendar from another page"
-
+  
 dayOfMonthElement day =
   el 
   [
@@ -1983,10 +1983,10 @@ viewModal model =
   case model.page of
     CalendarPage page ->
       case page.modal of
-    NoModal -> none
+        NoModal -> none
         ShiftModal shiftModalData ->
-      shiftModalElement model shiftModalData
-    SettingsModal -> settingsElement
+          shiftModalElement model shiftModalData
+        SettingsModal -> settingsElement
     _ -> text "Error: viewing modal from wrong page"
 
 viewCalendar : Model -> Element Message
@@ -2002,26 +2002,26 @@ viewCalendar model =
       (Just here, Just now)) ->
       let today = getTime now here in
       case activeSettings.viewType of
-    MonthView ->
-      let 
+        MonthView ->
+          let 
             viewDay = activeSettings.viewDate
-        month = makeGridFromMonth 
+            month = makeGridFromMonth 
               (YearMonth viewDay.year viewDay.month)
-      in
-        column
-        [
-          width fill,
-          height fill,
-          inFront (viewModal model)
-        ]
-        [
+          in
+            column
+            [
+              width fill,
+              height fill,
+              inFront (viewModal model)
+            ]
+            [
               viewMonth (Just today) month activeSettings (Dict.toList shiftDict) employees,
-          viewCalendarFooter
-        ]
-    WeekView ->
-      none
-    DayView ->
-      none
+              viewCalendarFooter
+            ]
+        WeekView ->
+          none
+        DayView ->
+          none
     _ -> text "Loading..."
 
 view : Model -> Browser.Document Message

@@ -236,11 +236,11 @@ fn remove_employee(
 fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
     println!("get_shifts");
     let token = get_token(&req);
-            state
-                .db
+    state
+        .db
         .send(Messages::GetShifts(token))
-                .from_err()
-                .and_then(handle_results)
+        .from_err()
+        .and_then(handle_results)
         .responder()
 }
 
