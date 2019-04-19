@@ -1290,6 +1290,17 @@ ymdFromShift shift =
     shift.month
     shift.day
 
+shiftCompare : Shift -> Shift -> Order
+shiftCompare s1 s2 =
+  case dayCompare (ymdFromShift s1) (ymdFromShift s2) of
+    LT -> LT
+    EQ ->
+      case compare s1.hour s2.hour of
+        LT -> LT
+        EQ -> compare s1.minute s2.minute
+        GT -> GT
+    GT -> GT
+
 filterByYearMonthDay : YearMonthDay -> 
   List Shift -> List Shift
 filterByYearMonthDay day shifts =
