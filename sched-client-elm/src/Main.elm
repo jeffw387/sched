@@ -1053,6 +1053,49 @@ viewLogin model =
     ]
     _ -> text "Error: viewing login while on another page"  
 
+foldDaysLeftInYear : YearMonthDay -> Int -> Int
+foldDaysLeftInYear ymd soFar =
+  let
+    thisMonth = daysLeftInMonth ymd
+    newTotal = soFar + thisMonth
+  in 
+    if ymd.month < 12 then
+      foldDaysLeftInYear
+        (YearMonthDay ymd.year (ymd.month + 1) 1)
+        newTotal
+    else
+      newTotal
+
+ymFromYmd ymd =
+  YearMonth ymd.year ymd.month
+
+daysLeftInMonth : YearMonthDay -> Int
+daysLeftInMonth ymd = (daysInMonth (ymFromYmd ymd) + 1) - ymd.day
+
+foldAddDaysBetween : YearMonthDay -> YearMonthDay -> Int -> Int
+foldAddDaysBetween day1 day2 soFar =
+  if (day1.year < day2.year) then 
+    foldAddDaysBetween 
+      (YearMonthDay (day1.year + 1) 1 1) 
+      day2 
+      ((foldDaysLeftInYear day1 0) + soFar)
+  else if (day1.month < day2.month) then
+    foldAddDaysBetween
+      (YearMonthDay day1.year (day1.month + 1) 1)
+      day2
+      (daysLeftInMonth day1 + soFar)
+  else if (day1.day < day2.day) then
+    soFar + (day2.day - day1.day)
+  else soFar
+
+daysApart : YearMonthDay -> YearMonthDay -> Maybe Int
+daysApart day1 day2 =
+  case compareDays (Just day1) (Just day2) of
+    Past ->
+      Just (foldAddDaysBetween day1 day2 0)
+    Today -> Just 0
+    _ -> Nothing
+
 
 swapFirst : Employee -> (Int, List Shift) -> (Employee, List Shift)
 swapFirst c (a, b) =
