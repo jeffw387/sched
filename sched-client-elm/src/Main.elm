@@ -422,6 +422,7 @@ shiftDecoder : D.Decoder Shift
 shiftDecoder =
   D.succeed Shift
     |> JPipe.required "id" D.int
+    |> JPipe.required "user_id" D.int
     |> JPipe.required "employee_id" D.int
     |> JPipe.required "year" D.int
     |> JPipe.required "month" D.int
