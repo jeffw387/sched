@@ -541,7 +541,7 @@ type Message =
   ReceiveSettingsList (Result Http.Error (List Settings)) |
   ReceivePosixTime Time.Posix |
   ReceiveZone Time.Zone |
-  DoneLoading
+  ReloadData (Result Http.Error ())
 
 loginRequest : LoginInfo -> (Cmd Message)
 loginRequest loginInfo =
