@@ -1118,12 +1118,12 @@ shiftMatch ymd shift =
       dayRepeatMatch shiftYMD ymd shift.everyX
 
 filterByYearMonthDay : YearMonthDay -> 
-  (Employee, List Shift) -> (Employee, List Shift)
-filterByYearMonthDay day (employee, shifts) =
-    (employee, List.filter (matchYearMonthDay day) shifts)
+  (Int, List Shift) -> (Int, List Shift)
+filterByYearMonthDay day (id, shifts) =
+    (id, List.filter (shiftMatch day) shifts)
 
 mapShiftsToYearMonthDay : YearMonthDay -> 
-  List (Employee, List Shift) -> List (Employee, List Shift)
+  List (Int, List Shift) -> List (Int, List Shift)
 mapShiftsToYearMonthDay day employeeShifts =
   List.map (filterByYearMonthDay day) employeeShifts
 
@@ -1265,17 +1265,28 @@ ymdToString ymd =
     ++ dayStr ++ ", "
     ++ yearStr
 
-pairEmployeeShift : Settings 
-  -> (Employee, List Shift) 
-  -> List (Element Message)
-pairEmployeeShift settings (employee, shifts) = 
-  List.map (shiftElement settings employee) shifts
 
-foldElementList : List (Element Message) -> List (Element Message) -> List (Element Message)
+pairEmployeeShift : 
+  Settings 
+  -> List Employee
+  -> (Int, List Shift) 
+  -> List (Element Message)
+pairEmployeeShift settings employees (id, shifts) = 
+  case getEmployee employees id of
+    Just employee ->
+  List.map (shiftElement settings employee) shifts
+    Nothing -> []
+
+foldElementList : 
+  List (Element Message) 
+  -> List (Element Message) 
+  -> List (Element Message)
 foldElementList nextList soFar =
   List.append soFar nextList
 
-combineElementLists : List (List (Element Message)) -> List (Element Message)
+combineElementLists : 
+  List (List (Element Message)) 
+  -> List (Element Message)
 combineElementLists lists =
   List.foldl foldElementList [] lists
 
@@ -1332,7 +1343,7 @@ dayStyle ymdMaybe dayState =
       ]
     None -> [])
 
-shiftColumn settings day employeeShifts =
+shiftColumn settings day employeeShifts employees =
   column 
   [
     centerX,
@@ -1342,7 +1353,7 @@ shiftColumn settings day employeeShifts =
     combineElementLists 
     (
       List.map 
-      (pairEmployeeShift settings)
+      (pairEmployeeShift settings employees)
       (mapShiftsToYearMonthDay day employeeShifts)
     )
   )
@@ -1778,11 +1789,12 @@ type DayState =
 
 dayElement : 
   Settings 
-  -> List (Employee, List Shift)
+  -> List (Int, List Shift)
+  -> List Employee
   -> Maybe YearMonthDay
   -> Maybe YearMonthDay
   -> Element Message
-dayElement settings employeeShifts focusDay maybeYMD =
+dayElement settings employeeShifts employees focusDay maybeYMD =
   let dayState = (compareDays maybeYMD focusDay) in
   case maybeYMD of
     Just day -> 
@@ -1800,7 +1812,7 @@ dayElement settings employeeShifts focusDay maybeYMD =
             dayOfMonthElement day,
             addShiftElement day
           ],
-          shiftColumn settings day employeeShifts
+          shiftColumn settings day employeeShifts employees
         ]
       )
       
@@ -1812,10 +1824,11 @@ dayElement settings employeeShifts focusDay maybeYMD =
 monthRowElement : 
   Settings 
   -> Maybe YearMonthDay
-  -> List (Employee, List Shift)
+  -> List (Int, List Shift)
+  -> List Employee
   -> Row
   -> Element Message
-monthRowElement settings focusDay employeeShifts rowElement =
+monthRowElement settings focusDay employeeShifts employees rowElement =
   row 
     [
       height fill,
@@ -1827,7 +1840,7 @@ monthRowElement settings focusDay employeeShifts rowElement =
       Array.toList 
       (
         Array.map 
-        (dayElement settings employeeShifts focusDay) 
+        (dayElement settings employeeShifts employees focusDay) 
         rowElement
       )
     )
@@ -1855,7 +1868,8 @@ viewMonthRows month focusDay settings shiftDict employees =
       (monthRowElement 
       settings 
       focusDay
-      (mapEmployeeShifts shiftDict employees))
+      shiftDict 
+      employees)
     month))
 
 fillX = width fill
@@ -1907,7 +1921,7 @@ viewCalendar model =
           inFront (viewModal model)
         ]
         [
-          viewMonth model.today month settings shiftDict employees,
+              viewMonth (Just today) month activeSettings (Dict.toList shiftDict) employees,
           viewCalendarFooter
         ]
     WeekView ->
