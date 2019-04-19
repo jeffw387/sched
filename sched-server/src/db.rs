@@ -361,7 +361,7 @@ impl Handler<Messages> for DbExecutor {
             }
             Messages::AddShift(token, new_shift) => {
                 let user = check_token(&token, conn)?;
-                match_ids(user.id, new_shift.user_id)?;
+                let new_shift = NewShift{ user_id: user.id, ..new_shift };
                 match user.level {
                     UserLevel::Read => {
                         Err(Error::Unauthorized)
