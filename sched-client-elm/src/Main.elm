@@ -777,6 +777,25 @@ getActiveSettings model =
       |> List.head
     _ -> Nothing
 
+shiftFromModal : ShiftModalData -> Maybe Shift
+shiftFromModal shiftData =
+  case (shiftData.employee, String.toInt shiftData.everyX) of
+    (Just employee, Just everyX) ->
+      Just (Shift
+      0
+      0
+      employee.id
+      shiftData.ymd.year
+      shiftData.ymd.month
+      shiftData.ymd.day
+      (floatToHour shiftData.start)
+      (floatToQuarterHour shiftData.start)
+      (floor shiftData.duration)
+      (floatToQuarterHour shiftData.duration)
+      shiftData.shiftRepeat
+      everyX)
+    _ -> Nothing
+
 update : Message -> Model -> (Model, Cmd Message)
 update message model =
   let debug = Debug.log "Message Model" (message, model) in
