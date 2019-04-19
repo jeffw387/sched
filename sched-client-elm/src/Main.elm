@@ -298,6 +298,13 @@ lastNameStyleEncoder lastNameStyle =
     FirstInitial -> E.string "FirstInitial"
     Hidden -> E.string "Hidden"
 
+shiftRepeatEncoder : ShiftRepeat -> E.Value
+shiftRepeatEncoder repeat =
+  case repeat of
+    NeverRepeat -> E.string "NeverRepeat"
+    EveryWeek -> E.string "EveryWeek"
+    EveryDay -> E.string "EveryDay"
+
 newSettingsEncoder : Settings -> E.Value
 newSettingsEncoder settings =
   E.object
@@ -312,6 +319,22 @@ newSettingsEncoder settings =
       ("viewEmployees", E.list E.int settings.viewEmployees)
     ]
 
+newShiftEncoder : Shift -> E.Value
+newShiftEncoder shift =
+  E.object
+    [
+      ("user_id", E.int shift.userID),
+      ("employee_id", E.int shift.employeeID),
+      ("year", E.int shift.year),
+      ("month", E.int shift.month),
+      ("day", E.int shift.day),
+      ("hour", E.int shift.hour),
+      ("minute", E.int shift.minute),
+      ("hours", E.int shift.hours),
+      ("minutes", E.int shift.minutes),
+      ("shift_repeat", shiftRepeatEncoder shift.repeat),
+      ("every_x", E.int shift.everyX)
+    ]
 
 -- DESERIALIZATION
 viewYMDDecoder =
