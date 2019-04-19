@@ -1051,6 +1051,7 @@ viewLogin model =
             ]
         ]
     ]
+    _ -> text "Error: viewing login while on another page"  
 
 
 swapFirst : Employee -> (Int, List Shift) -> (Employee, List Shift)
