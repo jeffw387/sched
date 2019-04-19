@@ -1096,10 +1096,9 @@ daysApart day1 day2 =
     Today -> Just 0
     _ -> Nothing
 
+dayRepeatMatch startDay matchDay everyX = True
 
-swapFirst : Employee -> (Int, List Shift) -> (Employee, List Shift)
-swapFirst c (a, b) =
-  (c, b)
+weekRepeatMatch startDay matchDay everyX = True
 
 mapEmployeeShifts : Dict Int (List Shift) -> List Employee -> List (Employee, List Shift)
 mapEmployeeShifts shiftDict employees =
