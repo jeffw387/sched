@@ -62,7 +62,8 @@ pub struct Shift {
 #[derive(Debug, Insertable, Deserialize)]
 #[table_name = "shifts"]
 pub struct NewShift {
-    employee_id: i32,
+    pub user_id: i32,
+    pub employee_id: i32,
     pub year: i32,
     pub month: i32,
     pub day: i32,
@@ -70,7 +71,6 @@ pub struct NewShift {
     pub minute: i32,
     pub hours: i32,
     pub minutes: i32,
-    pub user_id: i32,
     pub shift_repeat: ShiftRepeat,
     pub every_x: i32,
 }
@@ -90,6 +90,7 @@ impl NewShift {
         every_x: i32,
     ) -> NewShift {
         NewShift {
+            user_id,
             employee_id,
             year,
             month,
@@ -98,7 +99,6 @@ impl NewShift {
             minute,
             hours,
             minutes,
-            user_id,
             shift_repeat,
             every_x,
         }
