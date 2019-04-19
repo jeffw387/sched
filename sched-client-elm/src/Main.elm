@@ -1172,6 +1172,8 @@ daysApart day1 day2 =
     Past ->
       Just (foldAddDaysBetween day1 day2 0)
     Today -> Just 0
+    Future ->
+      Just (foldAddDaysBetween day2 day1 0)
     _ -> Nothing
 
 dayRepeatMatch startDay matchDay everyX =
