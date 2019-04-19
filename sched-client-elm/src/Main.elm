@@ -105,32 +105,53 @@ type alias HoverData =
 
   }
 
-type Page =
-  LoginPage |
-  CalendarPage
+type alias LoginModel =
+  {
+    loginInfo : LoginInfo,
+    emailState : InputState,
+    passwordState : InputState,
+    buttonState : InputState
+  }
+
+defaultLoginModel =
+  LoginModel
+  (LoginInfo "" "")
+  Normal
+  Normal
+  Normal
 
 type CalendarModal =
   NoModal |
   SettingsModal |
-  ShiftEditorModal ShiftModalData
+  ShiftModal ShiftModalData
+
+type alias CalendarModel =
+  {
+    modal : CalendarModal
+  }
+
+defaultCalendarModel =
+  CalendarModel
+  NoModal
+
+type Page =
+  LoginPage LoginModel |
+  CalendarPage CalendarModel
 
 type alias Model =
   {
     navkey : Nav.Key,
-    settingsList : List Settings,
-    activeSettings : Settings,
-    page : Page,
-    loginInfo : LoginInfo,
-    emailState : InputState,
-    passwordState : InputState,
-    buttonState : InputState,
+    -- loaded data
+    settingsList : Maybe (List Settings),
+    activeSettings : Maybe Int,
     user : Maybe User,
-    employees : List Employee,
-    employeeShifts : Dict Int (List Shift),
-    loaded : Dict Int Bool,
-    hover : Maybe HoverData,
-    today : Maybe YearMonthDay,
-    calendarModal : CalendarModal
+    employees : Maybe (List Employee),
+    employeeShifts : Maybe (Dict Int (List Shift)),
+    posixNow : Maybe Time.Posix,
+    here : Maybe Time.Zone,
+
+    -- per page data
+    page : Page
   }
 
 type alias Shift =
@@ -451,20 +472,14 @@ init _ url key =
     (
       Model 
         key
-        []
-        settingsDefault
-        LoginPage
-        (LoginInfo "" "")
-        Normal
-        Normal
-        Normal
-        Nothing
-        []
-        Dict.empty
-        Dict.empty
         Nothing
         Nothing
-        NoModal
+        Nothing
+        Nothing
+        Nothing
+        Nothing
+        Nothing
+        (LoginPage defaultLoginModel)
     ) url
 
 -- UPDATE
@@ -477,7 +492,6 @@ type Message =
   Logout |
   KeyDown (Maybe Keys) |
   FocusResult (Result Dom.Error ()) |
-  ReceiveSettingsList (Result Http.Error (List Settings)) |
 -- Login Messages
   LoginRequest |
   LoginResponse (Result Http.Error ()) |
@@ -501,8 +515,11 @@ type Message =
   CloseSettingsModal |
 -- Loading Messages
   ReceiveEmployees (Result Http.Error (List Employee)) |
-  ReceiveShifts Employee (Result Http.Error (List Shift)) |
-  ReceiveTime YearMonthDay |
+  ReceiveShifts (Result Http.Error (Dict String (List Shift))) |
+  ReceiveDefaultSettings (Result Http.Error (Maybe Int)) |
+  ReceiveSettingsList (Result Http.Error (List Settings)) |
+  ReceivePosixTime Time.Posix |
+  ReceiveZone Time.Zone |
   DoneLoading
 
 loginRequest : LoginInfo -> (Cmd Message)
@@ -514,7 +531,7 @@ loginRequest loginInfo =
       expect = Http.expectWhatever LoginResponse
     }
 
-updateLoginButton : Model -> Model
+updateLoginButton : LoginModel -> LoginModel
 updateLoginButton page =
   if page.emailState == Success && 
     page.passwordState == Success
@@ -525,31 +542,6 @@ nameToString : Name -> String
 nameToString name =
   name.first ++ " " ++ name.last
 
-tasksComplete : Model -> Bool
-tasksComplete model =
-  Dict.foldl (\k v b -> 
-    case b of
-      True ->
-        case v of
-          False -> False
-          True -> True
-      False -> False) True model.loaded
-
-foldEmployeesIntoTasks : Employee -> Dict Int Bool -> Dict Int Bool
-foldEmployeesIntoTasks employee inDict =
-  Dict.insert employee.id False inDict
-
-markTaskComplete : Int -> Model -> Model
-markTaskComplete id model =
-  { model | loaded = Dict.insert id True model.loaded }
-
-setLoadTasks : List Employee -> Model -> Model
-setLoadTasks employees model =
-  let 
-    loaded = List.foldl foldEmployeesIntoTasks Dict.empty employees
-  in
-    { model | loaded = loaded }
-
 requestEmployees : Cmd Message
 requestEmployees =
   Http.post 
@@ -559,12 +551,12 @@ requestEmployees =
     expect=Http.expectJson ReceiveEmployees (genericObjectDecoder (D.list employeeDecoder))
   }
 
-requestShifts : Employee -> Cmd Message
-requestShifts emp =
+requestShifts : Cmd Message
+requestShifts =
   Http.post {
-    url="/sched/get_shifts",
-    body=Http.jsonBody (employeeEncoder emp),
-    expect=Http.expectJson (ReceiveShifts emp) (genericObjectDecoder (D.list shiftDecoder))
+    url = "/sched/get_shifts",
+    body = Http.emptyBody,
+    expect = Http.expectJson ReceiveShifts (genericObjectDecoder shiftsDecoder)
   }
 
 monthCode : Dict Int Int
@@ -672,7 +664,14 @@ toWeekday ymd =
         + centuryOffset
         + lastTwo)
 
-shiftEditorForDay day employeeList =
+shiftEditorForDay : YearMonthDay -> Maybe (List Employee) -> ShiftModalData
+shiftEditorForDay day maybeList =
+  let 
+    employeeList = 
+      case maybeList of
+        Just list -> list
+        Nothing -> []
+  in
   ShiftModalData
     Nothing
     ""
@@ -683,17 +682,79 @@ shiftEditorForDay day employeeList =
     NeverRepeat
     "1"
 
+loadData =
+  Cmd.batch 
+    [
+      getPosixTime, 
+      getTimeZone, 
+      requestEmployees, 
+      requestShifts, 
+      requestSettings
+    ]
+
 router : Model -> Url.Url -> (Model, Cmd Message)
 router model url =
     case url.path of
       "/sched" -> 
-        ({ model | page = CalendarPage }, loadData)
-      "/sched/login" ->
-        ({ model | page = LoginPage }, Cmd.none)
+        let 
+          updated = { model | page = CalendarPage defaultCalendarModel } 
+        in
+          (updated, loadData)
       "/sched/calendar" ->
-        ({ model | page = CalendarPage }, loadData)
+        let 
+          updated = { model | page = CalendarPage defaultCalendarModel }
+        in
+          (updated, loadData)
+      "/sched/login" ->
+        ({ model | page = LoginPage defaultLoginModel }, Cmd.none)
       _ ->
-        ({ model | page = LoginPage }, Cmd.none)
+        ({ model | page = LoginPage defaultLoginModel }, Cmd.none)
+
+requestSettings =
+  Http.post
+    {
+      url = "/sched/get_settings",
+      body = Http.emptyBody,
+      expect = Http.expectJson ReceiveSettingsList (genericObjectDecoder (D.list settingsDecoder))
+    }
+
+requestDefaultSettings =
+  Http.post
+    {
+      url = "/sched/default_settings",
+      body = Http.emptyBody,
+      expect = Http.expectJson ReceiveDefaultSettings (genericObjectDecoder (D.maybe D.int))
+    }
+
+getTime posixTime here =
+      YearMonthDay
+        (Time.toYear here posixTime)
+        (monthToNum (Time.toMonth here posixTime))
+        (Time.toDay here posixTime)
+
+getTimeZone : Cmd Message
+getTimeZone =
+  Task.perform ReceiveZone Time.here
+
+getPosixTime : Cmd Message
+getPosixTime =
+  Task.perform ReceivePosixTime Time.now
+
+getSettings : Model -> Int -> Maybe Settings
+getSettings model index =
+  case model.settingsList of
+    Just settingsList ->
+      List.filter (\s -> s.id == index) settingsList 
+      |> List.head
+    _ -> Nothing
+
+getActiveSettings : Model -> Maybe Settings
+getActiveSettings model =
+  case (model.activeSettings, model.settingsList) of
+    (Just activeID, Just settingsList) ->
+      List.filter (\s -> s.id == activeID) settingsList
+      |> List.head
+    _ -> Nothing
 
 update : Message -> Model -> (Model, Cmd Message)
 update message model =
@@ -705,12 +766,20 @@ update message model =
         _ -> (model, Cmd.none)
     (_, UrlChanged url) ->
       router model url
-    (_, ReceiveTime ymd) ->
-      ({ model | today = Just ymd }, requestEmployees)
-    (LoginPage, LoginRequest) ->
-      (model, loginRequest model.loginInfo)
-    (LoginPage, LoginResponse r) ->
-      let updatedModel = { model | loginInfo = LoginInfo "" "" } in
+    (LoginPage page, LoginRequest) ->
+      (model, loginRequest page.loginInfo)
+    (LoginPage page, LoginResponse r) ->
+      let 
+        updatedPage =
+          { 
+            page | loginInfo = 
+              LoginInfo "" "" 
+          }
+        updatedModel = 
+          { 
+            model | page = LoginPage updatedPage
+          } 
+      in
       case r of
         Ok _ ->
           (updatedModel, 
@@ -719,136 +788,136 @@ update message model =
               "/sched/calendar"
           )
         Err _ -> (updatedModel, Cmd.none)
-    (LoginPage, UpdateEmail email) ->
-      let oldInfo = model.loginInfo in
-        ({ model | loginInfo = 
-          { oldInfo | email = email } }, Cmd.none)
-    (LoginPage, UpdatePassword password) ->
-      let oldInfo = model.loginInfo in
-        ({ model | loginInfo =
-          { oldInfo | password = password } }, Cmd.none)
+    (LoginPage page, UpdateEmail email) ->
+      let 
+        info = page.loginInfo
+        updatedInfo = { info | email = email }
+        updatedPage = { page | loginInfo = updatedInfo }
+        updatedModel = { model | page = LoginPage updatedPage }
+      in (updatedModel, Cmd.none)
+    (LoginPage page, UpdatePassword password) ->
+      let
+        info = page.loginInfo
+        updatedInfo = { info | password = password }
+        updatedPage = { page | loginInfo = updatedInfo }
+        updatedModel = { model | page = LoginPage updatedPage }
+      in (updatedModel, Cmd.none)
     (_, ReceiveEmployees employeesResult) ->
       case employeesResult of
         Ok employees ->
           let 
-            loadingModel = setLoadTasks employees model
             sortedEmps = 
               List.sortWith 
               (\e1 e2 -> 
                 compare (nameToString e1.name) (nameToString e2.name)) 
                 employees
+            updated = { model | employees = Just sortedEmps }
           in
-            ({ loadingModel | employees = sortedEmps }, 
-            Cmd.batch (List.map requestShifts sortedEmps))
+            (updated, Cmd.none)
         Err e ->
           (model, Nav.pushUrl model.navkey "/sched/login")
-    (_, ReceiveShifts employee shiftsResult) ->
+    (_, ReceiveShifts shiftsResult) ->
       case shiftsResult of
         Ok shifts ->
-          let
-            markedModel = markTaskComplete employee.id model
-          in
-              
-            if tasksComplete markedModel then
-              ({ markedModel | employeeShifts = 
-                  (Dict.insert 
-                    employee.id
-                    shifts
-                    model.employeeShifts)}, 
-                  Task.succeed DoneLoading 
-                  |> Task.perform identity)
-            else
-              ({ markedModel | employeeShifts = 
-                  (Dict.insert 
-                    employee.id
-                    shifts
-                    model.employeeShifts)}, Cmd.none)
+              ({ model | employeeShifts = 
+                  Just (shiftsIDParse shifts) }, Cmd.none)
         Err e -> 
           (model, Cmd.none)
-    (_, DoneLoading) -> (model, Cmd.none)
     (_, ReceiveSettingsList settingsResult) ->
       (case settingsResult of
         Ok settingsList ->
           (
             {
-              model | settingsList = settingsList
+              model | settingsList = Just settingsList
             },
-            Http.post
-              {
-                url = "/sched/default_settings",
-                body = Http.emptyBody,
-                expect = Http.expectJson ReceiveSettingsList (D.list settingsDecoder)
-              }
+            requestDefaultSettings
           )
         Err e -> (model, Cmd.none))
-    (CalendarPage, OpenSettingsModal) ->
-      case model.calendarModal of
+    (_, ReceivePosixTime posixTime) ->
+      let
+        updatedModel = { model | posixNow = Just posixTime }
+      in (updatedModel, Cmd.none)
+    (_, ReceiveZone here) ->
+      let
+        updatedModel = { model | here = Just here }
+      in (updatedModel, Cmd.none)
+    (_, ReceiveDefaultSettings settingsResult) ->
+      case settingsResult of
+        Ok settingsMaybe ->
+          case settingsMaybe of
+            Just settings ->
+              let 
+                updated = { model | activeSettings = Just settings }
+              in (updated, Cmd.none)
+            Nothing -> (model, Cmd.none)
+        Err _ -> (model, Cmd.none)
+    (CalendarPage page, OpenSettingsModal) ->
+      case page.modal of
         NoModal ->
-          (
-            {
-              model | calendarModal = SettingsModal
-            },
-            Cmd.none
-          )
+          let
+            updatedPage = { page | modal = SettingsModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, SaveSettings) ->
+    (CalendarPage page, SaveSettings) ->
+      case getActiveSettings model of
+        Just settings ->
       (
         model, 
         Http.post
         {
           url = "/sched/add_settings",
-          body = Http.jsonBody (newSettingsEncoder model.activeSettings),
+              body = Http.jsonBody (newSettingsEncoder settings),
           expect = Http.expectWhatever IgnoreReply
         }
       )
-    (CalendarPage, CloseSettingsModal) ->
-      case model.calendarModal of
+        Nothing -> (model, Cmd.none)
+    (CalendarPage page, CloseSettingsModal) ->
+      case page.modal of
         SettingsModal ->
-          (
-            {
-              model | calendarModal = NoModal
-            },
-            Cmd.none
-          )
+          let
+            updatedPage = { page | modal = NoModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, OpenShiftModal day) ->
-      case model.calendarModal of
+    (CalendarPage page, OpenShiftModal day) ->
+      case page.modal of
         NoModal -> 
-          (
-            { model | calendarModal = 
-              ShiftEditorModal 
-                (shiftEditorForDay day model.employees) }, 
+          let 
+            updatedPage = { page | modal = 
+              ShiftModal 
+              (shiftEditorForDay day model.employees) }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, 
             Task.attempt 
             FocusResult
-            (Dom.focus "employeeSearch")
-          )
+            (Dom.focus "employeeSearch"))
         _ -> (model, Cmd.none)
-    (CalendarPage, CloseShiftModal) ->
-      case model.calendarModal of
-        ShiftEditorModal _ ->
-          ({ model | calendarModal = NoModal }, Cmd.none)
+    (CalendarPage page, CloseShiftModal) ->
+      case page.modal of
+        ShiftModal _ ->
+          let 
+            updatedPage = { page | modal = NoModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in
+            (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, KeyDown maybeArrow) ->
+    (CalendarPage page, KeyDown maybeArrow) ->
       (model, Cmd.none)
-    (CalendarPage, ShiftEmployeeSearch searchText) ->
-      case model.calendarModal of
-        ShiftEditorModal shiftModalData ->
-          let newMatches = Fuzzy.filter
+    (CalendarPage page, ShiftEmployeeSearch searchText) ->
+      case page.modal of
+        ShiftModal shiftModalData ->
+          let 
+            newMatches = Fuzzy.filter
                       (\emp -> nameToString emp.name)
                       searchText
-                      model.employees
-          in
-          let 
+              (Maybe.withDefault [] model.employees)
+            updatedModal = { shiftModalData | 
+              employeeSearch = searchText,
+              employeeMatches = newMatches }
+            updatedPage = { page | modal = ShiftModal updatedModal }
             updatedModel = 
-              { 
-                model | calendarModal = ShiftEditorModal 
-                  { 
-                    shiftModalData | 
-                      employeeSearch = searchText,
-                      employeeMatches = newMatches
-                        
-                  }
-              } 
+              { model | page = CalendarPage updatedPage } 
           in
             if List.length newMatches == 1 
             then 
@@ -860,40 +929,32 @@ update message model =
                 Nothing -> (updatedModel, Cmd.none)
             else (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, ChooseShiftEmployee employee) ->
-      case model.calendarModal of
-        ShiftEditorModal shiftModalData ->
-          (
-              { model | calendarModal = ShiftEditorModal
-                { shiftModalData | employee = Just employee }},
-              Cmd.none
-          )
+    (CalendarPage page, ChooseShiftEmployee employee) ->
+      case page.modal of
+        ShiftModal shiftModalData ->
+          let
+            updatedModal = { shiftModalData | employee = Just employee }
+            updatedPage = { page | modal = ShiftModal updatedModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, UpdateShiftStart f) ->
-      case model.calendarModal of
-        ShiftEditorModal shiftModalData ->
-          (
-            {
-              model | calendarModal = ShiftEditorModal
-              {
-                shiftModalData | start = f
-              }
-            },
-            Cmd.none
-          )
+    (CalendarPage page, UpdateShiftStart f) ->
+      case page.modal of
+        ShiftModal shiftModalData ->
+          let
+            updatedModal = { shiftModalData | start = f }
+            updatedPage = { page | modal = ShiftModal updatedModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage, UpdateShiftDuration f) ->
-      case model.calendarModal of
-        ShiftEditorModal shiftModalData ->
-          (
-            {
-              model | calendarModal = ShiftEditorModal
-              {
-                shiftModalData | duration = f
-              }
-            },
-            Cmd.none
-          )
+    (CalendarPage page, UpdateShiftDuration f) ->
+      case page.modal of
+        ShiftModal shiftModalData ->
+          let
+            updatedModal = { shiftModalData | duration = f }
+            updatedPage = { page | modal = ShiftModal updatedModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (_, Logout) ->
       (
@@ -977,6 +1038,8 @@ viewCalendarFooter =
 
 viewLogin : Model -> Element Message
 viewLogin model =
+  case model.page of
+    LoginPage page ->
   column 
     [
       padding 100, 
@@ -1013,7 +1076,7 @@ viewLogin model =
                   label = Input.labelLeft [] (text "Email"),
                   onChange = UpdateEmail,
                   placeholder = Just (Input.placeholder [] (text "you@something.com")),
-                  text = model.loginInfo.email
+                      text = page.loginInfo.email
                 },
               Input.currentPassword
                 [
@@ -1024,7 +1087,7 @@ viewLogin model =
                 ]
                 {
                   onChange = UpdatePassword,
-                  text = model.loginInfo.password,
+                      text = page.loginInfo.password,
                   label = Input.labelLeft [] (text "Password"),
                   placeholder = Just (Input.placeholder [] (text "Password")),
                   show = False
@@ -1265,6 +1328,10 @@ ymdToString ymd =
     ++ dayStr ++ ", "
     ++ yearStr
 
+getEmployee : List Employee -> Int -> Maybe Employee
+getEmployee employees id =
+  List.filter (\emp -> emp.id == id) employees
+  |> List.head
 
 pairEmployeeShift : 
   Settings 
@@ -1491,6 +1558,8 @@ defaultBorder =
     
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftModalData =
+  case (model.page, getActiveSettings model) of
+    (CalendarPage page, Just activeSettings) ->
   column
     [
       centerX,
@@ -1590,7 +1659,7 @@ shiftModalElement model shiftModalData =
                   (
                     floatToTime 
                     shiftModalData.start 
-                    model.activeSettings.hourFormat
+                        activeSettings.hourFormat
                   )
               )
           ],
@@ -1670,7 +1739,7 @@ shiftModalElement model shiftModalData =
                     floatToTime
                     (shiftModalData.start +
                     shiftModalData.duration) 
-                    model.activeSettings.hourFormat
+                        activeSettings.hourFormat
                   )
               )
           ],
@@ -1733,6 +1802,7 @@ shiftModalElement model shiftModalData =
         }
       ]
     ]
+    _ -> text "Error: viewing calendar from another page"
 
 dayOfMonthElement day =
   el 
@@ -1893,26 +1963,35 @@ viewMonth ymdMaybe month settings shiftDict employees =
       ]
     Nothing -> text "Loading..."
 
-
+viewModal : Model -> Element Message
 viewModal model =
-  case model.calendarModal of
+  case model.page of
+    CalendarPage page ->
+      case page.modal of
     NoModal -> none
-    ShiftEditorModal shiftModalData ->
+        ShiftModal shiftModalData ->
       shiftModalElement model shiftModalData
     SettingsModal -> settingsElement
+    _ -> text "Error: viewing modal from wrong page"
 
 viewCalendar : Model -> Element Message
 viewCalendar model =
-  case model.activeSettings.viewType of
+  case 
+  (
+    (model.settingsList, getActiveSettings model),
+    (model.employees, model.employeeShifts),
+    (model.here, model.posixNow)
+  ) of
+    ((Just settingsList, Just activeSettings), 
+      (Just employees, Just shiftDict),
+      (Just here, Just now)) ->
+      let today = getTime now here in
+      case activeSettings.viewType of
     MonthView ->
       let 
+            viewDay = activeSettings.viewDate
         month = makeGridFromMonth 
-          (case model.today of
-            Just ymd -> YearMonth ymd.year ymd.month
-            Nothing -> (YearMonth 2019 4))
-        settings = model.activeSettings
-        shiftDict = model.employeeShifts
-        employees = model.employees
+              (YearMonth viewDay.year viewDay.month)
       in
         column
         [
@@ -1928,9 +2007,10 @@ viewCalendar model =
       none
     DayView ->
       none
+    _ -> text "Loading..."
 
 view : Model -> Browser.Document Message
 view model =
   case model.page of
-    LoginPage -> toDocument (viewLogin model)
-    CalendarPage -> toDocument (viewCalendar model)
+    LoginPage _ -> toDocument (viewLogin model)
+    CalendarPage _ -> toDocument (viewCalendar model)
