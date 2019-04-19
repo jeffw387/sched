@@ -1319,6 +1319,8 @@ formatHour12 rawHour =
   in 
   if hour24 > 12 then
         (String.fromInt hour12) ++ "p"
+      else if hour24 == 12 then
+        (String.fromInt 12) ++ "p"
       else
         (String.fromInt hour12) ++ "a"
 
