@@ -360,6 +360,7 @@ impl Handler<Messages> for DbExecutor {
                         Error::Dsl(err)})
             }
             Messages::AddShift(token, new_shift) => {
+                println!("AddShift: {:#?}", new_shift);
                 let user = check_token(&token, conn)?;
                 let new_shift = NewShift{ user_id: user.id, ..new_shift };
                 match user.level {
@@ -371,9 +372,13 @@ impl Handler<Messages> for DbExecutor {
                             .values(new_shift)
                             .get_result(conn)
                             .map(|added| {
+                                println!("Added shift {:#?}", added);
                                 Results::GetShift(added)
                             })
-                            .map_err(|err| Error::Dsl(err))
+                            .map_err(|err| { 
+                                println!("Add shift error: {:#?}", err);
+                                Error::Dsl(err)
+                            })
                     }
                 }
             }
@@ -471,7 +476,7 @@ fn check_token(
                             users::id.eq(session.user_id),
                         )
                         .first::<User>(conn)
-                        .map(|user| {println!("User associated with token: {:?}", user); user})
+                        .map(|user| {user})
                         .map_err(|dsl_err| {
                             Error::Dsl(dsl_err)
                         })
