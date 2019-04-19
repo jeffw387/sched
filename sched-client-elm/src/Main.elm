@@ -758,6 +758,7 @@ getActiveSettings model =
 
 update : Message -> Model -> (Model, Cmd Message)
 update message model =
+  let debug = Debug.log "Message Model" (message, model) in
   case (model.page, message) of
     (_, UrlRequest request) ->
       case request of
