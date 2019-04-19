@@ -1437,24 +1437,24 @@ shiftElement :
 shiftElement settings employees shift =
   case getEmployee employees shift.employeeID of
     Just employee ->
-  row
-    [
-      Font.size 14,
-      paddingXY 0 2,
-      Border.color (rgb 1 0 0),
-      BG.color (rgba 1 0 0 0.1),
-      Border.width 2,
-      Border.rounded 3,
-      width fill
-    ] 
-    [
-      text 
-        (employee.name.first
-        ++ " "
-        ++ formatLastName settings employee.name.last
-        ++ ": "),
-      (formatHours settings shift.hour shift.hours)
-    ]
+      row
+        [
+          Font.size 14,
+          paddingXY 0 2,
+          Border.color (rgb 1 0 0),
+          BG.color (rgba 1 0 0 0.1),
+          Border.width 2,
+          Border.rounded 3,
+          width fill
+        ] 
+        [
+          text 
+            (employee.name.first
+            ++ " "
+            ++ formatLastName settings employee.name.last
+            ++ ": "),
+          (formatHours settings shift.hour shift.hours)
+        ]
     Nothing -> none
 
 dayStyle ymdMaybe dayState = 
@@ -1491,7 +1491,7 @@ shiftColumn settings day shifts employees =
     width fill
   ] 
   (
-      List.map 
+    List.map 
       (shiftElement settings employees)
       (filterByYearMonthDay day shifts)
   )
@@ -1851,7 +1851,7 @@ shiftModalElement model shiftModalData =
                 thumb = Input.defaultThumb
               }
           ],
-          
+
           -- Repeat controls
           row 
             (
