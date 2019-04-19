@@ -1982,27 +1982,23 @@ addShiftElement day =
         (text "+")
   }
 
+dayCompare : YearMonthDay -> YearMonthDay -> Order
+dayCompare d1 d2 =
+  case compare d1.year d2.year of
+    LT -> LT
+    EQ -> case compare d1.month d2.month of
+      LT -> LT
+      EQ -> compare d1.day d2.day 
+      GT -> GT
+    GT -> GT
+
 compareDays maybe1 maybe2 =
   case (maybe1, maybe2) of
     (Just d1, Just d2) -> 
-      if 
-        d1.year == d2.year && 
-        d1.month == d2.month && 
-        d1.day == d2.day
-      then Today
-      else if
-        d1.year < d2.year
-      then Past
-      else if
-        d1.year <= d2.year &&
-        d1.month < d2.month
-      then Past
-      else if
-        d1.year <= d2.year &&
-        d1.month <= d2.month &&
-        d1.day < d2.day
-      then Past
-      else Future
+      case dayCompare d1 d2 of
+        LT -> Past
+        EQ -> Today
+        GT -> Future
     (_, _) -> None
 
 type DayState =
