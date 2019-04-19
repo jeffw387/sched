@@ -1486,19 +1486,29 @@ chooseSuffix f =
   in
     if h24 >= 12 then "PM" else "AM"
 
-floatFractionToMinutes : Float -> String
-floatFractionToMinutes f =
+floatToQuarterHour : Float -> Int
+floatToQuarterHour f =
   let
     fractional = f - (toFloat (truncate f))
     minutes = fractional * 60
-    nearestQuarter = round (minutes / 15)
+  in
+    round (minutes / 15) * 15
+
+floatToMinuteString : Float -> String
+floatToMinuteString f =
+  let
+    nearestQuarter = floatToQuarterHour f
   in
     case nearestQuarter of
       0 -> "00"
-      _ -> String.fromInt (nearestQuarter * 15)
+      _ -> String.fromInt nearestQuarter
 
-floatToTime : Float -> HourFormat -> String
-floatToTime f hourFormat =
+floatToHour : Float -> Int
+floatToHour f =
+  modBy 24 (floor f)
+
+floatToTimeString : Float -> HourFormat -> String
+floatToTimeString f hourFormat =
   case hourFormat of
     Hour12 ->
       let 
@@ -1508,15 +1518,15 @@ floatToTime f hourFormat =
           if hour == 0 then 12 else hour
         hourStr = if hourFixed < 10 then "0" ++ (String.fromInt hourFixed)
           else String.fromInt hourFixed
-        minutesStr = floatFractionToMinutes f
+        minutesStr = floatToMinuteString f
       in
         hourStr ++ ":" ++ minutesStr ++ suffix
     Hour24 ->
       let
-        hour = modBy 24 (floor f)
+        hour = floatToHour f
         hourStr = if hour < 10 then "0" ++ (String.fromInt hour)
           else String.fromInt hour
-        minutesStr = floatFractionToMinutes f
+        minutesStr = floatToMinuteString f
       in
         hourStr ++ ":" ++ minutesStr
 
@@ -1526,7 +1536,7 @@ floatToDuration f =
       hours = floor f
       hoursStr = if hours < 10 then "0" ++ (String.fromInt hours)
         else String.fromInt hours
-      minutesStr = floatFractionToMinutes f
+      minutesStr = floatToMinuteString f
   in
     hoursStr ++ ":" ++ minutesStr
   
@@ -1694,7 +1704,7 @@ shiftModalElement model shiftModalData =
                   (
                     text
                       (
-                        floatToTime 
+                        floatToTimeString 
                         shiftModalData.start 
                         activeSettings.hourFormat
                       )
@@ -1773,7 +1783,7 @@ shiftModalElement model shiftModalData =
                   (
                     text
                       (
-                        floatToTime
+                        floatToTimeString
                         (shiftModalData.start +
                         shiftModalData.duration) 
                         activeSettings.hourFormat
