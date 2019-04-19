@@ -530,6 +530,7 @@ type Message =
   UpdateShiftStart Float |
   UpdateShiftDuration Float |
   UpdateShiftRepeat ShiftRepeat |
+  UpdateShiftRepeatRate String |
   -- SettingsModal Messages
   OpenSettingsModal |
   SaveSettings |
