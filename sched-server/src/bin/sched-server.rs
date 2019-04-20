@@ -125,6 +125,19 @@ fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
+fn set_default_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |settings| {
+            state.db.clone()
+                .send(Messages::SetDefaultSettings(token, settings))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        }).responder()
+}
+
 fn update_settings(
     (req, state): DbRequest,
 ) -> Box<DbFuture> {
@@ -411,6 +424,9 @@ fn main() {
             })
             .resource(API_ADD_SETTINGS, |r| {
                 r.post().with_async(add_settings)
+            })
+            .resource(API_SET_DEFAULT_SETTINGS, |r| {
+                r.post().with_async(set_default_settings)
             })
             .resource(API_UPDATE_SETTINGS, |r| {
                 r.post().with_async(update_settings)
