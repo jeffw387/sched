@@ -46,7 +46,6 @@ use std::fmt::{
     Formatter,
 };
 use std::result::Result;
-use std::collections::HashMap;
 
 type Token = String;
 
