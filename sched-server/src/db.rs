@@ -55,6 +55,7 @@ pub enum Messages {
     ChangePassword(ChangePasswordInfo),
     GetSettings(Token),
     AddSettings(Token, NewSettings),
+    SetDefaultSettings(Token, Settings),
     DefaultSettings(Token),
     UpdateSettings(Token, Settings),
     GetEmployees(Token),
