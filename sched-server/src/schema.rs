@@ -36,6 +36,7 @@ table! {
     settings (id) {
         id -> Int4,
         user_id -> Int4,
+        name -> Text,
         view_type -> Text,
         hour_format -> Text,
         last_name_style -> Text,
