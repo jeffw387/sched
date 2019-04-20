@@ -545,6 +545,7 @@ type Message =
   -- ShiftModal Messages
   OpenShiftModal (Maybe YearMonthDay) (Maybe Shift) |
   AddShift |
+  UpdateShiftRequest Shift |
   CloseShiftModal |
   ShiftEmployeeSearch String |
   ChooseShiftEmployee Employee |
@@ -709,13 +710,13 @@ toWeekday ymd =
 
 hourMinuteToFloat : Int -> Int -> Float
 hourMinuteToFloat hour minute =
-  let 
+  let
     fraction = toFloat (round ((toFloat minute) / 15)) / 4
   in (toFloat hour) + fraction
 
 shiftEditorForShift : Shift -> List Employee -> ShiftModalData
 shiftEditorForShift shift employees =
-    ShiftModalData
+  ShiftModalData
     (Just shift)
     (getEmployee employees shift.employeeID)
     ""
@@ -729,15 +730,15 @@ shiftEditorForShift shift employees =
 shiftEditorForDay : YearMonthDay -> List Employee -> ShiftModalData
 shiftEditorForDay day employees =
   ShiftModalData
-      Nothing
     Nothing
-      ""
-      employeeList
-      day
-      8
-      8
-      NeverRepeat
-      "1"
+    Nothing
+    ""
+    employees
+    day
+    8
+    8
+    NeverRepeat
+    "1"
 
 loadData =
   Cmd.batch 
@@ -1020,7 +1021,7 @@ update message model =
           in
             (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage page, KeyDown maybeArrow) ->
+    (CalendarPage page, KeyDown maybeKey) ->
       (model, Cmd.none)
     (CalendarPage page, ShiftEmployeeSearch searchText) ->
       case page.modal of
@@ -1033,7 +1034,8 @@ update message model =
             updatedModal = { shiftModalData | 
               employeeSearch = searchText,
               employeeMatches = newMatches }
-            updatedPage = { page | modal = ShiftModal updatedModal }
+            updatedPage = 
+              { page | modal = ShiftModal updatedModal }
             updatedModel = 
               { model | page = CalendarPage updatedPage } 
           in
@@ -1368,7 +1370,7 @@ shiftCompare s1 s2 =
 
 shiftHourCompare : Shift -> Shift -> Order
 shiftHourCompare s1 s2 =
-      case compare s1.hour s2.hour of
+  case compare s1.hour s2.hour of
         LT -> LT
         EQ -> compare s1.minute s2.minute
         GT -> GT
@@ -1547,25 +1549,25 @@ shiftElement settings employees shift =
       {
         onPress = Just (OpenShiftModal Nothing (Just shift)),
         label = 
-      row
-        [
-          Font.size 14,
-          paddingXY 0 2,
+          row
+          [
+            Font.size 14,
+            paddingXY 0 2,
             Border.color (rgb 0.75 0.5 0.5),
             -- BG.color ,
-          Border.width 2,
-          Border.rounded 3,
-          width fill
-        ] 
-        [
+            Border.width 2,
+            Border.rounded 3,
+            width fill
+          ] 
+          [
             el [padding 1] <|
-          text 
-            (employee.name.first
-            ++ " "
-            ++ formatLastName settings employee.name.last
-            ++ ": "),
-          (formatHours settings shift.hour shift.hours)
-        ]
+            text 
+              (employee.name.first
+              ++ " "
+              ++ formatLastName settings employee.name.last
+              ++ ": "),
+            (formatHours settings shift.hour shift.hours)
+          ]
       }
       
     Nothing -> none
@@ -1802,10 +1804,10 @@ shiftModalElement model shiftData =
             ]
             [
               Input.search 
-                [
+              [
                 fillX,
-                  defaultShadow,
-                  centerX,
+                defaultShadow,
+                centerX,
                 htmlAttribute (HtmlAttr.id "employeeSearch"),
                 onRight 
                   (case shiftData.employee of
@@ -1825,14 +1827,14 @@ shiftModalElement model shiftData =
                           <| nameToString employee.name)
                     Nothing -> el [fillX] none
                     )
-                ]
-                {
-                  onChange = ShiftEmployeeSearch,
+              ]
+              {
+                onChange = ShiftEmployeeSearch,
                 text = shiftData.employeeSearch,
-                  placeholder = Nothing,
-                  label = Input.labelAbove [centerX, padding 2] (text "Find employee: ")
-                },
-
+                placeholder = Nothing,
+                label = Input.labelAbove [centerX, padding 2] (text "Find employee: ")
+              },
+              
               Input.radio
                 ([
                   clipY,
@@ -2046,13 +2048,13 @@ shiftModalElement model shiftData =
           [
             case shiftData.priorShift of
               Just prior ->
-            Input.button
-            [
-              BG.color (rgb 0.2 0.9 0.2),
-              padding 5,
-              defaultShadow
-            ]
-            {
+                Input.button
+                  [
+                    BG.color (rgb 0.2 0.9 0.2),
+                    padding 5,
+                    defaultShadow
+                  ]
+                  {
                     onPress = case shiftFromModal shiftData of 
                       Just updatedShift -> 
                         Just (UpdateShiftRequest updatedShift)
@@ -2067,9 +2069,9 @@ shiftModalElement model shiftData =
                   defaultShadow
                 ]
                 {
-              onPress = Just (AddShift),
-              label = text "Save"
-            },
+                  onPress = Just (AddShift),
+                  label = text "Save"
+                },
             Input.button
             [
               BG.color (rgb 0.9 0.2 0.2),
