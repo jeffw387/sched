@@ -87,6 +87,7 @@ enum_from_sql!(ViewType);
 pub struct Settings {
     pub id: i32,
     pub user_id: i32,
+    pub name: String,
     pub view_type: ViewType,
     pub hour_format: HourFormat,
     pub last_name_style: LastNameStyle,

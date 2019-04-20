@@ -19,7 +19,8 @@ CREATE TABLE sessions (
 
 CREATE TABLE settings (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL,
+  "user_id" INTEGER NOT NULL,
+  "name" TEXT NOT NULL,
   view_type TEXT NOT NULL,
   hour_format TEXT NOT NULL,
   last_name_style TEXT NOT NULL,
