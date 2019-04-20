@@ -246,6 +246,18 @@ impl Handler<Messages> for DbExecutor {
                     })
                     .map_err(|err| Error::Dsl(err))
             }
+            Messages::SetDefaultSettings(token, settings) => {
+                let user = check_token(&token, conn)?;
+                let updated_user = User {
+                    startup_settings: Some(settings.id),
+                    ..user.clone()
+                };
+                let _ = diesel::update(&user)
+                    .set(updated_user)
+                    .execute(conn)
+                    .map_err(|err| Error::Dsl(err))?;
+                Ok(Results::Nothing)
+            }
             Messages::DefaultSettings(token) => {
                 let user = check_token(&token, conn)?;
                 println!("token accepted, user: {:#?}", user);
