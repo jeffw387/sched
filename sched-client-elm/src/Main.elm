@@ -336,6 +336,24 @@ newShiftEncoder shift =
       ("every_x", E.int shift.everyX)
     ]
 
+shiftEncoder : Shift -> E.Value
+shiftEncoder shift =
+  E.object
+    [
+      ("id", E.int shift.id),
+      ("user_id", E.int shift.userID),
+      ("employee_id", E.int shift.employeeID),
+      ("year", E.int shift.year),
+      ("month", E.int shift.month),
+      ("day", E.int shift.day),
+      ("hour", E.int shift.hour),
+      ("minute", E.int shift.minute),
+      ("hours", E.int shift.hours),
+      ("minutes", E.int shift.minutes),
+      ("shift_repeat", shiftRepeatEncoder shift.repeat),
+      ("every_x", E.int shift.everyX)
+    ]
+
 -- DESERIALIZATION
 viewYMDDecoder =
   D.succeed YearMonthDay
