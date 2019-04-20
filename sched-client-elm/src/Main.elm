@@ -54,6 +54,7 @@ type alias Settings =
   {
     id : Int,
     userID : Int,
+    name : String,
     viewType : ViewType,
     hourFormat : HourFormat,
     lastNameStyle : LastNameStyle,
@@ -366,6 +367,7 @@ settingsDecoder =
   D.succeed Settings
   |> JPipe.required "id" D.int
   |> JPipe.required "user_id" D.int
+  |> JPipe.required "name" D.string
   |> JPipe.required "view_type" viewTypeDecoder
   |> JPipe.required "hour_format" hourFormatDecoder
   |> JPipe.required "last_name_style" lastNameStyleDecoder
@@ -498,6 +500,7 @@ settingsDefault =
   Settings
     0
     0
+    "New View"
     MonthView 
     Hour12 
     FirstInitial
