@@ -1635,6 +1635,13 @@ type alias ShiftModalData =
     everyX : String
   }
 
+type alias SettingsModalData =
+  {
+    searchText : String,
+    activeSettings : Maybe Settings,
+    settingsOptions : List Settings
+  }
+
 chooseSuffix : Float -> String
 chooseSuffix f =
   let 
