@@ -2268,6 +2268,17 @@ searchRadio
       }
   ]
 
+settingsToOption : Settings -> Input.Option Settings Message
+settingsToOption settings =
+  Input.option
+  settings
+  (el
+    ([
+      defaultShadow,
+      BG.color lightGrey,
+      padding 5
+    ] ++ defaultBorder)
+    <| text settings.name)
 
 settingsElement = 
   el
