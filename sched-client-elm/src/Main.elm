@@ -123,7 +123,7 @@ defaultLoginModel =
 
 type CalendarModal =
   NoModal |
-  SettingsModal |
+  SettingsModal SettingsModalData |
   ShiftModal ShiftModalData
 
 type alias CalendarModel =
