@@ -123,21 +123,22 @@ defaultLoginModel =
 
 type CalendarModal =
   NoModal |
-  SettingsModal SettingsModalData |
+  ViewSelectModal |
+  ViewEditModal |
   ShiftModal ShiftModalData
 
-type alias CalendarModel =
+type alias CalendarData =
   {
     modal : CalendarModal
   }
 
 defaultCalendarModel =
-  CalendarModel
+  CalendarData
   NoModal
 
 type Page =
   LoginPage LoginModel |
-  CalendarPage CalendarModel
+  CalendarPage CalendarData
 
 type alias Model =
   {
@@ -311,6 +312,23 @@ newSettingsEncoder settings =
   E.object
     [
       ("user_id", E.int settings.userID),
+      ("name", E.string settings.name),
+      ("view_type", viewTypeEncoder settings.viewType),
+      ("hour_format", hourFormatEncoder settings.hourFormat),
+      ("last_name_style", lastNameStyleEncoder settings.lastNameStyle),
+      ("view_year", E.int settings.viewDate.year),
+      ("view_month", E.int settings.viewDate.month),
+      ("view_day", E.int settings.viewDate.day),
+      ("viewEmployees", E.list E.int settings.viewEmployees)
+    ]
+
+settingsEncoder : Settings -> E.Value
+settingsEncoder settings =
+  E.object
+    [
+      ("id", E.int settings.id),
+      ("user_id", E.int settings.userID),
+      ("name", E.string settings.name),
       ("view_type", viewTypeEncoder settings.viewType),
       ("hour_format", hourFormatEncoder settings.hourFormat),
       ("last_name_style", lastNameStyleEncoder settings.lastNameStyle),
@@ -553,13 +571,21 @@ type Message =
   UpdateShiftDuration Float |
   UpdateShiftRepeat ShiftRepeat |
   UpdateShiftRepeatRate String |
-  -- SettingsModal Messages
-  OpenSettingsModal |
-  UpdateSettingsSearch String |
-  ChooseActiveSettings Settings |
-  SaveSettings |
-  CloseSettingsModal |
--- Loading Messages
+  -- ViewSelect Messages
+  OpenViewSelect |
+  ChooseActiveView Int |
+  DuplicateView |
+  CloseViewSelect |
+  -- View Edit Messages
+  OpenViewEdit |
+  UpdateViewName String |
+  UpdateViewType ViewType |
+  UpdateHourFormat HourFormat |
+  UpdateLastNameStyle LastNameStyle |
+  EmployeeViewCheckbox Int Bool |
+  SaveView |
+  CloseViewEdit |
+  -- Loading Messages
   ReceiveEmployees (Result Http.Error (List Employee)) |
   ReceiveShifts (Result Http.Error (List Shift)) |
   ReceiveDefaultSettings (Result Http.Error (Maybe Int)) |
@@ -855,6 +881,8 @@ update : Message -> Model -> (Model, Cmd Message)
 update message model =
   let debug = Debug.log "Message Model" (message, model) in
   case (model.page, message) of
+  
+  -- General messages
     (_, UrlRequest request) ->
       case request of
         Browser.Internal url ->
@@ -862,6 +890,20 @@ update message model =
         _ -> (model, Cmd.none)
     (_, UrlChanged url) ->
       router model url
+    (_, Logout) ->
+      (
+        model, 
+        Http.post
+        {
+          url = UB.absolute ["sched", "logout_request"] [],
+          body = Http.emptyBody,
+          expect = Http.expectWhatever IgnoreReply
+        }
+      )
+    (_, IgnoreReply _) ->
+      (model, Nav.pushUrl model.navkey "/sched/login")
+      
+  -- Login messages
     (LoginPage page, LoginRequest) ->
       (model, loginRequest page.loginInfo)
     (LoginPage page, LoginResponse r) ->
@@ -898,6 +940,8 @@ update message model =
         updatedPage = { page | loginInfo = updatedInfo }
         updatedModel = { model | page = LoginPage updatedPage }
       in (updatedModel, Cmd.none)
+      
+  -- Loading messages
     (_, ReceiveEmployees employeesResult) ->
       case employeesResult of
         Ok employees ->
@@ -947,7 +991,7 @@ update message model =
               in (updated, Cmd.none)
             Nothing -> (model, Cmd.none)
         Err _ -> (model, Cmd.none)
-    (CalendarPage page, ReloadData _) ->
+    (_, ReloadData _) ->
       let 
         updated = 
           { 
@@ -961,36 +1005,46 @@ update message model =
               here = Nothing
           }
       in (model, loadData)
-    (CalendarPage page, OpenSettingsModal) ->
+      
+  -- View select messages
+    (CalendarPage page, OpenViewSelect) ->
       case page.modal of
         NoModal ->
           let
             updatedPage = { page | modal = 
-              SettingsModal <| settingsModalFromModel model }
+              ViewSelectModal }
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage page, SaveSettings) ->
-      case getActiveSettings model of
-        Just settings ->
-          (
-            model, 
-            Http.post
-            {
-              url = "/sched/add_settings",
-              body = Http.jsonBody (newSettingsEncoder settings),
-              expect = Http.expectWhatever IgnoreReply
-            }
-          )
-        Nothing -> (model, Cmd.none)
-    (CalendarPage page, CloseSettingsModal) ->
+    (CalendarPage page, ChooseActiveView activeID) ->
       case page.modal of
-        SettingsModal settingsData ->
+        ViewSelectModal ->
+          case getSettings model activeID of
+            Just active ->
+              (model, 
+              Http.post
+                {
+                  url = "/sched/set_default_settings",
+                  body = Http.jsonBody 
+                    <| settingsEncoder active,
+                  expect = Http.expectWhatever ReloadData
+                })
+            Nothing -> (model, Cmd.none)
+        _ -> (model, Cmd.none)
+    (CalendarPage page, CloseViewSelect) ->
+      case page.modal of
+        ViewSelectModal ->
           let
             updatedPage = { page | modal = NoModal }
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
+    (CalendarPage page, DuplicateView) ->
+      (model, Cmd.none)
+        
+  -- View edit messages
+  
+  -- Shift edit messages
     (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
       case (page.modal, maybeDay, maybeShift) of
         (NoModal, Just day, Nothing) -> 
@@ -1024,8 +1078,6 @@ update message model =
           in
             (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (CalendarPage page, KeyDown maybeKey) ->
-      (model, Cmd.none)
     (CalendarPage page, ShiftEmployeeSearch searchText) ->
       case page.modal of
         ShiftModal shiftModalData ->
@@ -1125,18 +1177,11 @@ update message model =
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
-    (_, Logout) ->
-      (
-        model, 
-        Http.post
-        {
-          url = UB.absolute ["sched", "logout_request"] [],
-          body = Http.emptyBody,
-          expect = Http.expectWhatever IgnoreReply
-        }
-      )
-    (_, IgnoreReply _) ->
-      (model, Nav.pushUrl model.navkey "/sched/login")
+
+  -- Calendar messages
+    (CalendarPage page, KeyDown maybeKey) ->
+      (model, Cmd.none)
+
     (_, _) ->
       (model, Cmd.none)
 
@@ -1170,20 +1215,33 @@ toDocument rootElement =
     ]
   }
 
-viewSettingsToggle =
+selectViewButton =
   Input.button
   [
-    alignLeft
+    defaultShadow,
+    padding 5
   ]
   {
-    onPress = Just OpenSettingsModal,
-    label = text "Settings"
+    onPress = Just OpenViewSelect,
+    label = text "Select View"
+  }
+
+editViewButton =
+  Input.button
+  [
+    defaultShadow,
+    padding 5
+  ]
+  {
+    onPress = Just OpenViewEdit,
+    label = text "Edit View"
   }
 
 viewLogoutButton =
   Input.button
   [
-    alignRight
+    defaultShadow,
+    padding 5
   ]
   {
     onPress = Just Logout,
@@ -1198,10 +1256,12 @@ viewCalendarFooter =
       width fill,
       Border.solid,
       Border.color (rgb 1 1 1),
-      Border.width 1
+      Border.width 1,
+      spacing 15
     ]
     [
-      viewSettingsToggle, 
+      selectViewButton, 
+      editViewButton,
       viewLogoutButton
     ]
 
@@ -1635,11 +1695,12 @@ type alias ShiftModalData =
     everyX : String
   }
 
-type alias SettingsModalData =
+type alias ViewSelectData =
   {
-    searchText : String,
-    activeSettings : Maybe Settings,
-    settingsOptions : List Settings
+  }
+
+type alias ViewEditData =
+  {
   }
 
 chooseSuffix : Float -> String
@@ -1765,6 +1826,8 @@ defaultBorder =
     Border.rounded 3,
     padding 3
   ]
+
+headerFontSize = Font.size 30
     
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftData =
@@ -1785,7 +1848,7 @@ shiftModalElement model shiftData =
             [
               fillX,
               fillY,
-              Font.size 30,
+              headerFontSize,
               BG.color white,
               padding 15
             ]
@@ -2060,7 +2123,7 @@ shiftModalElement model shiftData =
               Just prior ->
                 Input.button
                   [
-                    BG.color (rgb 0.2 0.9 0.2),
+                    BG.color (green),
                     padding 5,
                     defaultShadow
                   ]
@@ -2074,7 +2137,7 @@ shiftModalElement model shiftData =
               Nothing ->
                 Input.button
                 [
-                  BG.color (rgb 0.2 0.9 0.2),
+                  BG.color (green),
                   padding 5,
                   defaultShadow
                 ]
@@ -2084,7 +2147,7 @@ shiftModalElement model shiftData =
                 },
             Input.button
             [
-              BG.color (rgb 0.9 0.2 0.2),
+              BG.color (red),
               padding 5,
               defaultShadow,
               alignRight
@@ -2268,57 +2331,166 @@ searchRadio
       }
   ]
 
-settingsToOption : Settings -> Input.Option Settings Message
+settingsToOption : Settings -> Input.Option Int Message
 settingsToOption settings =
   Input.option
-  settings
-  (el
+  settings.id
+  (el [fillX] <| 
+    el
     ([
       defaultShadow,
       BG.color lightGrey,
+      centerX,
       padding 5
     ] ++ defaultBorder)
     <| text settings.name)
-  
-settingsElement : SettingsModalData -> Element Message
-settingsElement settingsModalData = 
-  column
-  ([
-    centerX,
-    centerY,
-    BG.color lightGrey,
-    defaultShadow
-  ] ++ defaultBorder)
-  [
-    -- title text
-    el [fillX, fillY] 
-      <| el [centerX, centerY]
-      <| text "Edit settings:",
-    searchRadio
-      ""
-      "Find view: "
-      settingsModalData.searchText
-      UpdateSettingsSearch
-      (case settingsModalData.activeSettings of
-        Just active -> 
-          el ([
-            BG.color white,
-            padding 5
-          ] ++ defaultBorder)
-          <| text active.name
-        Nothing -> none)
-      ChooseActiveSettings
-      settingsModalData.activeSettings
-      "Views: "
-      (List.map settingsToOption settingsModalData.settingsOptions)
-  ]
 
-settingsModalFromModel : Model -> SettingsModalData
-settingsModalFromModel model =
-  SettingsModalData
-  ""
-  (getActiveSettings model)
-  (Maybe.withDefault [] model.settingsList)
+employeeToCheckbox : List Int -> Employee -> Element Message
+employeeToCheckbox included employee =
+  let 
+    filtered = 
+      List.filter
+      (\i -> i == employee.id)
+      included
+    first = List.head filtered
+  in 
+    Input.checkbox 
+    [centerX] 
+    {
+      onChange = EmployeeViewCheckbox employee.id,
+      icon = Input.defaultCheckbox,
+      checked = (case first of
+        Just found -> True
+        Nothing -> False),
+      label = Input.labelRight [] <| text <| nameToString employee.name
+    }
+  
+basicButton : 
+  List (Attribute Message) -> 
+  Color -> 
+  Maybe Message -> 
+  String ->
+  Element Message
+basicButton attrs color onPress label =
+  Input.button
+  ([
+    BG.color color,
+    padding 5,
+    defaultShadow
+  ] ++ attrs)
+  {
+    onPress = onPress,
+    label = text label
+  }
+
+selectViewElement : Model -> Element Message
+selectViewElement model = 
+  column
+    ([
+      centerX,
+      centerY,
+      BG.color lightGrey,
+      defaultShadow,
+      spacing 5
+    ] ++ defaultBorder)
+    [
+      -- title text
+      el 
+        [
+          fillX, 
+          fillY,
+          padding 10
+        ] 
+        <| el
+          [
+            centerX, 
+            centerY, 
+            BG.color white, 
+            headerFontSize, 
+            padding 15
+          ]
+        <| text "Edit settings:",
+      -- active view select
+      el [fillX] <|
+      Input.radio [centerX]
+        {
+          onChange = ChooseActiveView,
+          options = 
+            List.map 
+            settingsToOption 
+            <| Maybe.withDefault [] model.settingsList,
+          selected = model.activeSettings,
+          label = 
+            Input.labelAbove [fillX] 
+            <| el [centerX] <| text "Select view:"
+        }
+    ]
+
+editViewElement : Model -> Element Message
+editViewElement model =
+    case getActiveSettings model of
+      Just activeSettings ->
+        column
+        []
+        [
+          el [fillX] <|
+          row
+          [
+            centerX
+          ]
+          [
+            -- Input.radio
+            -- []
+            -- {
+            --   onChange = ChooseViewType,
+
+            -- },
+            -- Input.radio
+            -- []
+            -- {
+            --   onChange = ChooseHourFormat,
+              
+            -- },
+            -- Input.radio
+            -- []
+            -- {
+            --   onChange = ChooseLastNameStyle,
+              
+            -- }
+          ],
+          column
+          ([
+            clipY,
+            height <| px 200,
+            fillX,
+            scrollbarY,
+            spacing 5, 
+            padding 10, 
+            BG.color white
+          ] ++ defaultBorder)
+          <| List.map 
+            (employeeToCheckbox activeSettings.viewEmployees)
+            (Maybe.withDefault [] model.employees),
+          -- Save, Save As, Cancel
+          row
+          ([fillX, spacing 15] ++ defaultBorder)
+          [
+            basicButton
+              []
+              green
+              (Just SaveView)
+              "Save",
+            basicButton
+              []
+              red
+              (Just CloseViewEdit)
+              "Cancel"
+          ]
+        ]
+      Nothing -> none
+
+green = rgb 0.2 0.9 0.2
+red = rgb 0.9 0.2 0.2
 
 viewMonthRows month focusDay settings shifts employees =
   column
@@ -2387,7 +2559,10 @@ viewModal model =
         NoModal -> none
         ShiftModal shiftModalData ->
           shiftModalElement model shiftModalData
-        SettingsModal settingsData -> settingsElement settingsData
+        ViewSelectModal -> 
+          selectViewElement model 
+        ViewEditModal ->
+          editViewElement model
     _ -> text "Error: viewing modal from wrong page"
 
 viewCalendar : Model -> Element Message
