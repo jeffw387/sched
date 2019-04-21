@@ -2280,16 +2280,45 @@ settingsToOption settings =
     ] ++ defaultBorder)
     <| text settings.name)
 
-settingsElement = 
-  el
+settingsElement : SettingsModalData -> Element Message
+settingsElement settingsModalData = 
+  column
+  ([
+    centerX,
+    centerY,
+    BG.color lightGrey,
+    defaultShadow
+  ] ++ defaultBorder)
     [
-      alignLeft,
-      BG.color (rgb 0.9 0.1 0.1),
-      height fill,
-      width (px 300),
-      Events.onClick CloseSettingsModal
+    -- title text
+    el [fillX, fillY] 
+      <| el [centerX, centerY]
+      <| text "Edit settings:",
+    searchRadio
+      ""
+      "Find view: "
+      settingsModalData.searchText
+      UpdateSettingsSearch
+      (case settingsModalData.activeSettings of
+        Just active -> 
+          el ([
+            BG.color white,
+            padding 5
+          ] ++ defaultBorder)
+          <| text active.name
+        Nothing -> none)
+      ChooseActiveSettings
+      settingsModalData.activeSettings
+      "Views: "
+      (List.map settingsToOption settingsModalData.settingsOptions)
     ]
-    none
+
+settingsModalFromModel : Model -> SettingsModalData
+settingsModalFromModel model =
+  SettingsModalData
+  ""
+  (getActiveSettings model)
+  (Maybe.withDefault [] model.settingsList)
 
 viewMonthRows month focusDay settings shifts employees =
   column
