@@ -555,6 +555,8 @@ type Message =
   UpdateShiftRepeatRate String |
   -- SettingsModal Messages
   OpenSettingsModal |
+  UpdateSettingsSearch String |
+  ChooseActiveSettings Settings |
   SaveSettings |
   CloseSettingsModal |
 -- Loading Messages
