@@ -2208,6 +2208,66 @@ monthRowElement settings focusDay shifts employees rowElement =
         rowElement
       )
     )
+searchRadio :
+  String ->
+  String ->
+  String ->
+  (String -> Message) ->
+  Element Message ->
+  (a -> Message) ->
+  Maybe a ->
+  String ->
+  List (Input.Option a Message) ->
+  Element Message
+searchRadio
+  searchID 
+  searchLabel 
+  searchText 
+  searchChangeMsg 
+  confirmed 
+  radioChangeMsg 
+  radioSelected
+  radioLabel 
+  radioOptions =
+  column
+  [
+    spacing 15,
+    paddingXY 0 15
+  ]
+  [
+    Input.search 
+    [
+      fillX,
+      defaultShadow,
+      centerX,
+      htmlAttribute (HtmlAttr.id searchID),
+      onRight confirmed
+    ]
+    {
+      onChange = searchChangeMsg,
+      text = searchText,
+      placeholder = Nothing,
+      label = 
+        Input.labelAbove 
+        [centerX, padding 2] 
+        (text searchLabel)
+    },
+    
+    Input.radio
+      ([
+        clipY,
+        scrollbarY,
+        height (px 150),
+        fillX
+      ] ++ defaultBorder)
+      {
+        onChange = radioChangeMsg,
+        selected = radioSelected,
+        label = Input.labelHidden radioLabel,
+        options = radioOptions
+      }
+  ]
+
 
 settingsElement = 
   el
