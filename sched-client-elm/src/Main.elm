@@ -2279,7 +2279,7 @@ settingsToOption settings =
       padding 5
     ] ++ defaultBorder)
     <| text settings.name)
-
+  
 settingsElement : SettingsModalData -> Element Message
 settingsElement settingsModalData = 
   column
@@ -2289,7 +2289,7 @@ settingsElement settingsModalData =
     BG.color lightGrey,
     defaultShadow
   ] ++ defaultBorder)
-    [
+  [
     -- title text
     el [fillX, fillY] 
       <| el [centerX, centerY]
@@ -2311,7 +2311,7 @@ settingsElement settingsModalData =
       settingsModalData.activeSettings
       "Views: "
       (List.map settingsToOption settingsModalData.settingsOptions)
-    ]
+  ]
 
 settingsModalFromModel : Model -> SettingsModalData
 settingsModalFromModel model =
