@@ -2387,7 +2387,7 @@ viewModal model =
         NoModal -> none
         ShiftModal shiftModalData ->
           shiftModalElement model shiftModalData
-        SettingsModal -> settingsElement
+        SettingsModal settingsData -> settingsElement settingsData
     _ -> text "Error: viewing modal from wrong page"
 
 viewCalendar : Model -> Element Message
