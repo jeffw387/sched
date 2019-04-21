@@ -965,7 +965,8 @@ update message model =
       case page.modal of
         NoModal ->
           let
-            updatedPage = { page | modal = SettingsModal }
+            updatedPage = { page | modal = 
+              SettingsModal <| settingsModalFromModel model }
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
