@@ -985,7 +985,7 @@ update message model =
         Nothing -> (model, Cmd.none)
     (CalendarPage page, CloseSettingsModal) ->
       case page.modal of
-        SettingsModal ->
+        SettingsModal settingsData ->
           let
             updatedPage = { page | modal = NoModal }
             updatedModel = { model | page = CalendarPage updatedPage }
