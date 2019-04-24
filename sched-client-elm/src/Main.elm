@@ -320,7 +320,7 @@ newSettingsEncoder settings =
       ("view_year", E.int settings.viewDate.year),
       ("view_month", E.int settings.viewDate.month),
       ("view_day", E.int settings.viewDate.day),
-      ("viewEmployees", E.list E.int settings.viewEmployees)
+      ("view_employees", E.list E.int settings.viewEmployees)
     ]
 
 employeeColorEncoder : EmployeeColor -> E.Value
