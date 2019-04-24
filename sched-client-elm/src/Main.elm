@@ -584,6 +584,7 @@ type Message =
   UpdateHourFormat HourFormat |
   UpdateLastNameStyle LastNameStyle |
   EmployeeViewCheckbox Int Bool |
+  OpenEmployeeColorSelector Employee |
   ChooseEmployeeColor Employee EmployeeColor |
   SaveView |
   CloseViewEdit |
