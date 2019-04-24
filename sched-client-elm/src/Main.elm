@@ -2740,6 +2740,14 @@ colorDisplay c =
     Border.rounded 10
   ] none
 
+colorSelectOpenButton : Employee -> EmployeeColor -> Element Message
+colorSelectOpenButton employee color =
+  Input.button []
+  {
+    onPress = Just <| OpenEmployeeColorSelector employee,
+    label = colorDisplay color
+  }
+
     filtered = 
       List.filter
       (\i -> i == employee.id)
