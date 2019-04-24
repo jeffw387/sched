@@ -308,10 +308,11 @@ shiftRepeatEncoder repeat =
     EveryWeek -> E.string "EveryWeek"
     EveryDay -> E.string "EveryDay"
 
-newSettingsEncoder : Settings -> E.Value
-newSettingsEncoder settings =
+settingsEncoder : Settings -> E.Value
+settingsEncoder settings =
   E.object
     [
+      ("id", E.int settings.id),
       ("user_id", E.int settings.userID),
       ("name", E.string settings.name),
       ("view_type", viewTypeEncoder settings.viewType),
