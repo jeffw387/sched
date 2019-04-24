@@ -1044,6 +1044,15 @@ update message model =
       (model, Cmd.none)
         
   -- View edit messages
+    (CalendarPage page, UpdateViewType viewType) ->
+      case (page.modal, getActiveSettings model) of 
+        (ViewEditModal _, Just active) ->
+          let
+            settings = active.settings
+            updatedSettings = { settings | viewType = viewType }
+          in
+            (model, updateSettings updatedSettings)
+        _ -> (model, Cmd.none)
     (CalendarPage page, UpdateHourFormat hourFormat) ->
       case (page.modal, getActiveSettings model) of 
         (ViewEditModal _, Just active) ->
