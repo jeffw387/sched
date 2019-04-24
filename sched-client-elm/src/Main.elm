@@ -2920,6 +2920,15 @@ editViewElement model editData maybeSettings employees =
           alignTop
         ] <| el [centerX] <| text "Edit view",
         
+        el [fillX]
+        <| Input.text [centerX]
+          {
+            onChange = UpdateViewName,
+            text = settings.name,
+            placeholder = Nothing,
+            label = Input.labelAbove [] <| text "View Name:"
+          },
+
         -- View type, hour format, last name style
           row
         ([
