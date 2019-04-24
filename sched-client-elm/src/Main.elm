@@ -2876,7 +2876,22 @@ selectViewElement model =
           label = 
             Input.labelAbove [fillX] 
             <| el [centerX] <| text "Select view:"
-        }
+      },
+      -- navigation
+      row ([fillX, spacing 15] 
+        ++ defaultBorder)
+      [
+        basicButton
+          []
+          yellow
+          (Just DuplicateView)
+          "Copy View",
+        basicButton
+          []
+          green
+          (Just CloseViewSelect)
+          "Back"
+    ]
     ]
 
 editViewElement : Model -> Element Message
