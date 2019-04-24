@@ -561,6 +561,7 @@ type Message =
   OverShift (Employee, Shift) |
   LeaveShift |
   DayClick (Maybe YearMonthDay) |
+  PriorMonth |
   NextMonth |
   -- ShiftModal Messages
   OpenShiftModal (Maybe YearMonthDay) (Maybe Shift) |
