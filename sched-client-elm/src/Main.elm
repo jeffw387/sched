@@ -323,21 +323,16 @@ newSettingsEncoder settings =
       ("viewEmployees", E.list E.int settings.viewEmployees)
     ]
 
-settingsEncoder : Settings -> E.Value
-settingsEncoder settings =
+perEmployeeSettingsEncoder : PerEmployeeSettings -> E.Value
+perEmployeeSettingsEncoder perEmployee =
   E.object
     [
-      ("id", E.int settings.id),
-      ("user_id", E.int settings.userID),
-      ("name", E.string settings.name),
-      ("view_type", viewTypeEncoder settings.viewType),
-      ("hour_format", hourFormatEncoder settings.hourFormat),
-      ("last_name_style", lastNameStyleEncoder settings.lastNameStyle),
-      ("view_year", E.int settings.viewDate.year),
-      ("view_month", E.int settings.viewDate.month),
-      ("view_day", E.int settings.viewDate.day),
-      ("viewEmployees", E.list E.int settings.viewEmployees)
+    ("id", E.int perEmployee.id),
+    ("settings_id", E.int perEmployee.settingsID),
+    ("employee_id", E.int perEmployee.employeeID),
+    ("color", employeeColorEncoder perEmployee.color)
     ]
+
 
 newShiftEncoder : Shift -> E.Value
 newShiftEncoder shift =
