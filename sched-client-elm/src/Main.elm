@@ -1041,7 +1041,19 @@ update message model =
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, DuplicateView) ->
-      (model, Cmd.none)
+      case getActiveSettings model of
+        Just active ->
+          (model,
+            Http.post
+            {
+              url = "/sched/add_settings",
+              body = Http.jsonBody 
+                <| settingsEncoder
+                active.settings,
+              expect = Http.expectWhatever
+                ReloadData
+            })
+        Nothing -> (model, Cmd.none)
         
   -- View edit messages
     (CalendarPage page, OpenViewEdit) ->
