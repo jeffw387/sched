@@ -1961,15 +1961,26 @@ shiftElement model settings employees shift =
         onPress = Just (OpenShiftModal Nothing (Just shift)),
         label = 
           row
-          [
+          ([
             Font.size 14,
             paddingXY 0 2,
-            Border.color (rgb 0.75 0.5 0.5),
-            -- BG.color ,
             Border.width 2,
             Border.rounded 3,
             width fill
+          ] ++ case getEmployeeSettings model shift.employeeID of
+            Just perEmployee -> 
+              let
+                colorPair = employeeColor perEmployee.color
+              in
+                [
+                  Border.color <| fromRgb colorPair.dark,
+                  BG.color <| fromRgb colorPair.light
           ] 
+            Nothing -> 
+          [
+                Border.color <| rgb 0.5 0.5 0.5,
+                BG.color <| rgb 0.8 0.8 0.8
+              ]) 
           [
             el [padding 1] <|
             text 
