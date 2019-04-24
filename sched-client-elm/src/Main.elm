@@ -828,11 +828,11 @@ getPosixTime : Cmd Message
 getPosixTime =
   Task.perform ReceivePosixTime Time.now
 
-getSettings : Model -> Int -> Maybe Settings
+getSettings : Model -> Int -> Maybe CombinedSettings
 getSettings model index =
   case model.settingsList of
     Just settingsList ->
-      List.filter (\s -> s.id == index) settingsList 
+      List.filter (\s -> s.settings.id == index) settingsList 
       |> List.head
     _ -> Nothing
 
