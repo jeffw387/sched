@@ -2748,6 +2748,45 @@ colorSelectOpenButton employee color =
     label = colorDisplay color
   }
 
+colorSelector : Employee -> EmployeeColor -> Element Message
+colorSelector employee color =
+  Input.radioRow
+  ([
+    BG.color white,
+    defaultShadow
+  ] ++ defaultBorder)
+  {
+    onChange = ChooseEmployeeColor employee,
+    selected = Just color,
+    label = Input.labelHidden "Employee color",
+    options = 
+      let 
+        colorOpt = 
+          (
+            \c -> 
+              Input.optionWith c 
+                (\o -> case o of
+                  Input.Selected -> el defaultBorder <| colorDisplay c
+                  _ -> colorDisplay c
+                )
+          ) 
+      in
+        [
+          colorOpt Red,
+          colorOpt LightRed,
+          colorOpt Green,
+          colorOpt LightGreen,
+          colorOpt Blue,
+          colorOpt LightBlue,
+          colorOpt Yellow,
+          colorOpt LightYellow,
+          colorOpt Grey,
+          colorOpt LightGrey,
+          colorOpt Brown,
+          colorOpt Black
+        ]
+  }
+
     filtered = 
       List.filter
       (\i -> i == employee.id)
