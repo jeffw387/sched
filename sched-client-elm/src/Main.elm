@@ -1930,6 +1930,12 @@ getEmployee employees id =
   List.filter (\emp -> emp.id == id) employees
   |> List.head
 
+getViewEmployees : List Employee -> List Int -> List Employee
+getViewEmployees employees viewEmployees =
+  List.filterMap
+    (\id -> getEmployee employees id)
+    viewEmployees
+
 formatLastName : Settings -> String -> String
 formatLastName settings name =
   case settings.lastNameStyle of
