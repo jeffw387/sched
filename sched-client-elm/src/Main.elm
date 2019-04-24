@@ -595,6 +595,16 @@ type Message =
   ReceiveZone Time.Zone |
   ReloadData (Result Http.Error ())
 
+getEmployeeSettings : Model -> Int -> Maybe PerEmployeeSettings
+getEmployeeSettings model id =
+  case getActiveSettings model of
+    Just active ->
+      List.filter 
+      (\p_e -> p_e.employeeID == id)
+      active.perEmployee
+      |> List.head
+    Nothing -> Nothing
+
 loginRequest : LoginInfo -> (Cmd Message)
 loginRequest loginInfo =
   Http.post
