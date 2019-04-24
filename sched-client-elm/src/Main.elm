@@ -1985,7 +1985,7 @@ shiftElement model settings employees shift =
             el [padding 1] <|
             text 
               (employee.name.first
-              ++ " "
+              ++ (if settings.lastNameStyle == Hidden then "" else " ")
               ++ formatLastName settings employee.name.last
               ++ ": "),
             (formatHours settings shift.hour shift.hours)
