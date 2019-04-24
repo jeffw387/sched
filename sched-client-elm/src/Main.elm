@@ -2720,9 +2720,26 @@ settingsToOption combined =
     ] ++ defaultBorder)
     <| text settings.name)
 
-employeeToCheckbox : List Int -> Employee -> Element Message
-employeeToCheckbox included employee =
+colorDisplay : EmployeeColor -> Element Message
+colorDisplay c =
   let 
+    pair = employeeColor c
+    lightRgb = pair.light
+    darkRgb = pair.dark
+    light = fromRgb lightRgb
+    dark = fromRgb darkRgb
+  in
+  el [padding 2] <|
+  el 
+  [
+    width <| px 20,
+    height <| px 20,
+    BG.color light,
+    Border.color dark,
+    Border.width 2,
+    Border.rounded 10
+  ] none
+
     filtered = 
       List.filter
       (\i -> i == employee.id)
