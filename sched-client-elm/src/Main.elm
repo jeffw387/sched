@@ -878,6 +878,17 @@ shiftFromModal shiftData =
         }
     _ -> Nothing
 
+updateSettings : Settings -> Cmd Message
+updateSettings settings =
+  Http.post
+  {
+    url = "/sched/update_settings",
+    body =
+    Http.jsonBody
+    <| settingsEncoder settings,
+    expect = Http.expectWhatever ReloadData
+  }
+
 update : Message -> Model -> (Model, Cmd Message)
 update message model =
   -- let debug = Debug.log "Message" (message) in
