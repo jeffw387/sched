@@ -1504,6 +1504,19 @@ update message model =
             expect = Http.expectWhatever ReloadData
           })
         Nothing -> (model, Cmd.none)
+    (CalendarPage page, NextMonth) ->
+      case getActiveSettings model of
+        Just active ->
+          let settings = active.settings in
+          (model, Http.post
+          {
+            url = "/sched/update_settings",
+            body = Http.jsonBody
+              <| settingsEncoder { settings | 
+                viewDate = ymdNextMonth settings.viewDate },
+            expect = Http.expectWhatever ReloadData
+          })
+        Nothing -> (model, Cmd.none)
     (_, _) ->
       (model, Cmd.none)
 
