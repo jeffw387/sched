@@ -3170,9 +3170,11 @@ viewCalendar model =
               viewCalendarFooter
             ]
         WeekView ->
-          none
+          column [fillX, fillY, inFront (viewModal model)]
+          [viewCalendarFooter]
         DayView ->
-          none
+          column [fillX, fillY, inFront (viewModal model)]
+          [viewCalendarFooter]
     _ -> text "Loading..."
 
 view : Model -> Browser.Document Message
