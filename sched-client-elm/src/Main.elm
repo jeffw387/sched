@@ -2793,21 +2793,25 @@ employeeToColorPicker employee color selectOpen =
     True -> colorSelector employee color
     False -> colorSelectOpenButton employee color
 
+employeeToCheckbox : CombinedSettings -> Employee -> Element Message
+employeeToCheckbox combined employee =
+  let 
     filtered = 
       List.filter
       (\i -> i == employee.id)
-      included
+      combined.settings.viewEmployees
     first = List.head filtered
   in 
     Input.checkbox 
-    [centerX] 
+    ([] ++ defaultBorder)
     {
       onChange = EmployeeViewCheckbox employee.id,
       icon = Input.defaultCheckbox,
       checked = (case first of
         Just found -> True
         Nothing -> False),
-      label = Input.labelRight [] <| text <| nameToString employee.name
+      label = Input.labelRight [] 
+        (text <| nameToString employee.name)
     }
   
 basicButton : 
