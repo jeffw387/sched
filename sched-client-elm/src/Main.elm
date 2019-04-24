@@ -393,6 +393,27 @@ settingsDecoder =
   |> JPipe.custom viewYMDDecoder
   |> JPipe.required "view_employees" (D.list D.int)
 
+employeeColorDecoder : D.Decoder EmployeeColor
+employeeColorDecoder =
+  D.string
+  |> D.andThen
+    (
+      \color -> 
+        D.succeed <|
+        case color of
+          "Red" -> Red
+          "LightRed" -> LightRed
+          "Green" -> Green
+          "LightGreen" -> LightGreen
+          "LightBlue" -> LightBlue
+          "Yellow" -> Yellow
+          "LightYellow" -> LightYellow
+          "Grey" -> Grey
+          "LightGrey" -> LightGrey
+          "Black" -> Black
+          "Brown" -> Brown
+          _ -> Blue
+    )
 
 perEmployeeSettingsDecoder : D.Decoder PerEmployeeSettings
 perEmployeeSettingsDecoder =
