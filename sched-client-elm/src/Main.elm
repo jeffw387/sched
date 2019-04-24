@@ -1047,6 +1047,15 @@ update message model =
         (ViewEditModal _, Just active) ->
           let
             settings = active.settings
+    (CalendarPage page, UpdateLastNameStyle lastNameStyle) ->
+      case (page.modal, getActiveSettings model) of 
+        (ViewEditModal _, Just active) ->
+          let
+            settings = active.settings
+            updatedSettings = { settings | lastNameStyle = lastNameStyle }
+          in
+            (model, updateSettings updatedSettings)
+        _ -> (model, Cmd.none)
     (CalendarPage page, EmployeeViewCheckbox id checked) ->
       case (page.modal, getActiveSettings model) of 
         (ViewEditModal _, Just active) ->
