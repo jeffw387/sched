@@ -2584,13 +2584,14 @@ type DayState =
   Future
 
 dayElement : 
-  Settings 
+  Model
+  -> Settings 
   -> List Shift
   -> List Employee
   -> Maybe YearMonthDay
   -> Maybe YearMonthDay
   -> Element Message
-dayElement settings shifts employees focusDay maybeYMD =
+dayElement model settings shifts employees focusDay maybeYMD =
   let dayState = (compareDays maybeYMD focusDay) in
   case maybeYMD of
     Just day -> 
@@ -2611,7 +2612,7 @@ dayElement settings shifts employees focusDay maybeYMD =
             dayOfMonthElement day,
             addShiftElement day
           ],
-          shiftColumn settings day shifts employees
+          shiftColumn model settings day shifts employees
         ]
       )
       
@@ -2621,13 +2622,14 @@ dayElement settings shifts employees focusDay maybeYMD =
       <| column [fillX][]
 
 monthRowElement : 
-  Settings 
+  Model 
+  -> Settings 
   -> Maybe YearMonthDay
   -> List Shift
   -> List Employee
   -> Row
   -> Element Message
-monthRowElement settings focusDay shifts employees rowElement =
+monthRowElement model settings focusDay shifts employees rowElement =
   row 
     [
       height fill,
@@ -2639,7 +2641,7 @@ monthRowElement settings focusDay shifts employees rowElement =
       Array.toList 
       (
         Array.map 
-        (dayElement settings shifts employees focusDay) 
+        (dayElement model settings shifts employees focusDay) 
         rowElement
       )
     )
