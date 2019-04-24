@@ -2194,8 +2194,7 @@ defaultBorder =
     Border.solid,
     Border.color borderColor,
     Border.width 1,
-    Border.rounded 3,
-    padding 3
+    Border.rounded 3
   ]
 
 headerFontSize = Font.size 30
