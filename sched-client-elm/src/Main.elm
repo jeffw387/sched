@@ -20,6 +20,7 @@ import Html.Attributes as HtmlAttr
 import Json.Decode.Pipeline as JPipe
 import Dict exposing (Dict)
 import Array exposing (Array)
+import List.Extra
 import Time
 import Simple.Fuzzy as Fuzzy
 -- MAIN
@@ -1043,6 +1044,22 @@ update message model =
       (model, Cmd.none)
         
   -- View edit messages
+        (ViewEditModal _, Just active) ->
+          let
+            settings = active.settings
+    (CalendarPage page, EmployeeViewCheckbox id checked) ->
+      case (page.modal, getActiveSettings model) of 
+        (ViewEditModal _, Just active) ->
+          let
+            settings = active.settings
+            viewEmployees = settings.viewEmployees
+            updatedEmployees = case checked of
+              True -> id :: viewEmployees |> List.Extra.unique
+              False -> List.Extra.remove id viewEmployees
+            updatedSettings = { settings | viewEmployees = updatedEmployees }
+          in
+            (model, updateSettings updatedSettings)
+        _ -> (model, Cmd.none)
   
   -- Shift edit messages
     (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
