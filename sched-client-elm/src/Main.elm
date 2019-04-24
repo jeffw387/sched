@@ -2290,7 +2290,8 @@ shiftModalElement model shiftData =
                   onChange = ChooseShiftEmployee,
                   selected = shiftData.employee,
                   label = Input.labelHidden ("Employees"),
-                  options = employeeAutofillElement shiftData.employeeMatches
+                  options = employeeAutofillElement 
+                    shiftData.employeeMatches
                 }
             ],
 
