@@ -63,6 +63,13 @@ type alias Settings =
     viewEmployees : List Int
   }
 
+
+ymdNextMonth : YearMonthDay -> YearMonthDay
+ymdNextMonth ymd =
+  case ymd.month of
+    12 -> { ymd | year = ymd.year + 1, month = 1 }
+    _ -> { ymd | month = ymd.month + 1 }
+
 type InputState =
   Normal |
   Success |
