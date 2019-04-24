@@ -1027,7 +1027,7 @@ update message model =
                 {
                   url = "/sched/set_default_settings",
                   body = Http.jsonBody 
-                    <| settingsEncoder active,
+                    <| settingsEncoder active.settings,
                   expect = Http.expectWhatever ReloadData
                 })
             Nothing -> (model, Cmd.none)
