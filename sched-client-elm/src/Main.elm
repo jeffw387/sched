@@ -1779,13 +1779,15 @@ filterByYearMonthDay day shifts =
     List.filter (shiftMatch day) shifts
     |> List.sortWith shiftHourCompare
 
-endsFromStartDur : (Int, Int) -> (Int, Int)
-endsFromStartDur (start, duration) =
-  (start, start + duration)
+endsFromStartDur : Float -> Float -> (Float, Float)
+endsFromStartDur start duration =
+  let end = start + duration in
+  (start, end)
 
-formatHour12 : Int -> String
-formatHour12 rawHour =
+formatHour12 : Float -> String
+formatHour12 floatTime =
   let 
+    rawHour = floor floatTime
     hour24 = modBy 24 rawHour
     hour12 = modBy 12 rawHour
   in 
@@ -1796,20 +1798,24 @@ formatHour12 rawHour =
       else
         (String.fromInt hour12) ++ "a"
 
-formatHour24 : Int -> String
-formatHour24 rawHour =
+formatHour24 : Float -> String
+formatHour24 floatTime =
   let 
+    rawHour = floor floatTime
     hour24 = modBy 24 rawHour
   in String.fromInt hour24
 
-formatHours : Settings -> Int -> Int -> Element Message
-formatHours settings start duration =
+formatHours : Settings -> Float -> Float -> Element Message
+formatHours 
+  settings 
+  start
+  duration =
   case settings.hourFormat of
     Hour12 -> 
-      let (_, end) = endsFromStartDur (start, duration)
+      let (_, end) = endsFromStartDur start duration
       in (text (formatHour12 start ++ "-" ++ formatHour12 end))
     Hour24 -> 
-      let (_, end) = endsFromStartDur (start, duration)
+      let (_, end) = endsFromStartDur start duration
       in (text (formatHour24 start ++ "-" ++ formatHour24 end))
 
 
