@@ -2065,7 +2065,14 @@ type alias ViewSelectData =
 
 type alias ViewEditData =
   {
+    settings : Settings,
+    changed : Bool,
+    colorSelect : Maybe Employee
   }
+
+defaultViewEdit : Settings -> ViewEditData
+defaultViewEdit settings =
+  ViewEditData settings False Nothing
 
 chooseSuffix : Float -> String
 chooseSuffix f =
