@@ -393,6 +393,13 @@ settingsDecoder =
   |> JPipe.custom viewYMDDecoder
   |> JPipe.required "view_employees" (D.list D.int)
 
+
+combinedSettingsDecoder : D.Decoder CombinedSettings
+combinedSettingsDecoder =
+  D.succeed CombinedSettings
+  |> JPipe.required "settings" settingsDecoder
+  |> JPipe.required "per_employee" (D.list perEmployeeSettingsDecoder)
+
 viewTypeDecoder : D.Decoder ViewType
 viewTypeDecoder =
   D.string
