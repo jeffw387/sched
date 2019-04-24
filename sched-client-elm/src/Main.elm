@@ -3062,7 +3062,15 @@ borderR = Border.widthEach
 borderL = Border.widthEach 
   { top = 0, bottom = 0, left = 1, right = 0 }
 
-viewMonth ymdMaybe month settings shifts employees =
+viewMonth :
+  Model ->
+  Maybe YearMonthDay ->
+  Month ->
+  Settings ->
+  List Shift ->
+  List Employee ->
+  Element Message
+viewMonth model ymdMaybe month settings shifts employees =
   case ymdMaybe of
     Just ymd ->
       column
@@ -3092,7 +3100,7 @@ viewMonth ymdMaybe month settings shifts employees =
           el [fillX, borderL] (el [centerX] (text "Friday")),
           el [fillX, borderL] (el [centerX] (text "Saturday"))
         ],
-        viewMonthRows month ymdMaybe settings shifts employees
+        viewMonthRows model month ymdMaybe settings shifts employees
       ]
     Nothing -> text "Loading..."
 
@@ -3106,8 +3114,8 @@ viewModal model =
           shiftModalElement model shiftModalData
         ViewSelectModal -> 
           selectViewElement model 
-        ViewEditModal ->
-          editViewElement model
+        ViewEditModal editData ->
+          editViewElement model editData (getActiveSettings model) model.employees
     _ -> text "Error: viewing modal from wrong page"
 
 viewCalendar : Model -> Element Message
