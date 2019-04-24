@@ -1044,6 +1044,15 @@ update message model =
       (model, Cmd.none)
         
   -- View edit messages
+    (CalendarPage page, OpenViewEdit) ->
+      case (page.modal, getActiveSettings model) of
+        (NoModal, Just active) ->
+          let
+            updatedPage = { page | modal = 
+              ViewEditModal <| defaultViewEdit active.settings}
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
+        _ -> (model, Cmd.none)
     (CalendarPage page, UpdateViewName name) ->
       case (page.modal, getActiveSettings model) of 
         (ViewEditModal _, Just active) ->
