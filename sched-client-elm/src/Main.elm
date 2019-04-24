@@ -64,6 +64,13 @@ type alias Settings =
   }
 
 
+
+type alias CombinedSettings =
+  {
+    settings : Settings,
+    perEmployee : List PerEmployeeSettings
+  }
+
 ymdPriorMonth : YearMonthDay -> YearMonthDay
 ymdPriorMonth ymd =
   case ymd.month of
