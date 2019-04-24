@@ -145,7 +145,7 @@ type alias Model =
   {
     navkey : Nav.Key,
     -- loaded data
-    settingsList : Maybe (List Settings),
+    settingsList : Maybe (List CombinedSettings),
     activeSettings : Maybe Int,
     user : Maybe User,
     employees : Maybe (List Employee),
