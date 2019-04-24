@@ -2894,10 +2894,8 @@ selectViewElement model =
     ]
     ]
 
-editViewElement : Model -> Element Message
-editViewElement model =
-    case getActiveSettings model of
-      Just activeSettings ->
+yellow = rgb 0.7 0.7 0.2
+
         column
         []
         [
