@@ -3079,11 +3079,25 @@ viewMonth model ymdMaybe month settings shifts employees =
         fillY
       ]
       [
-        el
+        row
           [
-            centerX
+          fillX,
+          spaceEvenly
           ]
-          (text (monthNumToString ymd.month)),
+        [
+
+        Input.button [paddingXY 50 0]
+        {
+          onPress = Just PriorMonth,
+          label = text "<<--"
+        },
+        el [] <| text (monthNumToString settings.viewDate.month),
+        Input.button [paddingXY 50 0]
+        {
+          onPress = Just NextMonth,
+          label = text "-->>"
+        }
+        ],
         row
         [
           fillX, 
