@@ -1988,7 +1988,11 @@ shiftElement model settings employees shift =
               ++ (if settings.lastNameStyle == Hidden then "" else " ")
               ++ formatLastName settings employee.name.last
               ++ ": "),
-            (formatHours settings shift.hour shift.hours)
+            let 
+              floatBegin = hourMinuteToFloat shift.hour shift.minute
+              floatDuration = hourMinuteToFloat shift.hours shift.minutes
+            in
+              (formatHours settings floatBegin floatDuration)
           ]
       }
       
