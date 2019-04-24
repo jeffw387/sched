@@ -2203,6 +2203,7 @@ shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftData =
   case (model.page, getActiveSettings model) of
     (CalendarPage page, Just activeSettings) ->
+      let settings = activeSettings.settings in
       column
         [
           centerX,
