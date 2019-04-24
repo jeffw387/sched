@@ -811,7 +811,10 @@ requestDefaultSettings =
     {
       url = "/sched/default_settings",
       body = Http.emptyBody,
-      expect = Http.expectJson ReceiveDefaultSettings (genericObjectDecoder (D.maybe D.int))
+      expect = Http.expectJson 
+        ReceiveDefaultSettings 
+        <| genericObjectDecoder 
+        (D.maybe D.int)
     }
 
 getTime posixTime here =
