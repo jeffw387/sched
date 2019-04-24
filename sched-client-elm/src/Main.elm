@@ -3144,10 +3144,10 @@ viewCalendar model =
       (Just employees, Just shifts),
       (Just here, Just now)) ->
       let today = getTime now here in
-      case activeSettings.viewType of
+      case activeSettings.settings.viewType of
         MonthView ->
           let 
-            viewDay = activeSettings.viewDate
+            viewDay = activeSettings.settings.viewDate
             month = makeGridFromMonth 
               (YearMonth viewDay.year viewDay.month)
           in
