@@ -394,6 +394,14 @@ settingsDecoder =
   |> JPipe.required "view_employees" (D.list D.int)
 
 
+perEmployeeSettingsDecoder : D.Decoder PerEmployeeSettings
+perEmployeeSettingsDecoder =
+  D.succeed PerEmployeeSettings
+  |> JPipe.required "id" D.int
+  |> JPipe.required "settings_id" D.int
+  |> JPipe.required "employee_id" D.int
+  |> JPipe.required "color" employeeColorDecoder
+
 combinedSettingsDecoder : D.Decoder CombinedSettings
 combinedSettingsDecoder =
   D.succeed CombinedSettings
