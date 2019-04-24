@@ -2860,7 +2860,11 @@ selectViewElement model =
           ]
         <| text "Views:",
       -- active view select
-      el [fillX] <|
+      el 
+      [
+        fillX,
+        padding 10
+      ] <|
       Input.radio [centerX]
         {
           onChange = ChooseActiveView,
