@@ -323,6 +323,25 @@ newSettingsEncoder settings =
       ("viewEmployees", E.list E.int settings.viewEmployees)
     ]
 
+employeeColorEncoder : EmployeeColor -> E.Value
+employeeColorEncoder c =
+  let 
+    str = 
+      case c of
+        Red -> "Red"
+        LightRed -> "LightRed"
+        Green -> "Green"
+        LightGreen -> "LightGreen"
+        Blue -> "Blue"
+        LightBlue -> "LightBlue"
+        Yellow -> "Yellow"
+        LightYellow -> "LightYellow"
+        Grey -> "Grey"
+        LightGrey -> "LightGrey"
+        Black -> "Black"
+        Brown -> "Brown"
+  in E.string str
+
 perEmployeeSettingsEncoder : PerEmployeeSettings -> E.Value
 perEmployeeSettingsEncoder perEmployee =
   E.object
