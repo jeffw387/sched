@@ -65,7 +65,9 @@ pub enum UserLevel {
 enum_from_sql!(UserLevel);
 enum_to_sql!(UserLevel);
 
-#[derive(Identifiable, Queryable, AsChangeset, Debug, Clone)]
+#[derive(
+    Identifiable, Queryable, AsChangeset, Debug, Clone,
+)]
 pub struct User {
     pub id: i32,
     pub email: String,
