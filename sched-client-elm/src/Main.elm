@@ -1285,6 +1285,15 @@ update message model =
           in
             (model, updateSettings updatedSettings)
         _ -> (model, Cmd.none)
+    (CalendarPage page, OpenEmployeeColorSelector employee) ->
+      case page.modal of 
+        ViewEditModal editData ->
+          let
+            updatedData = {editData | colorSelect = Just employee}
+            updatedPage = {page | modal = ViewEditModal updatedData}
+            updatedModel = {model | page = CalendarPage updatedPage}
+          in (updatedModel, Cmd.none)
+        _ -> (model, Cmd.none)
   
   -- Shift edit messages
     (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
