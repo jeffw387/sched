@@ -1343,26 +1343,38 @@ update message model =
     (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
       case (page.modal, maybeDay, maybeShift) of
         (NoModal, Just day, Nothing) -> 
+          case getActiveSettings model of
+            Just active ->
           let 
+                filteredEmployees = (getViewEmployees 
+                  (Maybe.withDefault [] model.employees) 
+                  active.settings.viewEmployees)
             updatedPage = { page | modal = 
               ShiftModal 
-              (shiftEditorForDay day (Maybe.withDefault [] model.employees)) }
+                  (shiftEditorForDay day filteredEmployees) }
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, 
             Task.attempt 
             FocusResult 
             (Dom.focus "employeeSearch"))
+            Nothing -> (model, Cmd.none)
         (NoModal, Nothing, Just shift) ->
+          case getActiveSettings model of
+            Just active ->
           let 
+                filteredEmployees = (getViewEmployees 
+                  (Maybe.withDefault [] model.employees) 
+                  active.settings.viewEmployees)
             updatedPage = { page | modal = 
               ShiftModal 
-              (shiftEditorForShift shift (Maybe.withDefault [] model.employees)) }
+                  (shiftEditorForShift shift filteredEmployees) }
             updatedModel = { model | page = CalendarPage updatedPage }
           in
             (updatedModel,
               Task.attempt 
               FocusResult 
               (Dom.focus "employeeSearch"))
+            Nothing -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, CloseShiftModal) ->
       case page.modal of
@@ -1374,13 +1386,16 @@ update message model =
             (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, ShiftEmployeeSearch searchText) ->
-      case page.modal of
-        ShiftModal shiftModalData ->
+      case (page.modal, getActiveSettings model) of
+        (ShiftModal shiftModalData, Just active) ->
           let 
+            filteredEmployees = (getViewEmployees 
+                (Maybe.withDefault [] model.employees) 
+                active.settings.viewEmployees)
             newMatches = Fuzzy.filter
               (\emp -> nameToString emp.name)
               searchText
-              (Maybe.withDefault [] model.employees)
+              filteredEmployees
             updatedModal = { shiftModalData | 
               employeeSearch = searchText,
               employeeMatches = newMatches }
