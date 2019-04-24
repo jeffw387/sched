@@ -3028,7 +3028,15 @@ editViewElement model editData maybeSettings employees =
 green = rgb 0.2 0.9 0.2
 red = rgb 0.9 0.2 0.2
 
-viewMonthRows month focusDay settings shifts employees =
+viewMonthRows :
+  Model ->
+  Month ->
+  Maybe YearMonthDay ->
+  Settings ->
+  List Shift ->
+  List Employee ->
+  Element Message
+viewMonthRows model month focusDay settings shifts employees =
   column
   [
     width fill,
@@ -3038,6 +3046,7 @@ viewMonthRows month focusDay settings shifts employees =
   (Array.toList 
     (Array.map 
       (monthRowElement 
+      model
       settings 
       focusDay
       shifts 
