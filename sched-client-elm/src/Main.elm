@@ -590,7 +590,7 @@ type Message =
   ReceiveEmployees (Result Http.Error (List Employee)) |
   ReceiveShifts (Result Http.Error (List Shift)) |
   ReceiveDefaultSettings (Result Http.Error (Maybe Int)) |
-  ReceiveSettingsList (Result Http.Error (List Settings)) |
+  ReceiveSettingsList (Result Http.Error (List CombinedSettings)) |
   ReceivePosixTime Time.Posix |
   ReceiveZone Time.Zone |
   ReloadData (Result Http.Error ())
