@@ -125,7 +125,7 @@ defaultLoginModel =
 type CalendarModal =
   NoModal |
   ViewSelectModal |
-  ViewEditModal |
+  ViewEditModal ViewEditData |
   ShiftModal ShiftModalData
 
 type alias CalendarData =
