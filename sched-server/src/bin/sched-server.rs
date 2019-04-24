@@ -98,17 +98,26 @@ fn get_settings((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn default_settings((req, state): DbRequest) -> Box<DbFuture> {
+fn default_settings(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
-    state.db.send(Messages::DefaultSettings(token))
+    state
+        .db
+        .send(Messages::DefaultSettings(token))
         .from_err()
         .and_then(handle_results)
         .responder()
 }
 
 fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
+    println!("add_settings");
     let token = get_token(&req);
     req.json()
+        .map_err(|err| {
+            println!("Error: {:?}", err);
+            err
+        })
         .from_err()
         .and_then(move |new_settings| {
             state
@@ -125,17 +134,33 @@ fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn set_default_settings((req, state): DbRequest) -> Box<DbFuture> {
+fn set_default_settings(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
+    println!("--set_default_settings");
     let token = get_token(&req);
     req.json()
+        .map_err(|e| {
+            println!("Error: {:?}", e);
+            e
+        })
         .from_err()
         .and_then(move |settings| {
-            state.db.clone()
-                .send(Messages::SetDefaultSettings(token, settings))
+            println!(
+                "Successfully decoded json: {:?}",
+                settings
+            );
+            state
+                .db
+                .clone()
+                .send(Messages::SetDefaultSettings(
+                    token, settings,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
-        }).responder()
+        })
+        .responder()
 }
 
 fn update_settings(
@@ -152,6 +177,42 @@ fn update_settings(
                     token,
                     updated_settings,
                 ))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn add_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map_err(|j| {
+            eprintln!("Json error: {:?}", j);
+            j
+        })
+        .from_err()
+        .and_then(move |new_settings| {
+            state.db.clone()
+                .send(Messages::AddEmployeeSettings(token, new_settings))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn update_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map_err(|j| {
+            eprintln!("Json error: {:?}", j);
+            j
+        })
+        .from_err()
+        .and_then(move |settings| {
+            state.db.clone()
+                .send(Messages::UpdateEmployeeSettings(token, settings))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -327,9 +388,8 @@ fn handle_results(
                 Results::GetUser(user) => {
                     Ok(HttpResponse::Ok().json(user))
                 }
-                Results::GetSettingsVec(settings_vec) => {
-                    Ok(HttpResponse::Ok()
-                        .json(settings_vec))
+                Results::GetCombinedSettings(combined) => {
+                    Ok(HttpResponse::Ok().json(combined))
                 }
                 Results::GetSettings(settings) => {
                     Ok(HttpResponse::Ok().json(settings))
@@ -430,6 +490,12 @@ fn main() {
             })
             .resource(API_UPDATE_SETTINGS, |r| {
                 r.post().with_async(update_settings)
+            })
+            .resource(API_ADD_EMPLOYEE_SETTINGS, |r| {
+                r.post().with_async(add_employee_settings)
+            })
+            .resource(API_UPDATE_EMPLOYEE_SETTINGS, |r| {
+                r.post().with_async(update_employee_settings)
             })
             .resource(API_GET_EMPLOYEES, |r| {
                 r.post().with_async(get_employees)

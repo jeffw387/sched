@@ -16,13 +16,17 @@ use crate::employee::{
 };
 use crate::schema::{
     employees,
+    per_employee_settings,
     sessions,
     settings,
     shifts,
     users,
 };
 use crate::settings::{
+    CombinedSettings,
+    NewPerEmployeeSettings,
     NewSettings,
+    PerEmployeeSettings,
     Settings,
 };
 use crate::shift::{
@@ -58,6 +62,8 @@ pub enum Messages {
     SetDefaultSettings(Token, Settings),
     DefaultSettings(Token),
     UpdateSettings(Token, Settings),
+    AddEmployeeSettings(Token, NewPerEmployeeSettings),
+    UpdateEmployeeSettings(Token, PerEmployeeSettings),
     GetEmployees(Token),
     GetEmployee(Token, Name),
     AddEmployee(Token, NewEmployee),
@@ -75,7 +81,7 @@ impl Message for Messages {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonObject<T> {
-    pub contents: T
+    pub contents: T,
 }
 
 impl<T> JsonObject<T> {
@@ -87,7 +93,7 @@ impl<T> JsonObject<T> {
 pub enum Results {
     GetSession(JsonObject<String>),
     GetUser(ClientSideUser),
-    GetSettingsVec(JsonObject<Vec<Settings>>),
+    GetCombinedSettings(JsonObject<Vec<CombinedSettings>>),
     GetSettings(Settings),
     GetSettingsID(JsonObject<Option<i32>>),
     GetEmployeesVec(JsonObject<Vec<Employee>>),
@@ -132,7 +138,11 @@ impl Handler<Messages> for DbExecutor {
                         ))
                         .get_result::<Session>(conn)
                         .map(|session| {
-                            Results::GetSession(JsonObject::new(session.token))
+                            Results::GetSession(
+                                JsonObject::new(
+                                    session.token,
+                                ),
+                            )
                         })
                         .map_err(|dsl_err| {
                             Error::Dsl(dsl_err)
@@ -222,17 +232,41 @@ impl Handler<Messages> for DbExecutor {
             }
             Messages::GetSettings(token) => {
                 let user = check_token(&token, conn)?;
-                settings::table
+                let user_settings = settings::table
                     .filter(settings::user_id.eq(user.id))
                     .load::<Settings>(conn)
-                    .map(|settings_vec| {
-                        Results::GetSettingsVec(
-                            JsonObject::new(settings_vec)
-                        )
-                    })
-                    .map_err(|err| Error::Dsl(err))
+                    .map_err(|err| Error::Dsl(err))?;
+                let per_employee =
+                    per_employee_settings::table
+                        .load::<PerEmployeeSettings>(conn)
+                        .map_err(|err| Error::Dsl(err))?;
+                let combined_settings =
+                    user_settings.iter().map(|u_s| {
+                        let mut combined =
+                            CombinedSettings {
+                                settings: u_s.clone(),
+                                per_employee: vec![],
+                            };
+                        for p_e in per_employee.clone() {
+                            if u_s.id == p_e.settings_id {
+                                combined
+                                    .per_employee
+                                    .push(p_e);
+                            }
+                        }
+                        combined
+                    });
+                Ok(Results::GetCombinedSettings(
+                    JsonObject::new(
+                        combined_settings.collect(),
+                    ),
+                ))
             }
             Messages::AddSettings(token, new_settings) => {
+                println!(
+                    "AddSettings: {:#?}",
+                    new_settings
+                );
                 let user = check_token(&token, conn)?;
                 let new_settings = NewSettings {
                     user_id: user.id,
@@ -244,32 +278,71 @@ impl Handler<Messages> for DbExecutor {
                     .map(|added| {
                         Results::GetSettings(added)
                     })
-                    .map_err(|err| Error::Dsl(err))
+                    .map_err(|err| {
+                        println!("Error: {:?}", err);
+                        Error::Dsl(err)
+                    })
             }
-            Messages::SetDefaultSettings(token, settings) => {
-                let user = check_token(&token, conn)?;
+            Messages::SetDefaultSettings(
+                token,
+                settings,
+            ) => {
+                println!("SetDefaultSettings: start");
+                let user_res = check_token(&token, conn);
+                println!("user result: {:?}", user_res);
+                let user = user_res?;
+                println!(
+                    "SetDefaultSettings: token user retrieved"
+                );
                 let updated_user = User {
                     startup_settings: Some(settings.id),
                     ..user.clone()
                 };
+                println!(
+                    "Updated user: {:#?}",
+                    updated_user
+                );
                 let _ = diesel::update(&user)
                     .set(updated_user)
                     .execute(conn)
-                    .map_err(|err| Error::Dsl(err))?;
+                    .map_err(|err| {
+                        eprintln!("Error: {:?}", err);
+                        Error::Dsl(err)
+                    })?;
                 Ok(Results::Nothing)
             }
             Messages::DefaultSettings(token) => {
                 let user = check_token(&token, conn)?;
-                println!("token accepted, user: {:#?}", user);
-                Ok(Results::GetSettingsID(JsonObject::new(user.startup_settings)))
+                println!(
+                    "token accepted, user: {:#?}",
+                    user
+                );
+                Ok(Results::GetSettingsID(JsonObject::new(
+                    user.startup_settings,
+                )))
             }
             Messages::UpdateSettings(token, updated) => {
-                let user = check_token(&token, conn)?;
-                match_ids(user.id, updated.user_id)?;
+                let _ = check_token(&token, conn)?;
                 diesel::update(&updated.clone())
                     .set(updated)
                     .get_result(conn)
                     .map(|res| Results::GetSettings(res))
+                    .map_err(|err| Error::Dsl(err))
+            }
+            Messages::AddEmployeeSettings(token, new_settings) => {
+                let _ = check_token(&token, conn)?;
+                diesel::insert_into(per_employee_settings::table)
+                    .values(new_settings)
+                    .execute(conn)
+                    .map_err(|err| Error::Dsl(err))
+                    .map(|_| Results::Nothing)
+            }
+            Messages::UpdateEmployeeSettings(token, settings) => {
+                let _ = check_token(&token, conn)?;
+                diesel::update(&settings.clone())
+                    .set(settings)
+                    .execute(conn)
+                    .map(|_| Results::Nothing)
                     .map_err(|err| Error::Dsl(err))
             }
             Messages::GetEmployees(token) => {
@@ -278,7 +351,7 @@ impl Handler<Messages> for DbExecutor {
                     .load::<Employee>(conn)
                     .map(|emps_vec| {
                         Results::GetEmployeesVec(
-                                JsonObject::new(emps_vec)
+                            JsonObject::new(emps_vec),
                         )
                     })
                     .map_err(|err| Error::Dsl(err))
@@ -364,34 +437,42 @@ impl Handler<Messages> for DbExecutor {
                     .load::<Shift>(conn)
                     .map(|res| {
                         Results::GetEmployeeShifts(
-                            JsonObject::new(res)
+                            JsonObject::new(res),
                         )
                     })
                     .map_err(|err| {
                         eprintln!("Error: {:?}", err);
-                        Error::Dsl(err)})
+                        Error::Dsl(err)
+                    })
             }
             Messages::AddShift(token, new_shift) => {
                 println!("AddShift: {:#?}", new_shift);
                 let user = check_token(&token, conn)?;
-                let new_shift = NewShift{ user_id: user.id, ..new_shift };
+                let new_shift = NewShift {
+                    user_id: user.id,
+                    ..new_shift
+                };
                 match user.level {
                     UserLevel::Read => {
                         Err(Error::Unauthorized)
                     }
-                    _ => {
-                        diesel::insert_into(shifts::table)
-                            .values(new_shift)
-                            .get_result(conn)
-                            .map(|added| {
-                                println!("Added shift {:#?}", added);
-                                Results::GetShift(added)
-                            })
-                            .map_err(|err| { 
-                                println!("Add shift error: {:#?}", err);
-                                Error::Dsl(err)
-                            })
-                    }
+                    _ => diesel::insert_into(shifts::table)
+                        .values(new_shift)
+                        .get_result(conn)
+                        .map(|added| {
+                            println!(
+                                "Added shift {:#?}",
+                                added
+                            );
+                            Results::GetShift(added)
+                        })
+                        .map_err(|err| {
+                            println!(
+                                "Add shift error: {:#?}",
+                                err
+                            );
+                            Error::Dsl(err)
+                        }),
                 }
             }
             Messages::UpdateShift(token, shift) => {
@@ -488,8 +569,12 @@ fn check_token(
                             users::id.eq(session.user_id),
                         )
                         .first::<User>(conn)
-                        .map(|user| {user})
+                        .map(|user| user)
                         .map_err(|dsl_err| {
+                            println!(
+                                "Error: {:?}",
+                                dsl_err
+                            );
                             Error::Dsl(dsl_err)
                         })
                 }

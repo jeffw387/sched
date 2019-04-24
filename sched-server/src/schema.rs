@@ -12,10 +12,7 @@ table! {
         id -> Int4,
         settings_id -> Int4,
         employee_id -> Int4,
-        red -> Float4,
-        green -> Float4,
-        blue -> Float4,
-        alpha -> Float4,
+        color -> Text,
     }
 }
 
