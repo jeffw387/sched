@@ -2787,6 +2787,12 @@ colorSelector employee color =
         ]
   }
 
+employeeToColorPicker : Employee -> EmployeeColor -> Bool -> Element Message
+employeeToColorPicker employee color selectOpen =
+  case selectOpen of
+    True -> colorSelector employee color
+    False -> colorSelectOpenButton employee color
+
     filtered = 
       List.filter
       (\i -> i == employee.id)
