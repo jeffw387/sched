@@ -1294,6 +1294,42 @@ update message model =
             updatedModel = {model | page = CalendarPage updatedPage}
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
+    (CalendarPage page, ChooseEmployeeColor employee color) ->
+      case (page.modal, getEmployeeSettings model employee.id, getActiveSettings model) of 
+        (ViewEditModal editData, Just perEmployee, _) ->
+          let
+            updatedData = {editData | colorSelect = Nothing}
+            updatedPage = {page | modal = ViewEditModal updatedData}
+            updatedModel = {model | page = CalendarPage updatedPage}
+            updatedPerEmployee = {perEmployee | color = color}
+          in (updatedModel, 
+            Http.post
+            {
+              url = "/sched/update_employee_settings",
+              body = Http.jsonBody 
+                (perEmployeeSettingsEncoder updatedPerEmployee),
+              expect = Http.expectWhatever ReloadData
+            })
+        (ViewEditModal editData, Nothing, Just active) ->
+          let
+            updatedData = {editData | colorSelect = Nothing}
+            updatedPage = {page | modal = ViewEditModal updatedData}
+            updatedModel = {model | page = CalendarPage updatedPage}
+            perEmployee = 
+              PerEmployeeSettings 
+              0 
+              active.settings.id 
+              employee.id 
+              color
+          in (updatedModel, 
+            Http.post
+            {
+              url = "/sched/add_employee_settings",
+              body = Http.jsonBody 
+                (perEmployeeSettingsEncoder perEmployee),
+              expect = Http.expectWhatever ReloadData
+            })
+        _ -> (model, Cmd.none)
   
   -- Shift edit messages
     (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
