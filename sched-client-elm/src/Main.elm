@@ -64,6 +64,12 @@ type alias Settings =
   }
 
 
+ymdPriorMonth : YearMonthDay -> YearMonthDay
+ymdPriorMonth ymd =
+  case ymd.month of
+    1 -> { ymd | year = ymd.year - 1, month = 12 }
+    _ -> { ymd | month = ymd.month - 1 }
+
 ymdNextMonth : YearMonthDay -> YearMonthDay
 ymdNextMonth ymd =
   case ymd.month of
