@@ -2858,7 +2858,7 @@ selectViewElement model =
             headerFontSize, 
             padding 15
           ]
-        <| text "Edit settings:",
+        <| text "Views:",
       -- active view select
       el [fillX] <|
       Input.radio [centerX]
