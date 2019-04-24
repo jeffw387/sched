@@ -1330,6 +1330,14 @@ update message model =
               expect = Http.expectWhatever ReloadData
             })
         _ -> (model, Cmd.none)
+    (CalendarPage page, CloseViewEdit) ->
+      case page.modal of
+        ViewEditModal editData ->
+          let
+            updatedPage = { page | modal = NoModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in (updatedModel, Cmd.none)
+        _ -> (model, Cmd.none)
   
   -- Shift edit messages
     (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
