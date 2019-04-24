@@ -2896,64 +2896,134 @@ selectViewElement model =
 
 yellow = rgb 0.7 0.7 0.2
 
+editViewElement : Model -> ViewEditData -> Maybe CombinedSettings -> Maybe (List Employee) -> Element Message
+editViewElement model editData maybeSettings employees =
+  case maybeSettings of
+    Just combined ->
+      let settings = combined.settings in
         column
-        []
+      ([
+        centerX,
+        centerY,
+        BG.color lightGrey,
+        padding 10,
+        defaultShadow
+      ] ++ defaultBorder)
         [
-          el [fillX] <|
+        -- header text
+        el 
+        [
+          fillX, 
+          headerFontSize, 
+          padding 10, 
+          BG.color white,
+          alignTop
+        ] <| el [centerX] <| text "Edit view",
+        
+        -- View type, hour format, last name style
           row
+        ([
+          padding 10,
+          alignTop
+        ] ++ defaultBorder)
           [
-            centerX
-          ]
+          Input.radio
+          ([
+            alignTop
+          ] ++ defaultBorder)
+          {
+            onChange = UpdateViewType,
+            options = 
           [
-            -- Input.radio
-            -- []
-            -- {
-            --   onChange = ChooseViewType,
-
-            -- },
-            -- Input.radio
-            -- []
-            -- {
-            --   onChange = ChooseHourFormat,
-              
-            -- },
-            -- Input.radio
-            -- []
-            -- {
-            --   onChange = ChooseLastNameStyle,
-              
-            -- }
+              Input.option MonthView (text "Month view"),
+              Input.option WeekView (text "Week view"),
+              Input.option DayView (text "Day view")
           ],
+            selected = Just settings.viewType,
+            label = Input.labelAbove [] <| text "View Type:"
+          },
+          Input.radio
+          ([
+            alignTop
+          ] ++ defaultBorder)
+          {
+            onChange = UpdateHourFormat,
+            options =
+          [
+              Input.option Hour12 <| text "12-hour time",
+              Input.option Hour24 <| text "24-hour time"
+            ],
+            selected = Just settings.hourFormat,
+            label = Input.labelAbove [] <| text "Hour Format:"
+          },
+          Input.radio
+          ([
+            alignTop
+          ] ++ defaultBorder)
+          {
+            onChange = UpdateLastNameStyle,
+            options =
+          [
+              Input.option FullName <| text "Full name",
+              Input.option FirstInitial <| text "First initial",
+              Input.option Hidden <| text "Hidden"
+            ],
+            selected = Just settings.lastNameStyle,
+            label = Input.labelAbove [] <| text "Last name style:"
+          }
+        ],
+              
+        -- employee selection
           column
           ([
-            clipY,
-            height <| px 200,
             fillX,
-            scrollbarY,
             spacing 5, 
             padding 10, 
             BG.color white
           ] ++ defaultBorder)
           <| List.map 
-            (employeeToCheckbox activeSettings.viewEmployees)
-            (Maybe.withDefault [] model.employees),
+          (
+            \e -> 
+              let
+                maybePerEmployee = getEmployeeSettings model e.id
+                color = case maybePerEmployee of
+                  Just perEmployee -> perEmployee.color
+                  Nothing -> Green
+                selectOpen = case editData.colorSelect of
+                  Just colorEmp -> colorEmp.id == e.id
+                  Nothing -> False
+              in
+                row [fillX, spacingXY 30 0] 
+                [
+                  employeeToCheckbox combined e,
+                  employeeToColorPicker e color selectOpen
+                ]
+          )
+          (Maybe.withDefault [] employees),
+        
           -- Save, Save As, Cancel
+        el ([fillX] ++ defaultBorder) <|
           row
-          ([fillX, spacing 15] ++ defaultBorder)
+        [centerX, spacing 15]
           [
             basicButton
               []
-              green
-              (Just SaveView)
-              "Save",
+            yellow
+            (Just CloseViewEdit)
+            "Back"
+        ]
+      ]
+    Nothing -> 
+      el ([fillX] ++ defaultBorder) <|
+      row
+      [centerX, spacing 15]
+      [
             basicButton
               []
-              red
+          yellow
               (Just CloseViewEdit)
-              "Cancel"
-          ]
+          "Back"
         ]
-      Nothing -> none
 
 green = rgb 0.2 0.9 0.2
 red = rgb 0.9 0.2 0.2
