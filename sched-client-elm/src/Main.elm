@@ -65,6 +65,15 @@ type alias Settings =
 
 
 
+
+type alias PerEmployeeSettings =
+  {
+    id : Int,
+    settingsID : Int,
+    employeeID : Int,
+    color : EmployeeColor
+  }
+
 type alias CombinedSettings =
   {
     settings : Settings,
