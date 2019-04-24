@@ -1345,35 +1345,35 @@ update message model =
         (NoModal, Just day, Nothing) -> 
           case getActiveSettings model of
             Just active ->
-          let 
+              let 
                 filteredEmployees = (getViewEmployees 
                   (Maybe.withDefault [] model.employees) 
                   active.settings.viewEmployees)
-            updatedPage = { page | modal = 
-              ShiftModal 
+                updatedPage = { page | modal = 
+                  ShiftModal 
                   (shiftEditorForDay day filteredEmployees) }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in (updatedModel, 
-            Task.attempt 
-            FocusResult 
-            (Dom.focus "employeeSearch"))
+                updatedModel = { model | page = CalendarPage updatedPage }
+              in (updatedModel, 
+                Task.attempt 
+                FocusResult 
+                (Dom.focus "employeeSearch"))
             Nothing -> (model, Cmd.none)
         (NoModal, Nothing, Just shift) ->
           case getActiveSettings model of
             Just active ->
-          let 
+              let 
                 filteredEmployees = (getViewEmployees 
                   (Maybe.withDefault [] model.employees) 
                   active.settings.viewEmployees)
-            updatedPage = { page | modal = 
-              ShiftModal 
-                  (shiftEditorForShift shift filteredEmployees) }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in
-            (updatedModel,
-              Task.attempt 
-              FocusResult 
-              (Dom.focus "employeeSearch"))
+                updatedPage = { page | modal = 
+                  ShiftModal 
+                    (shiftEditorForShift shift filteredEmployees) }
+                updatedModel = { model | page = CalendarPage updatedPage }
+              in
+                (updatedModel,
+                  Task.attempt 
+                  FocusResult 
+                  (Dom.focus "employeeSearch"))
             Nothing -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, CloseShiftModal) ->
@@ -1975,9 +1975,9 @@ shiftElement model settings employees shift =
                 [
                   Border.color <| fromRgb colorPair.dark,
                   BG.color <| fromRgb colorPair.light
-          ] 
+                ] 
             Nothing -> 
-          [
+              [
                 Border.color <| rgb 0.5 0.5 0.5,
                 BG.color <| rgb 0.8 0.8 0.8
               ]) 
@@ -2891,7 +2891,7 @@ selectViewElement model =
           green
           (Just CloseViewSelect)
           "Back"
-    ]
+      ]
     ]
 
 yellow = rgb 0.7 0.7 0.2
@@ -2926,7 +2926,7 @@ editViewElement model editData maybeSettings employees =
           padding 10,
           alignTop
         ] ++ defaultBorder)
-          [
+        [
           Input.radio
           ([
             alignTop
@@ -2934,11 +2934,11 @@ editViewElement model editData maybeSettings employees =
           {
             onChange = UpdateViewType,
             options = 
-          [
+            [
               Input.option MonthView (text "Month view"),
               Input.option WeekView (text "Week view"),
               Input.option DayView (text "Day view")
-          ],
+            ],
             selected = Just settings.viewType,
             label = Input.labelAbove [] <| text "View Type:"
           },
