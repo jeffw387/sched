@@ -880,7 +880,7 @@ shiftFromModal shiftData =
 
 update : Message -> Model -> (Model, Cmd Message)
 update message model =
-  let debug = Debug.log "Message Model" (message, model) in
+  -- let debug = Debug.log "Message" (message) in
   case (model.page, message) of
   
   -- General messages
