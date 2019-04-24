@@ -836,11 +836,11 @@ getSettings model index =
       |> List.head
     _ -> Nothing
 
-getActiveSettings : Model -> Maybe Settings
+getActiveSettings : Model -> Maybe CombinedSettings
 getActiveSettings model =
   case (model.activeSettings, model.settingsList) of
     (Just activeID, Just settingsList) ->
-      List.filter (\s -> s.id == activeID) settingsList
+      List.filter (\s -> s.settings.id == activeID) settingsList
       |> List.head
     _ -> Nothing
 
