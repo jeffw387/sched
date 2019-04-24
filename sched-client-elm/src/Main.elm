@@ -63,8 +63,68 @@ type alias Settings =
     viewEmployees : List Int
   }
 
+type EmployeeColor =
+  Red |
+  LightRed |
+  Green |
+  LightGreen |
+  Blue |
+  LightBlue |
+  Yellow |
+  LightYellow |
+  Grey |
+  LightGrey |
+  Black |
+  Brown
 
+type alias ColorRecord =
+  {
+    red : Float,
+    green : Float,
+    blue : Float,
+    alpha : Float
+  }
 
+type alias ColorPair =
+  {
+    light : ColorRecord,
+    dark : ColorRecord
+  }
+
+employeeRGB : EmployeeColor -> ColorRecord
+employeeRGB c =
+  case c of
+    Red -> 
+      { red = 1, green = 0.25, blue = 0.25, alpha = 0 }
+    LightRed -> 
+      { red = 1, green = 0.5, blue = 0.5, alpha = 0 }
+    Green -> 
+      { red = 0.25, green = 1, blue = 0.25, alpha = 0 }
+    LightGreen -> 
+      { red = 0.5, green = 1, blue = 0.5, alpha = 0 }
+    Blue -> 
+      { red = 0.25, green = 0.25, blue = 1, alpha = 0 }
+    LightBlue -> 
+      { red = 0.5, green = 0.5, blue = 1, alpha = 0 }
+    Yellow -> 
+      { red = 1, green = 1, blue = 0.25, alpha = 0 }
+    LightYellow -> 
+      { red = 1, green = 1, blue = 0.5, alpha = 0 }
+    Grey -> 
+      { red = 0.5, green = 0.5, blue = 0.5, alpha = 0 }
+    LightGrey -> 
+      { red = 0.95, green = 0.95, blue = 0.95, alpha = 0 }
+    Black -> 
+      { red = 0.25, green = 0.25, blue = 0.25, alpha = 0 }
+    Brown -> 
+      { red = 0.65, green = 0.35, blue = 0.2, alpha = 0 }
+
+employeeColor : EmployeeColor -> ColorPair
+employeeColor c =
+  let crgb = employeeRGB c in
+  ColorPair
+  {crgb | alpha = 0.25}
+  {crgb | alpha = 1}
 
 type alias PerEmployeeSettings =
   {
