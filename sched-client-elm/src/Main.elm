@@ -2705,8 +2705,9 @@ searchRadio
       }
   ]
 
-settingsToOption : Settings -> Input.Option Int Message
-settingsToOption settings =
+settingsToOption : CombinedSettings -> Input.Option Int Message
+settingsToOption combined =
+  let settings = combined.settings in
   Input.option
   settings.id
   (el [fillX] <| 
