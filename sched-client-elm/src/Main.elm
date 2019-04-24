@@ -803,7 +803,10 @@ requestSettings =
     {
       url = "/sched/get_settings",
       body = Http.emptyBody,
-      expect = Http.expectJson ReceiveSettingsList (genericObjectDecoder (D.list settingsDecoder))
+      expect = Http.expectJson 
+        ReceiveSettingsList 
+        <| genericObjectDecoder 
+        (D.list combinedSettingsDecoder)
     }
 
 requestDefaultSettings =
