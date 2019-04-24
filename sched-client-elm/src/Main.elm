@@ -1491,7 +1491,19 @@ update message model =
   -- Calendar messages
     (CalendarPage page, KeyDown maybeKey) ->
       (model, Cmd.none)
-
+    (CalendarPage page, PriorMonth) ->
+      case getActiveSettings model of
+        Just active ->
+          let settings = active.settings in
+          (model, Http.post
+          {
+            url = "/sched/update_settings",
+            body = Http.jsonBody
+              <| settingsEncoder { settings | 
+                viewDate = ymdPriorMonth settings.viewDate },
+            expect = Http.expectWhatever ReloadData
+          })
+        Nothing -> (model, Cmd.none)
     (_, _) ->
       (model, Cmd.none)
 
