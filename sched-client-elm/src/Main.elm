@@ -2326,7 +2326,7 @@ shiftModalElement model shiftData =
                       (
                         floatToTimeString 
                         shiftData.start 
-                        activeSettings.hourFormat
+                        settings.hourFormat
                       )
                   )
               ],
