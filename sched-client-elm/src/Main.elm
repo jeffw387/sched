@@ -2024,19 +2024,20 @@ dayStyle ymdMaybe dayState =
     None -> [])
 
 shiftColumn : 
+  Model ->
   Settings -> 
   YearMonthDay -> 
   List Shift -> 
   List Employee -> 
   Element Message
-shiftColumn settings day shifts employees =
+shiftColumn model settings day shifts employees =
   column 
   [
     fillX
   ] 
   (
     List.map 
-      (shiftElement settings employees)
+      (shiftElement model settings employees)
       (filterByYearMonthDay day shifts)
   )
 
