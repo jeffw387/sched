@@ -1944,11 +1944,12 @@ formatLastName settings name =
     Hidden -> ""
 
 shiftElement : 
-  Settings 
+  Model
+  -> Settings 
   -> List Employee
   -> Shift 
   -> Element Message
-shiftElement settings employees shift =
+shiftElement model settings employees shift =
   case getEmployee employees shift.employeeID of
     Just employee ->
       Input.button
