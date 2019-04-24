@@ -3158,7 +3158,15 @@ viewCalendar model =
               inFront (viewModal model)
             ]
             [
-              viewMonth (Just today) month activeSettings shifts employees,
+              viewMonth 
+                model 
+                (Just today) 
+                month 
+                activeSettings.settings 
+                shifts 
+                (List.filterMap 
+                  (\id -> getEmployee employees id)
+                  activeSettings.settings.viewEmployees),
               viewCalendarFooter
             ]
         WeekView ->
