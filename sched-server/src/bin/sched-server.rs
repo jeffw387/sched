@@ -184,6 +184,20 @@ fn update_settings(
         .responder()
 }
 
+fn remove_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .from_err()
+        .and_then(move |settings| {
+            state.db.clone()
+                .send(Messages::RemoveSettings(token, settings))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
 fn add_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
@@ -499,6 +513,9 @@ fn main() {
             })
             .resource(API_UPDATE_SETTINGS, |r| {
                 r.post().with_async(update_settings)
+            })
+            .resource(API_REMOVE_SETTINGS, |r| {
+                r.post().with_async(remove_settings)
             })
             .resource(API_ADD_EMPLOYEE_SETTINGS, |r| {
                 r.post().with_async(add_employee_settings)
