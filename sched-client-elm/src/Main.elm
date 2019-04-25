@@ -2108,8 +2108,8 @@ floatToTimeString f hourFormat =
       in
         hourStr ++ ":" ++ minutesStr
 
-floatToDuration : Float -> String
-floatToDuration f =
+floatToDurationString : Float -> String
+floatToDurationString f =
   let
       hours = floor f
       hoursStr = if hours < 10 then "0" ++ (String.fromInt hours)
