@@ -1414,7 +1414,7 @@ update message model =
               let
                 updatedShift = { shift | repeat = shiftRepeat }
               in (model, updateShift updatedShift)
-        _ -> (model, Cmd.none)
+            _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftRepeatRate rateStr) ->
       case (page.modal, String.toInt rateStr) of
@@ -1436,7 +1436,7 @@ update message model =
                   hour = floatToHour f,
                   minute = floatToQuarterHour f }
               in (model, updateShift updatedShift)
-        _ -> (model, Cmd.none)
+            _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftDuration f) ->
       case page.modal of
@@ -2475,12 +2475,12 @@ shiftModalElement model shiftData =
           ]
           [
                 Input.button
-                  [
+                [
                 BG.color (red),
-                    padding 5,
-                    defaultShadow
-                  ]
-                  {
+                  padding 5,
+                  defaultShadow
+                ]
+                {
                 onPress = Just <| RemoveShift shift,
                 label = text "Delete"
                 },
