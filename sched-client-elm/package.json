@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/jeffw387/sched/issues"
   },
-  "homepage": "https://github.com/jeffw387/sched#readme"
+  "homepage": "https://github.com/jeffw387/sched#readme",
+  "dependencies": {
+    "elm-format": "^0.8.1"
+  }
 }
