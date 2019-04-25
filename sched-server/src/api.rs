@@ -14,6 +14,7 @@ pub const API_GET_SETTINGS: &str = "/sched/get_settings";
 pub const API_ADD_SETTINGS: &str = "/sched/add_settings";
 pub const API_UPDATE_SETTINGS: &str =
     "/sched/update_settings";
+pub const API_REMOVE_SETTINGS: &str = "/sched/remove_settings";
 pub const API_ADD_EMPLOYEE_SETTINGS: &str =
     "/sched/add_employee_settings";
 pub const API_UPDATE_EMPLOYEE_SETTINGS: &str =
