@@ -1,0 +1,5 @@
+{
+  "elm.compiler": "./sched-client-elm/node_modules/.bin/elm",
+  "elm.makeCommand": "./sched-client-elm/node_modules/.bin/elm-make",
+  "elm.formatCommand": "./sched-client-elm/node_modules/.bin/elm-format"
+}
