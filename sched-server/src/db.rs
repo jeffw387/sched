@@ -340,8 +340,12 @@ impl Handler<Messages> for DbExecutor {
                     let _ = diesel::delete(&settings)
                         .execute(conn)
                         .map_err(|e| Error::Dsl(e))?;
+                    let new_default = settings::table
+                        .filter(settings::user_id.eq(user.id))
+                        .first::<Settings>(conn)
+                        .map_err(|err| Error::Dsl(err))?;
                     let _ = diesel::update(&user.clone())
-                        .set(User { startup_settings: Some(user_settings[0].id), ..user})
+                        .set(User { startup_settings: Some(new_default.id), ..user})
                         .execute(conn)
                         .map_err(|e| Error::Dsl(e))?;
                 }
