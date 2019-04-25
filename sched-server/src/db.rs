@@ -62,6 +62,7 @@ pub enum Messages {
     SetDefaultSettings(Token, Settings),
     DefaultSettings(Token),
     UpdateSettings(Token, Settings),
+    RemoveSettings(Token, Settings),
     AddEmployeeSettings(Token, NewPerEmployeeSettings),
     UpdateEmployeeSettings(Token, PerEmployeeSettings),
     GetEmployees(Token),
@@ -328,6 +329,18 @@ impl Handler<Messages> for DbExecutor {
                     .get_result(conn)
                     .map(|res| Results::GetSettings(res))
                     .map_err(|err| Error::Dsl(err))
+            }
+            Messages::RemoveSettings(token, settings) => {
+                let user = check_token(&token, conn)?;
+                let user_settings = settings::table
+                    .filter(settings::user_id.eq(user.id))
+                    .load::<Settings>(conn)
+                    .map_err(|err| Error::Dsl(err))?;
+                if user_settings.len() > 1 {
+                    let _ = diesel::delete(&settings)
+                        .execute(conn);
+                }
+                Ok(Results::Nothing)
             }
             Messages::AddEmployeeSettings(token, new_settings) => {
                 let _ = check_token(&token, conn)?;
