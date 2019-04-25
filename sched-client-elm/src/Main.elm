@@ -2474,35 +2474,19 @@ shiftModalElement model shiftData =
             fillX
           ]
           [
-            case shiftData.priorShift of
-              Just prior ->
                 Input.button
                   [
-                    BG.color (green),
+                BG.color (red),
                     padding 5,
                     defaultShadow
                   ]
                   {
-                    onPress = case shiftFromModal shiftData of 
-                      Just updatedShift -> 
-                        Just (UpdateShiftRequest updatedShift)
-                      Nothing -> Nothing,
-                    label = text "Update"
-                  }
-              Nothing ->
-                Input.button
-                [
-                  BG.color (green),
-                  padding 5,
-                  defaultShadow
-                ]
-                {
-                  onPress = Just (AddShift),
-                  label = text "Save"
+                onPress = Just <| RemoveShift shift,
+                label = text "Delete"
                 },
             Input.button
             [
-              BG.color (red),
+                BG.color yellow,
               padding 5,
               defaultShadow,
               alignRight
