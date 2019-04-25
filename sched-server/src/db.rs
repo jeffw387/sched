@@ -338,7 +338,12 @@ impl Handler<Messages> for DbExecutor {
                     .map_err(|err| Error::Dsl(err))?;
                 if user_settings.len() > 1 {
                     let _ = diesel::delete(&settings)
-                        .execute(conn);
+                        .execute(conn)
+                        .map_err(|e| Error::Dsl(e))?;
+                    let _ = diesel::update(&user.clone())
+                        .set(User { startup_settings: Some(user_settings[0].id), ..user})
+                        .execute(conn)
+                        .map_err(|e| Error::Dsl(e))?;
                 }
                 Ok(Results::Nothing)
             }

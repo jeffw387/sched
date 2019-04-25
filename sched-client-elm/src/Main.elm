@@ -687,7 +687,7 @@ type Message =
   DayClick (Maybe YearMonthDay) |
   PriorMonth |
   NextMonth |
-  -- ShiftModal Messages
+-- ShiftModal Messages
   EditShiftRequest (Maybe YearMonthDay) (Maybe Shift) |
   EditShiftResponse (Result Http.Error Shift) |
   OpenShiftEditor Shift |
@@ -699,12 +699,13 @@ type Message =
   UpdateShiftDuration Float |
   UpdateShiftRepeat ShiftRepeat |
   UpdateShiftRepeatRate String |
-  -- ViewSelect Messages
+-- ViewSelect Messages
   OpenViewSelect |
   ChooseActiveView Int |
+  RemoveView |
   DuplicateView |
   CloseViewSelect |
-  -- View Edit Messages
+-- View Edit Messages
   OpenViewEdit |
   UpdateViewName String |
   UpdateViewType ViewType |
@@ -715,7 +716,7 @@ type Message =
   ChooseEmployeeColor Employee EmployeeColor |
   SaveView |
   CloseViewEdit |
-  -- Loading Messages
+-- Loading Messages
   ReceiveEmployees (Result Http.Error (List Employee)) |
   ReceiveShifts (Result Http.Error (List Shift)) |
   ReceiveDefaultSettings (Result Http.Error (Maybe Int)) |
@@ -1168,6 +1169,16 @@ update message model =
             updatedModel = { model | page = CalendarPage updatedPage }
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
+    (CalendarPage page, RemoveView) ->
+      case getActiveSettings model of
+        Just active ->
+          (model, Http.post
+            {
+              url = "/sched/remove_settings",
+              body = Http.jsonBody (settingsEncoder active.settings),
+              expect = Http.expectWhatever ReloadData
+            })
+        Nothing -> (model, Cmd.none)
     (CalendarPage page, DuplicateView) ->
       case getActiveSettings model of
         Just active ->
@@ -1302,22 +1313,22 @@ update message model =
     (CalendarPage page, EditShiftResponse shiftResult) ->
       case (shiftResult, getActiveSettings model) of
         (Ok shift, Just active) ->
-              let 
-                filteredEmployees = (getViewEmployees 
-                  (Maybe.withDefault [] model.employees) 
-                  active.settings.viewEmployees)
-                updatedPage = { page | modal = 
-                  ShiftModal 
+          let 
+            filteredEmployees = (getViewEmployees 
+              (Maybe.withDefault [] model.employees) 
+              active.settings.viewEmployees)
+            updatedPage = { page | modal = 
+              ShiftModal 
               (shiftEditorForShift shift filteredEmployees) }
             shifts = Maybe.withDefault [] model.shifts
             updatedShifts = shift :: shifts
             updatedModel = { model | 
               page = CalendarPage updatedPage,
               shifts = Just updatedShifts }
-              in (updatedModel, 
-                Task.attempt 
-                FocusResult 
-                (Dom.focus "employeeSearch"))
+          in (updatedModel, 
+            Task.attempt 
+            FocusResult 
+            (Dom.focus "employeeSearch"))
         _ -> (model, Cmd.none)
     (CalendarPage page, EditShiftRequest maybeDay maybeShift) ->
       case (page.modal, maybeDay, maybeShift) of
@@ -1358,11 +1369,11 @@ update message model =
             Just shift ->
               update (RemoveShift shift) model
             _ ->
-          let 
-            updatedPage = { page | modal = NoModal }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in
-            (updatedModel, Cmd.none)
+              let 
+                updatedPage = { page | modal = NoModal }
+                updatedModel = { model | page = CalendarPage updatedPage }
+              in
+                (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, ShiftEmployeeSearch searchText) ->
       case (page.modal, getActiveSettings model) of
@@ -1398,13 +1409,13 @@ update message model =
         ShiftModal shiftData ->
           case shiftData.priorShift of
             Just shift ->
-          let
+              let
                 updatedShift = { shift | employeeID = Just employee.id }
                 updatedData = { shiftData | employee = Just employee }
                 updatedPage = { page | modal = ShiftModal updatedData }
-            updatedModel = { model | page = CalendarPage updatedPage }
+                updatedModel = { model | page = CalendarPage updatedPage }
               in (updatedModel, updateShift updatedShift)
-        _ -> (model, Cmd.none)
+            _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftRepeat shiftRepeat) -> 
       case page.modal of
@@ -1431,7 +1442,7 @@ update message model =
         ShiftModal shiftData ->
           case shiftData.priorShift of
             Just shift ->
-          let
+              let
                 updatedShift = { shift | 
                   hour = floatToHour f,
                   minute = floatToQuarterHour f }
@@ -1443,12 +1454,12 @@ update message model =
         ShiftModal shiftData ->
           case shiftData.priorShift of
             Just shift ->
-          let
+              let
                 updatedShift = { shift | 
                   hours = floatToHour f,
                   minutes = floatToQuarterHour f }
               in (model, updateShift updatedShift)
-        _ -> (model, Cmd.none)
+            _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, RemoveShift shift) ->
       case page.modal of
@@ -1905,8 +1916,8 @@ getEmployee : List Employee -> Maybe Int -> Maybe Employee
 getEmployee employees maybeID =
   case maybeID of
     Just id ->
-  List.filter (\emp -> emp.id == id) employees
-  |> List.head
+      List.filter (\emp -> emp.id == id) employees
+      |> List.head
     Nothing -> Nothing
 
 getViewEmployees : List Employee -> List Int -> List Employee
@@ -2810,7 +2821,7 @@ selectViewElement model =
       spacing 5
     ] ++ defaultBorder)
     [
-      -- title text
+    -- title text
       el 
         [
           fillX, 
@@ -2826,7 +2837,7 @@ selectViewElement model =
             padding 15
           ]
         <| text "Views:",
-      -- active view select
+    -- active view select
       el 
       [
         fillX,
@@ -2844,15 +2855,20 @@ selectViewElement model =
             Input.labelAbove [fillX] 
             <| el [centerX] <| text "Select view:"
       },
-      -- navigation
+    -- navigation
       row ([fillX, spacing 15] 
         ++ defaultBorder)
       [
         basicButton
           []
+          red
+          (Just RemoveView)
+          "Delete",
+        basicButton
+          []
           yellow
           (Just DuplicateView)
-          "Copy View",
+          "Copy",
         basicButton
           []
           green
