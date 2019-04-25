@@ -48,7 +48,7 @@ table! {
     shifts (id) {
         id -> Int4,
         user_id -> Int4,
-        employee_id -> Int4,
+        employee_id -> Nullable<Int4>,
         year -> Int4,
         month -> Int4,
         day -> Int4,

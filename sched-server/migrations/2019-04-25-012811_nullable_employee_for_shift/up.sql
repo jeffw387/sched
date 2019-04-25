@@ -1,0 +1,1 @@
+ALTER TABLE shifts ALTER COLUMN employee_id DROP NOT NULL;

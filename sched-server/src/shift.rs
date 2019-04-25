@@ -47,7 +47,7 @@ enum_from_sql!(ShiftRepeat);
 pub struct Shift {
     pub id: i32,
     pub user_id: i32,
-    pub employee_id: i32,
+    pub employee_id: Option<i32>,
     pub year: i32,
     pub month: i32,
     pub day: i32,
@@ -63,7 +63,7 @@ pub struct Shift {
 #[table_name = "shifts"]
 pub struct NewShift {
     pub user_id: i32,
-    pub employee_id: i32,
+    pub employee_id: Option<i32>,
     pub year: i32,
     pub month: i32,
     pub day: i32,
@@ -78,7 +78,7 @@ pub struct NewShift {
 impl NewShift {
     pub fn new(
         user_id: i32,
-        employee_id: i32,
+        employee_id: Option<i32>,
         year: i32,
         month: i32,
         day: i32,

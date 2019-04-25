@@ -250,7 +250,7 @@ type alias Shift =
   {
     id : Int,
     userID : Int,
-    employeeID : Int,
+    employeeID : Maybe Int,
     year : Int,
     month : Int,
     day : Int,
@@ -463,10 +463,9 @@ newShiftEncoder shift =
 shiftEncoder : Shift -> E.Value
 shiftEncoder shift =
   E.object
-    [
+    ([
       ("id", E.int shift.id),
       ("user_id", E.int shift.userID),
-      ("employee_id", E.int shift.employeeID),
       ("year", E.int shift.year),
       ("month", E.int shift.month),
       ("day", E.int shift.day),
@@ -476,7 +475,10 @@ shiftEncoder shift =
       ("minutes", E.int shift.minutes),
       ("shift_repeat", shiftRepeatEncoder shift.repeat),
       ("every_x", E.int shift.everyX)
-    ]
+    ] ++
+      case shift.employeeID of
+        Just eid -> [("employee_id", E.int eid)]
+        Nothing -> [])
 
 -- DESERIALIZATION
 viewYMDDecoder =
@@ -602,7 +604,7 @@ shiftDecoder =
   D.succeed Shift
     |> JPipe.required "id" D.int
     |> JPipe.required "user_id" D.int
-    |> JPipe.required "employee_id" D.int
+    |> JPipe.optional "employee_id" (D.maybe D.int) Nothing
     |> JPipe.required "year" D.int
     |> JPipe.required "month" D.int
     |> JPipe.required "day" D.int
@@ -739,15 +741,15 @@ type Message =
   ReceiveZone Time.Zone |
   ReloadData (Result Http.Error ())
 
-getEmployeeSettings : Model -> Int -> Maybe PerEmployeeSettings
-getEmployeeSettings model id =
-  case getActiveSettings model of
-    Just active ->
+getEmployeeSettings : Model -> Maybe Int -> Maybe PerEmployeeSettings
+getEmployeeSettings model maybeID =
+  case (getActiveSettings model, maybeID) of
+    (Just active, Just id) ->
       List.filter 
       (\p_e -> p_e.employeeID == id)
       active.perEmployee
       |> List.head
-    Nothing -> Nothing
+    _ -> Nothing
 
 loginRequest : LoginInfo -> (Cmd Message)
 loginRequest loginInfo =
@@ -1295,7 +1297,9 @@ update message model =
           in (updatedModel, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, ChooseEmployeeColor employee color) ->
-      case (page.modal, getEmployeeSettings model employee.id, getActiveSettings model) of 
+      case (page.modal, 
+      getEmployeeSettings model (Just employee.id), 
+      getActiveSettings model) of 
         (ViewEditModal editData, Just perEmployee, _) ->
           let
             updatedData = {editData | colorSelect = Nothing}
@@ -1925,15 +1929,18 @@ ymdToString ymd =
     ++ dayStr ++ ", "
     ++ yearStr
 
-getEmployee : List Employee -> Int -> Maybe Employee
-getEmployee employees id =
+getEmployee : List Employee -> Maybe Int -> Maybe Employee
+getEmployee employees maybeID =
+  case maybeID of
+    Just id ->
   List.filter (\emp -> emp.id == id) employees
   |> List.head
+    Nothing -> Nothing
 
 getViewEmployees : List Employee -> List Int -> List Employee
 getViewEmployees employees viewEmployees =
   List.filterMap
-    (\id -> getEmployee employees id)
+    (\id -> getEmployee employees (Just id))
     viewEmployees
 
 formatLastName : Settings -> String -> String
@@ -2994,7 +3001,8 @@ editViewElement model editData maybeSettings employees =
           (
             \e -> 
               let
-                maybePerEmployee = getEmployeeSettings model e.id
+                maybePerEmployee = 
+                  getEmployeeSettings model (Just e.id)
                 color = case maybePerEmployee of
                   Just perEmployee -> perEmployee.color
                   Nothing -> Green
@@ -3174,7 +3182,7 @@ viewCalendar model =
                 activeSettings.settings 
                 shifts 
                 (List.filterMap 
-                  (\id -> getEmployee employees id)
+                  (\id -> getEmployee employees (Just id))
                   activeSettings.settings.viewEmployees),
               viewCalendarFooter
             ]
