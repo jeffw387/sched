@@ -442,24 +442,6 @@ perEmployeeSettingsEncoder perEmployee =
     ("color", employeeColorEncoder perEmployee.color)
     ]
 
-
-newShiftEncoder : Shift -> E.Value
-newShiftEncoder shift =
-  E.object
-    [
-      ("user_id", E.int shift.userID),
-      ("employee_id", E.int shift.employeeID),
-      ("year", E.int shift.year),
-      ("month", E.int shift.month),
-      ("day", E.int shift.day),
-      ("hour", E.int shift.hour),
-      ("minute", E.int shift.minute),
-      ("hours", E.int shift.hours),
-      ("minutes", E.int shift.minutes),
-      ("shift_repeat", shiftRepeatEncoder shift.repeat),
-      ("every_x", E.int shift.everyX)
-    ]
-
 shiftEncoder : Shift -> E.Value
 shiftEncoder shift =
   E.object
@@ -706,9 +688,10 @@ type Message =
   PriorMonth |
   NextMonth |
   -- ShiftModal Messages
-  OpenShiftModal (Maybe YearMonthDay) (Maybe Shift) |
-  AddShift |
-  UpdateShiftRequest Shift |
+  EditShiftRequest (Maybe YearMonthDay) (Maybe Shift) |
+  EditShiftResponse (Result Http.Error Shift) |
+  OpenShiftEditor Shift |
+  RemoveShift Shift |
   CloseShiftModal |
   ShiftEmployeeSearch String |
   ChooseShiftEmployee Employee |
@@ -906,11 +889,22 @@ shiftEditorForShift shift employees =
     (getEmployee employees shift.employeeID)
     ""
     employees
-    (ymdFromShift shift)
-    (hourMinuteToFloat shift.hour shift.minute)
-    (hourMinuteToFloat shift.hours shift.minutes)
-    shift.repeat
-    (String.fromInt shift.everyX)
+
+shiftFromDay : YearMonthDay -> Maybe Int -> Shift
+shiftFromDay ymd maybeEmpID =
+  Shift
+  0
+  0
+  maybeEmpID
+  ymd.year
+  ymd.month
+  ymd.day
+  8
+  0
+  8
+  0
+  NeverRepeat
+  1
 
 shiftEditorForDay : YearMonthDay -> List Employee -> ShiftModalData
 shiftEditorForDay day employees =
@@ -919,11 +913,6 @@ shiftEditorForDay day employees =
     Nothing
     ""
     employees
-    day
-    8
-    8
-    NeverRepeat
-    "1"
 
 loadData =
   Cmd.batch 
@@ -1004,40 +993,6 @@ getActiveSettings model =
     (Just activeID, Just settingsList) ->
       List.filter (\s -> s.settings.id == activeID) settingsList
       |> List.head
-    _ -> Nothing
-
-shiftFromModal : ShiftModalData -> Maybe Shift
-shiftFromModal shiftData =
-  case (shiftData.employee, String.toInt shiftData.everyX, shiftData.priorShift) of
-    (Just employee, Just everyX, Nothing) ->
-      Just (Shift
-      0
-      0
-      employee.id
-      shiftData.ymd.year
-      shiftData.ymd.month
-      shiftData.ymd.day
-      (floatToHour shiftData.start)
-      (floatToQuarterHour shiftData.start)
-      (floor shiftData.duration)
-      (floatToQuarterHour shiftData.duration)
-      shiftData.shiftRepeat
-      everyX)
-    (Just employee, Just everyX, Just prior) ->
-      Just 
-        { 
-          prior | 
-          employeeID = employee.id,
-          year = shiftData.ymd.year,
-          month = shiftData.ymd.month,
-          day = shiftData.ymd.day,
-          hour = (floatToHour shiftData.start),
-          minute = (floatToQuarterHour shiftData.start),
-          hours = (floor shiftData.duration),
-          minutes = (floatToQuarterHour shiftData.duration),
-          repeat = shiftData.shiftRepeat,
-          everyX = everyX
-        }
     _ -> Nothing
 
 updateSettings : Settings -> Cmd Message
@@ -1344,25 +1299,42 @@ update message model =
         _ -> (model, Cmd.none)
   
   -- Shift edit messages
-    (CalendarPage page, OpenShiftModal maybeDay maybeShift) ->
-      case (page.modal, maybeDay, maybeShift) of
-        (NoModal, Just day, Nothing) -> 
-          case getActiveSettings model of
-            Just active ->
+    (CalendarPage page, EditShiftResponse shiftResult) ->
+      case (shiftResult, getActiveSettings model) of
+        (Ok shift, Just active) ->
               let 
                 filteredEmployees = (getViewEmployees 
                   (Maybe.withDefault [] model.employees) 
                   active.settings.viewEmployees)
                 updatedPage = { page | modal = 
                   ShiftModal 
-                  (shiftEditorForDay day filteredEmployees) }
-                updatedModel = { model | page = CalendarPage updatedPage }
+              (shiftEditorForShift shift filteredEmployees) }
+            shifts = Maybe.withDefault [] model.shifts
+            updatedShifts = shift :: shifts
+            updatedModel = { model | 
+              page = CalendarPage updatedPage,
+              shifts = Just updatedShifts }
               in (updatedModel, 
                 Task.attempt 
                 FocusResult 
                 (Dom.focus "employeeSearch"))
-            Nothing -> (model, Cmd.none)
+        _ -> (model, Cmd.none)
+    (CalendarPage page, EditShiftRequest maybeDay maybeShift) ->
+      case (page.modal, maybeDay, maybeShift) of
+        (NoModal, Just day, Nothing) -> 
+          (model,
+          Http.post
+            {
+              url = "/sched/add_shift",
+              body = Http.jsonBody 
+                (shiftEncoder 
+                  <| shiftFromDay day Nothing),
+              expect = Http.expectJson EditShiftResponse shiftDecoder
+            })
         (NoModal, Nothing, Just shift) ->
+          update (OpenShiftEditor shift) model
+        _ -> (model, Cmd.none)
+    (CalendarPage page, OpenShiftEditor shift) ->
           case getActiveSettings model of
             Just active ->
               let 
@@ -1379,10 +1351,13 @@ update message model =
                   FocusResult 
                   (Dom.focus "employeeSearch"))
             Nothing -> (model, Cmd.none)
-        _ -> (model, Cmd.none)
     (CalendarPage page, CloseShiftModal) ->
       case page.modal of
-        ShiftModal _ ->
+        ShiftModal shiftData ->
+          case shiftData.priorShift of
+            Just shift ->
+              update (RemoveShift shift) model
+            _ ->
           let 
             updatedPage = { page | modal = NoModal }
             updatedModel = { model | page = CalendarPage updatedPage }
@@ -1391,7 +1366,7 @@ update message model =
         _ -> (model, Cmd.none)
     (CalendarPage page, ShiftEmployeeSearch searchText) ->
       case (page.modal, getActiveSettings model) of
-        (ShiftModal shiftModalData, Just active) ->
+        (ShiftModal shiftData, Just active) ->
           let 
             filteredEmployees = (getViewEmployees 
                 (Maybe.withDefault [] model.employees) 
@@ -1400,7 +1375,7 @@ update message model =
               (\emp -> nameToString emp.name)
               searchText
               filteredEmployees
-            updatedModal = { shiftModalData | 
+            updatedModal = { shiftData | 
               employeeSearch = searchText,
               employeeMatches = newMatches }
             updatedPage = 
@@ -1420,78 +1395,75 @@ update message model =
         _ -> (model, Cmd.none)
     (CalendarPage page, ChooseShiftEmployee employee) ->
       case page.modal of
-        ShiftModal shiftModalData ->
-          let
-            updatedModal = { shiftModalData | employee = Just employee }
-            updatedPage = { page | modal = ShiftModal updatedModal }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in (updatedModel, Cmd.none)
-        _ -> (model, Cmd.none)
-    (CalendarPage page, AddShift) ->
-      case page.modal of
         ShiftModal shiftData ->
-          case shiftFromModal shiftData of
+          case shiftData.priorShift of
             Just shift ->
-              let
-                updatedPage = { page | modal = NoModal }
-                updatedModel = { model | page = CalendarPage updatedPage }
-              in
-              (updatedModel, Http.post
-                {
-                  url = "/sched/add_shift",
-                  body = Http.jsonBody (newShiftEncoder shift),
-                  expect = Http.expectWhatever ReloadData
-                })
-            Nothing -> (model, Cmd.none)
+          let
+                updatedShift = { shift | employeeID = Just employee.id }
+                updatedData = { shiftData | employee = Just employee }
+                updatedPage = { page | modal = ShiftModal updatedData }
+            updatedModel = { model | page = CalendarPage updatedPage }
+              in (updatedModel, updateShift updatedShift)
         _ -> (model, Cmd.none)
-    (CalendarPage page, UpdateShiftRequest shift) ->
-      (model, Http.post
-        {
-          url = "/sched/update_shift",
-          body = Http.jsonBody (shiftEncoder shift),
-          expect = Http.expectWhatever ReloadData
-        })
+        _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftRepeat shiftRepeat) -> 
       case page.modal of
         ShiftModal shiftData ->
-          let
-            updatedShiftData = 
-              { 
-                shiftData | 
-                  shiftRepeat = shiftRepeat
-              }
-            updatedPage = { page | modal = ShiftModal updatedShiftData }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in (updatedModel, Cmd.none)
+          case shiftData.priorShift of
+            Just shift ->
+              let
+                updatedShift = { shift | repeat = shiftRepeat }
+              in (model, updateShift updatedShift)
         _ -> (model, Cmd.none)
-    (CalendarPage page, UpdateShiftRepeatRate rate) ->
-      case page.modal of
-        ShiftModal shiftData ->
-          let
-            updatedShiftData = { shiftData | everyX = rate }
-            updatedPage = { page | modal = ShiftModal updatedShiftData }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in (updatedModel, Cmd.none)
+        _ -> (model, Cmd.none)
+    (CalendarPage page, UpdateShiftRepeatRate rateStr) ->
+      case (page.modal, String.toInt rateStr) of
+        (ShiftModal shiftData, Just rate) ->
+          case shiftData.priorShift of
+            Just shift ->
+              let
+                updatedShift = { shift | everyX = rate }
+              in (model, updateShift updatedShift)
+            _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftStart f) ->
       case page.modal of
-        ShiftModal shiftModalData ->
+        ShiftModal shiftData ->
+          case shiftData.priorShift of
+            Just shift ->
           let
-            updatedModal = { shiftModalData | start = f }
-            updatedPage = { page | modal = ShiftModal updatedModal }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in (updatedModel, Cmd.none)
+                updatedShift = { shift | 
+                  hour = floatToHour f,
+                  minute = floatToQuarterHour f }
+              in (model, updateShift updatedShift)
+        _ -> (model, Cmd.none)
         _ -> (model, Cmd.none)
     (CalendarPage page, UpdateShiftDuration f) ->
       case page.modal of
-        ShiftModal shiftModalData ->
+        ShiftModal shiftData ->
+          case shiftData.priorShift of
+            Just shift ->
           let
-            updatedModal = { shiftModalData | duration = f }
-            updatedPage = { page | modal = ShiftModal updatedModal }
-            updatedModel = { model | page = CalendarPage updatedPage }
-          in (updatedModel, Cmd.none)
+                updatedShift = { shift | 
+                  hours = floatToHour f,
+                  minutes = floatToQuarterHour f }
+              in (model, updateShift updatedShift)
         _ -> (model, Cmd.none)
-
+        _ -> (model, Cmd.none)
+    (CalendarPage page, RemoveShift shift) ->
+      case page.modal of
+        ShiftModal shiftData ->
+          let
+            updatedPage = { page | modal = NoModal }
+            updatedModel = { model | page = CalendarPage updatedPage }
+          in
+            (updatedModel, Http.post
+              {
+                url = "/sched/remove_shift",
+                body = Http.jsonBody (shiftEncoder shift),
+                expect = Http.expectWhatever ReloadData
+              })
+        _ -> (model, Cmd.none)
   -- Calendar messages
     (CalendarPage page, KeyDown maybeKey) ->
       (model, Cmd.none)
@@ -1965,7 +1937,7 @@ shiftElement model settings employees shift =
         clipX
       ]
       {
-        onPress = Just (OpenShiftModal Nothing (Just shift)),
+        onPress = Just (EditShiftRequest Nothing (Just shift)),
         label = 
           row
           ([
@@ -2053,17 +2025,21 @@ type ShiftRepeat =
   EveryWeek |
   EveryDay
 
+updateShift : Shift -> Cmd Message
+updateShift shift =
+  Http.post
+    {
+      url = "/sched/update_shift",
+      body = Http.jsonBody (shiftEncoder shift),
+      expect = Http.expectWhatever ReloadData
+    }
+
 type alias ShiftModalData =
   {
     priorShift : Maybe Shift,
     employee : Maybe Employee,
     employeeSearch : String,
-    employeeMatches : List Employee,
-    ymd : YearMonthDay,
-    start : Float,
-    duration : Float,
-    shiftRepeat : ShiftRepeat,
-    everyX : String
+    employeeMatches : List Employee
   }
 
 type alias ViewSelectData =
@@ -2208,8 +2184,8 @@ headerFontSize = Font.size 30
     
 shiftModalElement : Model -> ShiftModalData -> Element Message
 shiftModalElement model shiftData =
-  case (model.page, getActiveSettings model) of
-    (CalendarPage page, Just activeSettings) ->
+  case (shiftData.priorShift, getActiveSettings model) of
+    (Just shift, Just activeSettings) ->
       let settings = activeSettings.settings in
       column
         [
@@ -2245,7 +2221,7 @@ shiftModalElement model shiftData =
               centerX,
               centerY
             ]
-            (text (ymdToString shiftData.ymd)),
+            (text (ymdToString <| ymdFromShift shift)),
             
           -- Employee search/select
           column
@@ -2332,7 +2308,7 @@ shiftModalElement model shiftData =
                     text
                       (
                         floatToTimeString 
-                        shiftData.start 
+                        (hourMinuteToFloat shift.hour shift.minute)
                         settings.hourFormat
                       )
                   )
@@ -2359,7 +2335,7 @@ shiftModalElement model shiftData =
                   Input.labelHidden "Start Time", 
                 min = 0,
                 max = 23.75,
-                value = shiftData.start,
+                value = hourMinuteToFloat shift.hour shift.minute,
                 step = Just 0.25,
                 thumb = Input.defaultThumb
               }
@@ -2393,8 +2369,8 @@ shiftModalElement model shiftData =
                   (
                     text
                       (
-                        floatToDuration 
-                        shiftData.duration 
+                        floatToDurationString 
+                        (hourMinuteToFloat shift.hours shift.minutes)
                       )
                   ),
                 text " Ends: ",
@@ -2411,8 +2387,8 @@ shiftModalElement model shiftData =
                     text
                       (
                         floatToTimeString
-                        (shiftData.start +
-                        shiftData.duration) 
+                        ((hourMinuteToFloat shift.hour shift.minute) +
+                        (hourMinuteToFloat shift.hours shift.minutes)) 
                         settings.hourFormat
                       )
                   )
@@ -2439,7 +2415,7 @@ shiftModalElement model shiftData =
                   Input.labelHidden "Shift Duration", 
                 min = 0,
                 max = 16,
-                value = shiftData.duration,
+                value = hourMinuteToFloat shift.hours shift.minutes,
                 step = Just 0.25,
                 thumb = Input.defaultThumb
               }
@@ -2461,7 +2437,7 @@ shiftModalElement model shiftData =
             ]
             {
               onChange = UpdateShiftRepeat,
-              selected = Just shiftData.shiftRepeat,
+              selected = Just shift.repeat,
               label = Input.labelAbove 
                 [BG.color lightGrey, fillX, padding 5] 
                 (el [centerX] (text "Repeat:")),
@@ -2480,7 +2456,7 @@ shiftModalElement model shiftData =
             ]
             {
               onChange = UpdateShiftRepeatRate,
-              text = shiftData.everyX,
+              text = String.fromInt shift.everyX,
               placeholder = Nothing,
               label = Input.labelAbove
                 [
@@ -3141,8 +3117,8 @@ viewModal model =
     CalendarPage page ->
       case page.modal of
         NoModal -> none
-        ShiftModal shiftModalData ->
-          shiftModalElement model shiftModalData
+        ShiftModal shiftData ->
+          shiftModalElement model shiftData
         ViewSelectModal -> 
           selectViewElement model 
         ViewEditModal editData ->
