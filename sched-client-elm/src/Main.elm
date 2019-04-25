@@ -2535,7 +2535,7 @@ addShiftElement day =
     paddingEach { top = 0, bottom = 0, right = 2, left = 1}
   ]
   {
-    onPress = Just (OpenShiftModal (Just day) Nothing),
+    onPress = Just (EditShiftRequest (Just day) Nothing),
     label = 
       el [moveUp 1]
         (text "+")
