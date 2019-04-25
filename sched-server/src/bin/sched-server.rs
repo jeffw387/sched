@@ -351,14 +351,23 @@ fn update_shift((req, state): DbRequest) -> Box<DbFuture> {
 }
 
 fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
+    println!("remove_shift");
     let token = get_token(&req);
     req.json()
+        .map_err(|j| {
+            eprintln!("Json error: {:?}", j);
+            j
+        })
         .from_err()
         .and_then(move |shift| {
             state
                 .db
                 .clone()
                 .send(Messages::RemoveShift(token, shift))
+                .map_err(|r_err| {
+                    eprintln!("Remove Shift error: {:?}", r_err);
+                    r_err
+                })
                 .from_err()
                 .and_then(handle_results)
                 .responder()
