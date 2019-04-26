@@ -610,6 +610,7 @@ perEmployeeSettingsEncoder perEmployee =
         , ( "color", employeeColorEncoder perEmployee.color )
         ]
 
+
 combinedSettingsEncoder : CombinedSettings -> E.Value
 combinedSettingsEncoder combined =
     E.object
