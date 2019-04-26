@@ -2003,7 +2003,10 @@ update message model =
                                     { shift | employeeID = Just employee.id }
 
                                 updatedData =
-                                    { shiftData | employee = Just employee }
+                                    { shiftData
+                                        | employee = Just employee
+                                        , priorShift = Just updatedShift
+                                    }
 
                                 updatedPage =
                                     { page | modal = ShiftModal updatedData }
@@ -2027,8 +2030,17 @@ update message model =
                             let
                                 updatedShift =
                                     { shift | repeat = shiftRepeat }
+
+                                updatedData =
+                                    { shiftData | priorShift = Just updatedShift }
+
+                                updatedPage =
+                                    { page | modal = ShiftModal updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
                             in
-                            ( model, updateShift updatedShift )
+                             ( updatedModel, updateShift updatedShift )
 
                         _ ->
                             ( model, Cmd.none )
@@ -2044,8 +2056,17 @@ update message model =
                             let
                                 updatedShift =
                                     { shift | everyX = rate }
+
+                                updatedData =
+                                    { shiftData | priorShift = Just updatedShift }
+
+                                updatedPage =
+                                    { page | modal = ShiftModal updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
                             in
-                            ( model, updateShift updatedShift )
+                            ( updatedModel, updateShift updatedShift )
 
                         _ ->
                             ( model, Cmd.none )
@@ -2064,8 +2085,17 @@ update message model =
                                         | hour = floatToHour f
                                         , minute = floatToQuarterHour f
                                     }
+
+                                updatedData =
+                                    { shiftData | priorShift = Just updatedShift }
+
+                                updatedPage =
+                                    { page | modal = ShiftModal updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
                             in
-                            ( model, updateShift updatedShift )
+                            ( updatedModel, updateShift updatedShift )
 
                         _ ->
                             ( model, Cmd.none )
@@ -2084,8 +2114,17 @@ update message model =
                                         | hours = floatToHour f
                                         , minutes = floatToQuarterHour f
                                     }
+
+                                updatedData =
+                                    { shiftData | priorShift = Just updatedShift }
+
+                                updatedPage =
+                                    { page | modal = ShiftModal updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
                             in
-                            ( model, updateShift updatedShift )
+                            ( updatedModel, updateShift updatedShift )
 
                         _ ->
                             ( model, Cmd.none )
