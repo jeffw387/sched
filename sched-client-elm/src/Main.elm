@@ -3108,13 +3108,7 @@ shiftModalElement model shiftData =
                         [ centerX
                         , centerY
                         ]
-                        (case shiftData.priorShift of
-                            Just prior ->
-                                text "Edit shift:"
-
-                            Nothing ->
-                                text "Create shift:"
-                        )
+                        <| text "Edit shift:"
                     )
                 , -- Date display
                   el
