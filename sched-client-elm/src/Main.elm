@@ -71,6 +71,7 @@ type alias Settings =
     , lastNameStyle : LastNameStyle
     , viewDate : YearMonthDay
     , viewEmployees : List Int
+    , showMinutes : Bool
     }
 
 
@@ -552,6 +553,7 @@ settingsEncoder settings =
         , ( "view_month", E.int settings.viewDate.month )
         , ( "view_day", E.int settings.viewDate.day )
         , ( "view_employees", E.list E.int settings.viewEmployees )
+        , ( "show_minutes", E.bool settings.showMinutes )
         ]
 
 
@@ -656,6 +658,7 @@ settingsDecoder =
         |> JPipe.required "last_name_style" lastNameStyleDecoder
         |> JPipe.custom viewYMDDecoder
         |> JPipe.required "view_employees" (D.list D.int)
+        |> JPipe.required "show_minutes" D.bool
 
 
 employeeColorDecoder : D.Decoder EmployeeColor
@@ -971,6 +974,7 @@ type Message
     | UpdateViewType ViewType
     | UpdateHourFormat HourFormat
     | UpdateLastNameStyle LastNameStyle
+    | UpdateShowMinutes Bool
     | EmployeeViewCheckbox Int Bool
     | OpenEmployeeColorSelector Employee
     | ChooseEmployeeColor Employee EmployeeColor
@@ -1710,6 +1714,21 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
+        ( CalendarPage page, UpdateShowMinutes show ) ->
+            case ( page.modal, getActiveSettings model ) of
+                ( ViewEditModal data, Just active ) ->
+                    let
+                        settings =
+                            active.settings
+
+                        updatedSettings =
+                            { settings | showMinutes = show }
+                    in
+                    ( model, updateSettings updatedSettings )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ( CalendarPage page, EmployeeViewCheckbox id checked ) ->
             case ( page.modal, getActiveSettings model ) of
                 ( ViewEditModal _, Just active ) ->
@@ -2040,7 +2059,7 @@ update message model =
                                 updatedModel =
                                     { model | page = CalendarPage updatedPage }
                             in
-                             ( updatedModel, updateShift updatedShift )
+                            ( updatedModel, updateShift updatedShift )
 
                         _ ->
                             ( model, Cmd.none )
@@ -2510,8 +2529,8 @@ endsFromStartDur start duration =
     ( start, end )
 
 
-formatHour12 : Float -> String
-formatHour12 floatTime =
+formatHour12 : Bool -> Float -> String
+formatHour12 showMinutes floatTime =
     let
         rawHour =
             floor floatTime
@@ -2521,27 +2540,43 @@ formatHour12 floatTime =
 
         hour12 =
             modBy 12 rawHour
+
+        minutes =
+            case showMinutes of
+                True ->
+                    ":" ++ floatToMinuteString floatTime
+
+                False ->
+                    ""
     in
     if hour24 > 12 then
-        String.fromInt hour12 ++ "p"
+        String.fromInt hour12 ++ minutes ++ "p"
 
     else if hour24 == 12 then
-        String.fromInt 12 ++ "p"
+        String.fromInt 12 ++ minutes ++ "p"
 
     else
-        String.fromInt hour12 ++ "a"
+        String.fromInt hour12 ++ minutes ++ "a"
 
 
-formatHour24 : Float -> String
-formatHour24 floatTime =
+formatHour24 : Bool -> Float -> String
+formatHour24 showMinutes floatTime =
     let
         rawHour =
             floor floatTime
 
         hour24 =
             modBy 24 rawHour
+
+        minutes =
+            case showMinutes of
+                True ->
+                    ":" ++ floatToMinuteString floatTime
+
+                False ->
+                    ""
     in
-    String.fromInt hour24
+    String.fromInt hour24 ++ minutes
 
 
 formatHours : Settings -> Float -> Float -> Element Message
@@ -2552,14 +2587,22 @@ formatHours settings start duration =
                 ( _, end ) =
                     endsFromStartDur start duration
             in
-            text (formatHour12 start ++ "-" ++ formatHour12 end)
+            text
+                (formatHour12 settings.showMinutes start
+                    ++ "-"
+                    ++ formatHour12 settings.showMinutes end
+                )
 
         Hour24 ->
             let
                 ( _, end ) =
                     endsFromStartDur start duration
             in
-            text (formatHour24 start ++ "-" ++ formatHour24 end)
+            text
+                (formatHour24 settings.showMinutes start
+                    ++ "-"
+                    ++ formatHour24 settings.showMinutes end
+                )
 
 
 type alias Row =
@@ -3108,7 +3151,8 @@ shiftModalElement model shiftData =
                         [ centerX
                         , centerY
                         ]
-                        <| text "Edit shift:"
+                     <|
+                        text "Edit shift:"
                     )
                 , -- Date display
                   el
@@ -3803,47 +3847,73 @@ editViewElement model editData maybeSettings employees =
                      ]
                         ++ defaultBorder
                     )
-                    [ Input.radio
-                        ([ alignTop
-                         ]
-                            ++ defaultBorder
-                        )
-                        { onChange = UpdateViewType
-                        , options =
-                            [ Input.option MonthView (text "Month view")
-                            , Input.option WeekView (text "Week view")
-                            , Input.option DayView (text "Day view")
-                            ]
-                        , selected = Just settings.viewType
-                        , label = Input.labelAbove [] <| text "View Type:"
-                        }
-                    , Input.radio
-                        ([ alignTop
-                         ]
-                            ++ defaultBorder
-                        )
-                        { onChange = UpdateHourFormat
-                        , options =
-                            [ Input.option Hour12 <| text "12-hour time"
-                            , Input.option Hour24 <| text "24-hour time"
-                            ]
-                        , selected = Just settings.hourFormat
-                        , label = Input.labelAbove [] <| text "Hour Format:"
-                        }
-                    , Input.radio
-                        ([ alignTop
-                         ]
-                            ++ defaultBorder
-                        )
-                        { onChange = UpdateLastNameStyle
-                        , options =
-                            [ Input.option FullName <| text "Full name"
-                            , Input.option FirstInitial <| text "First initial"
-                            , Input.option Hidden <| text "Hidden"
-                            ]
-                        , selected = Just settings.lastNameStyle
-                        , label = Input.labelAbove [] <| text "Last name style:"
-                        }
+                    [ column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
+                        [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "View type:"
+                        , el [ fillX ] <|
+                            Input.radio
+                                ([ centerX
+                                 ]
+                                    ++ defaultBorder
+                                )
+                                { onChange = UpdateViewType
+                                , options =
+                                    [ Input.option MonthView (text "Month view")
+                                    , Input.option WeekView (text "Week view")
+                                    , Input.option DayView (text "Day view")
+                                    ]
+                                , selected = Just settings.viewType
+                                , label = Input.labelHidden "View type"
+                                }
+                        ]
+                    , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
+                        [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Hour format:"
+                        , el [ fillX ] <|
+                            Input.radio
+                                ([ centerX
+                                 ]
+                                    ++ defaultBorder
+                                )
+                                { onChange = UpdateHourFormat
+                                , options =
+                                    [ Input.option Hour12 <| text "12-hour time"
+                                    , Input.option Hour24 <| text "24-hour time"
+                                    ]
+                                , selected = Just settings.hourFormat
+                                , label = Input.labelHidden "Hour format:"
+                                }
+                        ]
+                    , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
+                        [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Last name style:"
+                        , el [ fillX ] <|
+                            Input.radio
+                                ([ centerX
+                                 ]
+                                    ++ defaultBorder
+                                )
+                                { onChange = UpdateLastNameStyle
+                                , options =
+                                    [ Input.option FullName <| text "Full name"
+                                    , Input.option FirstInitial <| text "First initial"
+                                    , Input.option Hidden <| text "Hidden"
+                                    ]
+                                , selected = Just settings.lastNameStyle
+                                , label = Input.labelHidden "Last name style:"
+                                }
+                        ]
+                    , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
+                        [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Minutes:"
+                        , el [ fillX ] <|
+                            Input.radio
+                                ([ centerX ] ++ defaultBorder)
+                                { onChange = UpdateShowMinutes
+                                , options =
+                                    [ Input.option True <| text "Show"
+                                    , Input.option False <| text "Hide"
+                                    ]
+                                , selected = Just settings.showMinutes
+                                , label = Input.labelHidden "Minutes"
+                                }
+                        ]
                     ]
                 , -- employee selection
                   column
@@ -3851,6 +3921,9 @@ editViewElement model editData maybeSettings employees =
                      , spacing 5
                      , padding 10
                      , BG.color white
+                     , height <| px 200
+                     , clipY
+                     , scrollbarY
                      ]
                         ++ defaultBorder
                     )
@@ -3984,7 +4057,12 @@ viewMonth model ymdMaybe month settings shifts employees =
                         { onPress = Just PriorMonth
                         , label = text "<<--"
                         }
-                    , el [] <| text (monthNumToString settings.viewDate.month)
+                    , el [] <|
+                        text
+                            (monthNumToString settings.viewDate.month
+                                ++ " "
+                                ++ String.fromInt settings.viewDate.year
+                            )
                     , Input.button [ paddingXY 50 0 ]
                         { onPress = Just NextMonth
                         , label = text "-->>"

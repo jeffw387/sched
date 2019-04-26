@@ -41,6 +41,7 @@ table! {
         view_month -> Int4,
         view_day -> Int4,
         view_employees -> Array<Int4>,
+        show_minutes -> Bool,
     }
 }
 
