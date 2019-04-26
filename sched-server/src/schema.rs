@@ -1,6 +1,10 @@
 table! {
     employees (id) {
         id -> Int4,
+        email -> Text,
+        password_hash -> Text,
+        startup_settings -> Nullable<Int4>,
+        level -> Text,
         first -> Text,
         last -> Text,
         phone_number -> Nullable<Text>,
@@ -63,16 +67,6 @@ table! {
 }
 
 table! {
-    users (id) {
-        id -> Int4,
-        email -> Text,
-        password_hash -> Text,
-        startup_settings -> Nullable<Int4>,
-        level -> Text,
-    }
-}
-
-table! {
     vacations (id) {
         id -> Int4,
         employee_id -> Nullable<Int4>,
@@ -92,6 +86,5 @@ allow_tables_to_appear_in_same_query!(
     sessions,
     settings,
     shifts,
-    users,
     vacations,
 );
