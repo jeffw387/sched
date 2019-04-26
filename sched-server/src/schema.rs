@@ -72,6 +72,20 @@ table! {
     }
 }
 
+table! {
+    vacations (id) {
+        id -> Int4,
+        employee_id -> Nullable<Int4>,
+        approved -> Nullable<Bool>,
+        start_year -> Int4,
+        start_month -> Int4,
+        start_day -> Int4,
+        end_year -> Int4,
+        end_month -> Int4,
+        end_day -> Int4,
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     employees,
     per_employee_settings,
@@ -79,4 +93,5 @@ allow_tables_to_appear_in_same_query!(
     settings,
     shifts,
     users,
+    vacations,
 );
