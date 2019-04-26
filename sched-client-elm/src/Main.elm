@@ -610,6 +610,13 @@ perEmployeeSettingsEncoder perEmployee =
         , ( "color", employeeColorEncoder perEmployee.color )
         ]
 
+combinedSettingsEncoder : CombinedSettings -> E.Value
+combinedSettingsEncoder combined =
+    E.object
+        [ ( "settings", settingsEncoder combined.settings )
+        , ( "per_employee", E.list perEmployeeSettingsEncoder combined.perEmployee )
+        ]
+
 
 shiftEncoder : Shift -> E.Value
 shiftEncoder shift =
@@ -1621,11 +1628,11 @@ update message model =
                 Just active ->
                     ( model
                     , Http.post
-                        { url = "/sched/add_settings"
+                        { url = "/sched/copy_settings"
                         , body =
                             Http.jsonBody <|
-                                settingsEncoder
-                                    active.settings
+                                combinedSettingsEncoder
+                                    active
                         , expect =
                             Http.expectWhatever
                                 ReloadData

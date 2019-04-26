@@ -59,6 +59,7 @@ pub enum Messages {
     ChangePassword(ChangePasswordInfo),
     GetSettings(Token),
     AddSettings(Token, NewSettings),
+    CopySettings(Token, CombinedSettings),
     SetDefaultSettings(Token, Settings),
     DefaultSettings(Token),
     UpdateSettings(Token, Settings),
@@ -281,6 +282,30 @@ impl Handler<Messages> for DbExecutor {
                         println!("Error: {:?}", err);
                         Error::Dsl(err)
                     })
+            }
+            Messages::CopySettings(token, combined_settings) => {
+                println!("Messages::CopySettings");
+                let _ = check_token(&token, conn)?;
+                let new_settings: NewSettings = combined_settings.settings.clone().into();
+                diesel::insert_into(settings::table)
+                    .values(new_settings)
+                    .get_result(conn)
+                    .map_err(|err| Error::Dsl(err))
+                    .map(|inserted_settings: Settings| {
+                        let new_per_employees: Vec<NewPerEmployeeSettings> = 
+                            combined_settings.per_employee
+                                .iter()
+                                .map(|p_e| {
+                                    let updated_p_e = PerEmployeeSettings { settings_id: inserted_settings.id, ..p_e.clone() };
+                                    updated_p_e.into()
+                                }).collect();
+                        let _ = diesel::insert_into(per_employee_settings::table)
+                            .values(new_per_employees)
+                            .execute(conn)
+                            .map_err(|err| Error::Dsl(err));
+                        ()
+                    });
+                Ok(Results::Nothing)
             }
             Messages::SetDefaultSettings(
                 token,

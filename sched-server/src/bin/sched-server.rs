@@ -134,6 +134,27 @@ fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
+fn copy_settings((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map_err(|err| {
+            println!("Error: {:?}", err);
+            err
+        })
+        .from_err()
+        .and_then(move |original| {
+            state.db.clone()
+                .send(Messages::CopySettings(
+                    token,
+                    original
+                ))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
 fn set_default_settings(
     (req, state): DbRequest,
 ) -> Box<DbFuture> {
@@ -507,6 +528,9 @@ fn main() {
             })
             .resource(API_ADD_SETTINGS, |r| {
                 r.post().with_async(add_settings)
+            })
+            .resource(API_COPY_SETTINGS, |r| {
+                r.post().with_async(copy_settings)
             })
             .resource(API_SET_DEFAULT_SETTINGS, |r| {
                 r.post().with_async(set_default_settings)
