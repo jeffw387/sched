@@ -143,10 +143,11 @@ fn copy_settings((req, state): DbRequest) -> Box<DbFuture> {
         })
         .from_err()
         .and_then(move |original| {
-            state.db.clone()
+            state
+                .db
+                .clone()
                 .send(Messages::CopySettings(
-                    token,
-                    original
+                    token, original,
                 ))
                 .from_err()
                 .and_then(handle_results)
@@ -205,13 +206,19 @@ fn update_settings(
         .responder()
 }
 
-fn remove_settings((req, state): DbRequest) -> Box<DbFuture> {
+fn remove_settings(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .from_err()
         .and_then(move |settings| {
-            state.db.clone()
-                .send(Messages::RemoveSettings(token, settings))
+            state
+                .db
+                .clone()
+                .send(Messages::RemoveSettings(
+                    token, settings,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -219,7 +226,9 @@ fn remove_settings((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn add_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
+fn add_employee_settings(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .map_err(|j| {
@@ -228,8 +237,13 @@ fn add_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
         })
         .from_err()
         .and_then(move |new_settings| {
-            state.db.clone()
-                .send(Messages::AddEmployeeSettings(token, new_settings))
+            state
+                .db
+                .clone()
+                .send(Messages::AddEmployeeSettings(
+                    token,
+                    new_settings,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -237,7 +251,9 @@ fn add_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn update_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
+fn update_employee_settings(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
         .map_err(|j| {
@@ -246,8 +262,12 @@ fn update_employee_settings((req, state): DbRequest) -> Box<DbFuture> {
         })
         .from_err()
         .and_then(move |settings| {
-            state.db.clone()
-                .send(Messages::UpdateEmployeeSettings(token, settings))
+            state
+                .db
+                .clone()
+                .send(Messages::UpdateEmployeeSettings(
+                    token, settings,
+                ))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -400,7 +420,10 @@ fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
                 .clone()
                 .send(Messages::RemoveShift(token, shift))
                 .map_err(|r_err| {
-                    eprintln!("Remove Shift error: {:?}", r_err);
+                    eprintln!(
+                        "Remove Shift error: {:?}",
+                        r_err
+                    );
                     r_err
                 })
                 .from_err()
@@ -545,7 +568,8 @@ fn main() {
                 r.post().with_async(add_employee_settings)
             })
             .resource(API_UPDATE_EMPLOYEE_SETTINGS, |r| {
-                r.post().with_async(update_employee_settings)
+                r.post()
+                    .with_async(update_employee_settings)
             })
             .resource(API_GET_EMPLOYEES, |r| {
                 r.post().with_async(get_employees)

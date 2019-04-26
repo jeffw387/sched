@@ -126,7 +126,7 @@ pub struct Settings {
     pub view_month: i32,
     pub view_day: i32,
     pub view_employees: Vec<i32>,
-    pub show_minutes: bool
+    pub show_minutes: bool,
 }
 
 impl From<Settings> for NewSettings {
@@ -141,7 +141,7 @@ impl From<Settings> for NewSettings {
             view_month: settings.view_month,
             view_day: settings.view_day,
             view_employees: settings.view_employees,
-            show_minutes: settings.show_minutes
+            show_minutes: settings.show_minutes,
         }
     }
 }
@@ -158,9 +158,8 @@ pub struct NewSettings {
     pub view_month: i32,
     pub view_day: i32,
     pub view_employees: Vec<i32>,
-    pub show_minutes: bool
+    pub show_minutes: bool,
 }
-
 
 #[derive(
     Serialize,
@@ -192,7 +191,7 @@ impl From<PerEmployeeSettings> for NewPerEmployeeSettings {
         NewPerEmployeeSettings {
             settings_id: per_employee.settings_id,
             employee_id: per_employee.employee_id,
-            color: per_employee.color
+            color: per_employee.color,
         }
     }
 }

@@ -6,10 +6,12 @@ pub fn get_env(key: &str) -> String {
 
     env::vars()
         .find(|(skey, _)| key == skey)
-        .expect(&format!(
-            "Can't find environment variable {}!",
-            key
-        ))
+        .unwrap_or_else(|| {
+            panic!(
+                "Can't find environment variable {}!",
+                key
+            )
+        })
         .1
 }
 

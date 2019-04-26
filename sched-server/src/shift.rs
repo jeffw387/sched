@@ -74,33 +74,3 @@ pub struct NewShift {
     pub shift_repeat: ShiftRepeat,
     pub every_x: i32,
 }
-
-impl NewShift {
-    pub fn new(
-        user_id: i32,
-        employee_id: Option<i32>,
-        year: i32,
-        month: i32,
-        day: i32,
-        hour: i32,
-        minute: i32,
-        hours: i32,
-        minutes: i32,
-        shift_repeat: ShiftRepeat,
-        every_x: i32,
-    ) -> NewShift {
-        NewShift {
-            user_id,
-            employee_id,
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            hours,
-            minutes,
-            shift_repeat,
-            every_x,
-        }
-    }
-}
