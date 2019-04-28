@@ -486,10 +486,10 @@ impl Handler<Messages> for DbExecutor {
             Messages::AddShift(token, new_shift) => {
                 println!("Messages::AddShift");
                 let owner = check_token(&token, conn)?;
-                let new_shift = debug_print(NewShift {
+                let new_shift = NewShift {
                     supervisor_id: owner.id,
                     ..new_shift
-                });
+                };
                 match owner.level {
                      EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
@@ -497,20 +497,8 @@ impl Handler<Messages> for DbExecutor {
                     _ => diesel::insert_into(shifts::table)
                         .values(new_shift)
                         .get_result(conn)
-                        .map(|added| {
-                            println!(
-                                "Added shift {:#?}",
-                                added
-                            );
-                            Results::GetShift(added)
-                        })
-                        .map_err(|err| {
-                            println!(
-                                "Add shift error: {:#?}",
-                                err
-                            );
-                            Error::Dsl(err)
-                        }),
+                        .map(Results::GetShift)
+                        .map_err(Error::Dsl),
                 }
             }
             Messages::UpdateShift(token, shift) => {
