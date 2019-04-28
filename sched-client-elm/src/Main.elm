@@ -960,6 +960,8 @@ type Message
     | DayClick (Maybe YearMonthDay)
     | PriorMonth
     | NextMonth
+      -- Employee Editor Messages
+    | OpenEmployeesEditor
     | -- ShiftModal Messages
       EditShiftRequest (Maybe YearMonthDay) (Maybe Shift)
     | EditShiftResponse (Result Http.Error Shift)
@@ -2284,6 +2286,16 @@ editViewButton =
         }
 
 
+editEmployeesButton =
+    Input.button
+        [ defaultShadow
+        , padding 5
+        ]
+        { onPress = Just OpenEmployeesEditor
+        , label = text "Employees"
+        }
+
+
 viewLogoutButton =
     Input.button
         [ defaultShadow
@@ -2306,6 +2318,7 @@ viewCalendarFooter =
         ]
         [ selectViewButton
         , editViewButton
+        , editEmployeesButton
         , viewLogoutButton
         ]
 
