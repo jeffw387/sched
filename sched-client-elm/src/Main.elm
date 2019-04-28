@@ -970,7 +970,7 @@ type Message
     | PriorMonth
     | NextMonth
       -- Employee Editor Messages
-    | OpenEmployeesEditor
+    | OpenEmployeeEditor
     | UpdateEmployeeEditorSearch String
     | EmployeeEditorChooseEmployee Employee
     | -- ShiftModal Messages
@@ -2195,6 +2195,29 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
+        -- Employee Editor Messages
+        ( CalendarPage page, OpenEmployeeEditor ) ->
+            case page.modal of
+                NoModal ->
+                    let
+                        editData =
+                            EmployeeEditData
+                                ""
+                                (Maybe.withDefault [] model.employees)
+                                Nothing
+                                ""
+
+                        updatedPage =
+                            { page | modal = EmployeeEditor editData }
+
+                        updatedModel =
+                            { model | page = CalendarPage updatedPage }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         -- Calendar messages
         ( CalendarPage page, KeyDown maybeKey ) ->
             ( model, Cmd.none )
@@ -2302,7 +2325,7 @@ editEmployeesButton =
         [ defaultShadow
         , padding 5
         ]
-        { onPress = Just OpenEmployeesEditor
+        { onPress = Just OpenEmployeeEditor
         , label = text "Employees"
         }
 
