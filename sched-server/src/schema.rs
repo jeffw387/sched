@@ -23,7 +23,7 @@ table! {
 table! {
     sessions (id) {
         id -> Int4,
-        user_id -> Int4,
+        employee_id -> Int4,
         year -> Int4,
         month -> Int4,
         day -> Int4,
@@ -36,7 +36,7 @@ table! {
 table! {
     settings (id) {
         id -> Int4,
-        user_id -> Int4,
+        employee_id -> Int4,
         name -> Text,
         view_type -> Text,
         hour_format -> Text,
@@ -52,7 +52,7 @@ table! {
 table! {
     shifts (id) {
         id -> Int4,
-        user_id -> Int4,
+        supervisor_id -> Int4,
         employee_id -> Nullable<Int4>,
         year -> Int4,
         month -> Int4,
@@ -70,6 +70,7 @@ table! {
     vacations (id) {
         id -> Int4,
         employee_id -> Nullable<Int4>,
+        supervisor_id -> Nullable<Int4>,
         approved -> Nullable<Bool>,
         start_year -> Int4,
         start_month -> Int4,

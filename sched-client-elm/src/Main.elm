@@ -1,4 +1,4 @@
-module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, Row, RowID, Settings, Shift, ShiftModalData, ShiftRepeat(..), User, UserLevel(..), ViewEditData, ViewSelectData, ViewType(..), Weekdays(..), YearMonth, YearMonthDay, addShiftElement, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, compareDays, dayCompare, dayElement, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, exactShiftMatch, fillX, fillY, filterByYearMonthDay, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, modalColor, monthCode, monthDefault, monthNumToString, monthRowElement, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDecoder, shiftEditorForDay, shiftEditorForShift, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftModalElement, shiftRepeatDecoder, shiftRepeatEncoder, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, userDecoder, userEncoder, userLevelDecoder, userLevelEncoder, view, viewCalendar, viewCalendarFooter, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdFromShift, ymdNextMonth, ymdPriorMonth, ymdToString)
+module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, Row, RowID, Settings, Shift, ShiftModalData, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Weekdays(..), YearMonth, YearMonthDay, addShiftElement, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, compareDays, dayCompare, dayElement, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, exactShiftMatch, fillX, fillY, filterByYearMonthDay, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, modalColor, monthCode, monthDefault, monthNumToString, monthRowElement, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDecoder, shiftEditorForDay, shiftEditorForShift, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftModalElement, shiftRepeatDecoder, shiftRepeatEncoder, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdFromShift, ymdNextMonth, ymdPriorMonth, ymdToString)
 
 import Array exposing (Array)
 import Browser
@@ -64,7 +64,7 @@ type LastNameStyle
 
 type alias Settings =
     { id : Int
-    , userID : Int
+    , employeeID : Int
     , name : String
     , viewType : ViewType
     , hourFormat : HourFormat
@@ -202,16 +202,10 @@ type alias LoginInfo =
     }
 
 
-type UserLevel
+type EmployeeLevel
     = Read
     | Supervisor
     | Admin
-
-
-type alias User =
-    { id : Int
-    , level : UserLevel
-    }
 
 
 type alias Name =
@@ -222,13 +216,22 @@ type alias Name =
 
 type alias Employee =
     { id : Int
+    , email : String
+    , startupSettings : Maybe Int
+    , level : EmployeeLevel
     , name : Name
     , phone_number : Maybe String
     }
 
 
 employeeDefault =
-    Employee 0 (Name "" "") Nothing
+    Employee
+        0
+        ""
+        Nothing
+        Read
+        (Name "" "")
+        Nothing
 
 
 type alias HoverData =
@@ -278,7 +281,7 @@ type alias Model =
     , -- loaded data
       settingsList : Maybe (List CombinedSettings)
     , activeSettings : Maybe Int
-    , user : Maybe User
+    , currentEmployee : Maybe Employee
     , employees : Maybe (List Employee)
     , shifts : Maybe (List Shift)
     , posixNow : Maybe Time.Posix
@@ -290,7 +293,7 @@ type alias Model =
 
 type alias Shift =
     { id : Int
-    , userID : Int
+    , supervisorID : Int
     , employeeID : Maybe Int
     , year : Int
     , month : Int
@@ -460,6 +463,16 @@ employeeEncoder : Employee -> E.Value
 employeeEncoder e =
     E.object
         [ ( "id", E.int e.id )
+        , ( "email", E.string e.email )
+        , ( "startup_settings"
+          , case e.startupSettings of
+                Just ss ->
+                    E.int ss
+
+                Nothing ->
+                    E.null
+          )
+        , ( "level", employeeLevelEncoder e.level )
         , ( "name", nameEncoder e.name )
         , case e.phone_number of
             Just pn ->
@@ -470,8 +483,8 @@ employeeEncoder e =
         ]
 
 
-userLevelEncoder : UserLevel -> E.Value
-userLevelEncoder level =
+employeeLevelEncoder : EmployeeLevel -> E.Value
+employeeLevelEncoder level =
     case level of
         Supervisor ->
             E.string "Supervisor"
@@ -481,14 +494,6 @@ userLevelEncoder level =
 
         _ ->
             E.string "Read"
-
-
-userEncoder : User -> E.Value
-userEncoder user =
-    E.object
-        [ ( "id", E.int user.id )
-        , ( "level", userLevelEncoder user.level )
-        ]
 
 
 viewTypeEncoder : ViewType -> E.Value
@@ -544,7 +549,7 @@ settingsEncoder : Settings -> E.Value
 settingsEncoder settings =
     E.object
         [ ( "id", E.int settings.id )
-        , ( "user_id", E.int settings.userID )
+        , ( "employee_id", E.int settings.employeeID )
         , ( "name", E.string settings.name )
         , ( "view_type", viewTypeEncoder settings.viewType )
         , ( "hour_format", hourFormatEncoder settings.hourFormat )
@@ -622,26 +627,26 @@ combinedSettingsEncoder combined =
 shiftEncoder : Shift -> E.Value
 shiftEncoder shift =
     E.object
-        ([ ( "id", E.int shift.id )
-         , ( "user_id", E.int shift.userID )
-         , ( "year", E.int shift.year )
-         , ( "month", E.int shift.month )
-         , ( "day", E.int shift.day )
-         , ( "hour", E.int shift.hour )
-         , ( "minute", E.int shift.minute )
-         , ( "hours", E.int shift.hours )
-         , ( "minutes", E.int shift.minutes )
-         , ( "shift_repeat", shiftRepeatEncoder shift.repeat )
-         , ( "every_x", E.int shift.everyX )
-         ]
-            ++ (case shift.employeeID of
-                    Just eid ->
-                        [ ( "employee_id", E.int eid ) ]
+        [ ( "id", E.int shift.id )
+        , ( "supervisor_id", E.int shift.supervisorID )
+        , ( "employee_id"
+          , case shift.employeeID of
+                Just eid ->
+                    E.int eid
 
-                    Nothing ->
-                        []
-               )
-        )
+                Nothing ->
+                    E.null
+          )
+        , ( "year", E.int shift.year )
+        , ( "month", E.int shift.month )
+        , ( "day", E.int shift.day )
+        , ( "hour", E.int shift.hour )
+        , ( "minute", E.int shift.minute )
+        , ( "hours", E.int shift.hours )
+        , ( "minutes", E.int shift.minutes )
+        , ( "shift_repeat", shiftRepeatEncoder shift.repeat )
+        , ( "every_x", E.int shift.everyX )
+        ]
 
 
 
@@ -659,7 +664,7 @@ settingsDecoder : D.Decoder Settings
 settingsDecoder =
     D.succeed Settings
         |> JPipe.required "id" D.int
-        |> JPipe.required "user_id" D.int
+        |> JPipe.required "employee_id" D.int
         |> JPipe.required "name" D.string
         |> JPipe.required "view_type" viewTypeDecoder
         |> JPipe.required "hour_format" hourFormatDecoder
@@ -794,7 +799,10 @@ employeeDecoder : D.Decoder Employee
 employeeDecoder =
     D.succeed Employee
         |> JPipe.required "id" D.int
-        |> JPipe.requiredAt [ "name" ] nameDecoder
+        |> JPipe.required "email" D.string
+        |> JPipe.required "startup_settings" (D.maybe D.int)
+        |> JPipe.required "level" employeeLevelDecoder
+        |> JPipe.required "name" nameDecoder
         |> JPipe.required "phone_number" (D.maybe D.string)
 
 
@@ -819,7 +827,7 @@ shiftDecoder : D.Decoder Shift
 shiftDecoder =
     D.succeed Shift
         |> JPipe.required "id" D.int
-        |> JPipe.required "user_id" D.int
+        |> JPipe.required "supervisor_id" D.int
         |> JPipe.optional "employee_id" (D.maybe D.int) Nothing
         |> JPipe.required "year" D.int
         |> JPipe.required "month" D.int
@@ -832,8 +840,8 @@ shiftDecoder =
         |> JPipe.required "every_x" D.int
 
 
-userLevelDecoder : D.Decoder UserLevel
-userLevelDecoder =
+employeeLevelDecoder : D.Decoder EmployeeLevel
+employeeLevelDecoder =
     D.string
         |> D.andThen
             (\levelString ->
@@ -847,12 +855,6 @@ userLevelDecoder =
                     _ ->
                         D.succeed Read
             )
-
-
-userDecoder =
-    D.succeed User
-        |> JPipe.required "id" D.int
-        |> JPipe.required "level" userLevelDecoder
 
 
 type Keys
@@ -1546,7 +1548,7 @@ update message model =
                     { model
                         | settingsList = Nothing
                         , activeSettings = Nothing
-                        , user = Nothing
+                        , currentEmployee = Nothing
                         , employees = Nothing
                         , shifts = Nothing
                         , posixNow = Nothing

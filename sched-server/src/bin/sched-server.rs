@@ -44,10 +44,18 @@ fn get_token(request: &HttpRequest<AppState>) -> String {
 fn login((req, state): DbRequest) -> Box<DbFuture> {
     let db = state.db.clone();
     req.json()
+        .map_err(|j_err| {
+            eprintln!("Json error: {:?}", j_err);
+            j_err
+        })
         .from_err()
         .and_then(move |login_info: LoginInfo| {
             println!("Login Request: {:?}", login_info);
             db.send(Messages::Login(login_info))
+                .map_err(|e| {
+                    eprintln!("Error: {:?}", e);
+                    e
+                })
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -373,9 +381,15 @@ fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
+fn log_err<T: std::fmt::Debug>(t: T) -> T {
+    eprintln!("Error: {:?}", t);
+    t
+}
+
 fn add_shift((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |new_shift| {
             state
@@ -438,6 +452,7 @@ fn handle_results(
 ) -> Result<HttpResponse, actix_web::Error> {
     match result {
         Ok(ok) => {
+            println!("OK result");
             match ok {
                 Results::GetSession(token) => {
                     Ok(HttpResponse::Ok()
@@ -451,9 +466,6 @@ fn handle_results(
                             .finish(),
                         )
                         .finish())
-                }
-                Results::GetUser(user) => {
-                    Ok(HttpResponse::Ok().json(user))
                 }
                 Results::GetCombinedSettings(combined) => {
                     Ok(HttpResponse::Ok().json(combined))
@@ -486,6 +498,7 @@ fn handle_results(
             }
         }
         Err(err) => {
+            println!("Error: {:?}", err);
             Ok(HttpResponse::from_error(err.into()))
         }
     }

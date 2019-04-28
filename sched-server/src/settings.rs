@@ -117,7 +117,7 @@ enum_from_sql!(EmployeeColor);
 #[table_name = "settings"]
 pub struct Settings {
     pub id: i32,
-    pub user_id: i32,
+    pub employee_id: i32,
     pub name: String,
     pub view_type: ViewType,
     pub hour_format: HourFormat,
@@ -132,7 +132,7 @@ pub struct Settings {
 impl From<Settings> for NewSettings {
     fn from(settings: Settings) -> Self {
         NewSettings {
-            user_id: settings.user_id,
+            employee_id: settings.employee_id,
             name: settings.name,
             view_type: settings.view_type,
             hour_format: settings.hour_format,
@@ -149,7 +149,7 @@ impl From<Settings> for NewSettings {
 #[derive(Serialize, Deserialize, Debug, Insertable)]
 #[table_name = "settings"]
 pub struct NewSettings {
-    pub user_id: i32,
+    pub employee_id: i32,
     pub name: String,
     pub view_type: ViewType,
     pub hour_format: HourFormat,

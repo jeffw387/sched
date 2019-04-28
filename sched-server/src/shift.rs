@@ -46,7 +46,7 @@ enum_from_sql!(ShiftRepeat);
 #[belongs_to(Employee)]
 pub struct Shift {
     pub id: i32,
-    pub user_id: i32,
+    pub supervisor_id: i32,
     pub employee_id: Option<i32>,
     pub year: i32,
     pub month: i32,
@@ -62,7 +62,7 @@ pub struct Shift {
 #[derive(Debug, Insertable, Deserialize)]
 #[table_name = "shifts"]
 pub struct NewShift {
-    pub user_id: i32,
+    pub supervisor_id: i32,
     pub employee_id: Option<i32>,
     pub year: i32,
     pub month: i32,

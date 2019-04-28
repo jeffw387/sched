@@ -7,22 +7,34 @@ use sched_server::api::*;
 use sched_server::db;
 use sched_server::env;
 use sched_server::message::LoginInfo;
-use sched_server::schema::users;
-use sched_server::user::{
-    NewUser,
-    UserLevel,
+use sched_server::employee::{
+    NewEmployee,
+    EmployeeLevel,
+    Employee,
+    Name
 };
+use sched_server::settings::{
+    NewSettings,
+    Settings,
+    ViewType,
+    HourFormat,
+    LastNameStyle,
+};
+use sched_server::schema::employees;
+use sched_server::schema::settings;
 use std::result::Result;
 
 enum Error {
     ConnectionFailure,
-    UserAlreadyExists,
+    EmployeeAlreadyExists,
 }
 
-fn add_user(
+fn add_employee(
     email: String,
     password: String,
-    level: UserLevel,
+    level: EmployeeLevel,
+    name: Name,
+    phone_number: Option<String>
 ) {
     let db_url = env::get_env(ENV_DB_URL);
     let conn = PgConnection::establish(&db_url)
@@ -32,16 +44,40 @@ fn add_user(
         });
     let login_info =
         LoginInfo { email: email.clone(), password };
-    let new_user = NewUser::new(login_info, level);
-    diesel::insert_into(users::table)
-        .values(new_user)
-        .execute(&conn)
-        .map(|_| {
-            println!("Successfully added user {}!", &email);
-        })
+    let new_employee = NewEmployee::new(
+        login_info, 
+        None,
+        level,
+        name,
+        phone_number);
+    let inserted_employee = diesel::insert_into(employees::table)
+        .values(new_employee)
+        .get_result::<Employee>(&conn)
         .map_err(|_| {
-            println!("User insert error!");
-        });
+            println!("Employee insert error!");
+        }).unwrap();
+    let new_settings = NewSettings {
+        employee_id: inserted_employee.id,
+        name: String::from("Default"),
+        view_type: ViewType::Month,
+        hour_format: HourFormat::Hour12,
+        last_name_style: LastNameStyle::FirstInitial,
+        view_year: 2019,
+        view_month: 4,
+        view_day: 27,
+        view_employees: vec![],
+        show_minutes: true
+    };
+    let inserted_settings =
+        diesel::insert_into(settings::table)
+        .values(new_settings)
+        .get_result::<Settings>(&conn)
+        .map_err(|_| println!("Error inserting new settings!"))
+        .unwrap();
+    let _ = diesel::update(&inserted_employee.clone())
+        .set(employees::startup_settings.eq(inserted_settings.id))
+        .execute(&conn)
+        .expect("Error updating employee with new default settings!");
 }
 
 fn main() {
@@ -49,11 +85,11 @@ fn main() {
     // let program = args[0].clone();
     let mut opts = Options::new();
     opts.optflag("a", "add", "Add");
-    opts.optflag("u", "user", "User");
+    opts.optflag("", "employee", "Employee");
     opts.optopt(
         "l",
         "level",
-        "User Access Level: Read, Supervisor, Admin",
+        "Employee Access Level: Read, Supervisor, Admin",
         "LEVEL",
     );
     opts.optopt(
@@ -68,30 +104,61 @@ fn main() {
         "Set the password",
         "PASSWORD",
     );
+    opts.optopt(
+        "",
+        "first",
+        "Employee's first name",
+        "FIRSTNAME"
+    );
+    opts.optopt(
+        "",
+        "last",
+        "Employee's last name",
+        "LASTNAME"
+    );
+    opts.optopt(
+        "",
+        "phone",
+        "Employee's phone number, optional",
+        "PHONE"
+    );
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(e) => panic!(e.to_string()),
     };
-    if matches.opt_present("u") {
+    if matches.opt_present("employee") {
         if matches.opt_present("a") {
             let level = match matches
                 .opt_str("l")
                 .unwrap_or(String::from("Read"))
                 .as_ref()
             {
-                "Supervisor" => UserLevel::Supervisor,
-                "Admin" => UserLevel::Admin,
-                _ => UserLevel::Read,
+                "Supervisor" => EmployeeLevel::Supervisor,
+                "Admin" => EmployeeLevel::Admin,
+                _ => EmployeeLevel::Read,
             };
             let email = matches.opt_str("e")
                 .unwrap_or_else(|| {
-                    println!("Need to use email option to add a user");
+                    println!("Need to use email option to add a employee");
                     std::process::exit(0);});
             let password = matches.opt_str("p")
                 .unwrap_or_else(|| {
-                    println!("Need to use password option to add a user");
+                    println!("Need to use password option to add a employee");
                     std::process::exit(0);});
-            add_user(email, password, level);
+            let first = matches.opt_str("first")
+                .unwrap_or_else(|| {
+                    println!("Need to provide first and last name for employee");
+                    std::process::exit(0);
+                });
+            let last = matches.opt_str("last")
+                .unwrap_or_else(|| {
+                    println!("Need to provide first and last name for employee");
+                    std::process::exit(0);
+                });
+            let name = Name { first, last };
+            let phone_number = matches.opt_str("phone");
+
+            add_employee(email, password, level, name, phone_number);
         }
     }
 }
