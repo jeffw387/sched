@@ -44,18 +44,11 @@ fn get_token(request: &HttpRequest<AppState>) -> String {
 fn login((req, state): DbRequest) -> Box<DbFuture> {
     let db = state.db.clone();
     req.json()
-        .map_err(|j_err| {
-            eprintln!("Json error: {:?}", j_err);
-            j_err
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |login_info: LoginInfo| {
-            println!("Login Request: {:?}", login_info);
             db.send(Messages::Login(login_info))
-                .map_err(|e| {
-                    eprintln!("Error: {:?}", e);
-                    e
-                })
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -64,12 +57,12 @@ fn login((req, state): DbRequest) -> Box<DbFuture> {
 }
 
 fn logout((req, state): DbRequest) -> Box<DbFuture> {
-    println!("logout request received");
     let token = get_token(&req);
     state
         .db
         .clone()
         .send(Messages::Logout(token))
+        .map_err(log_err)
         .from_err()
         .and_then(handle_results)
         .responder()
@@ -78,8 +71,8 @@ fn logout((req, state): DbRequest) -> Box<DbFuture> {
 fn change_password(
     (req, state): DbRequest,
 ) -> Box<DbFuture> {
-    // let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |change_password_info| {
             state
@@ -88,6 +81,7 @@ fn change_password(
                 .send(Messages::ChangePassword(
                     change_password_info,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -101,6 +95,7 @@ fn get_settings((req, state): DbRequest) -> Box<DbFuture> {
         .db
         .clone()
         .send(Messages::GetSettings(token))
+        .map_err(log_err)
         .from_err()
         .and_then(handle_results)
         .responder()
@@ -113,19 +108,16 @@ fn default_settings(
     state
         .db
         .send(Messages::DefaultSettings(token))
+        .map_err(log_err)
         .from_err()
         .and_then(handle_results)
         .responder()
 }
 
 fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
-    println!("add_settings");
     let token = get_token(&req);
     req.json()
-        .map_err(|err| {
-            println!("Error: {:?}", err);
-            err
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |new_settings| {
             state
@@ -135,6 +127,7 @@ fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
                     token,
                     new_settings,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -145,10 +138,7 @@ fn add_settings((req, state): DbRequest) -> Box<DbFuture> {
 fn copy_settings((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
-        .map_err(|err| {
-            println!("Error: {:?}", err);
-            err
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |original| {
             state
@@ -157,6 +147,7 @@ fn copy_settings((req, state): DbRequest) -> Box<DbFuture> {
                 .send(Messages::CopySettings(
                     token, original,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -167,25 +158,18 @@ fn copy_settings((req, state): DbRequest) -> Box<DbFuture> {
 fn set_default_settings(
     (req, state): DbRequest,
 ) -> Box<DbFuture> {
-    println!("--set_default_settings");
     let token = get_token(&req);
     req.json()
-        .map_err(|e| {
-            println!("Error: {:?}", e);
-            e
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |settings| {
-            println!(
-                "Successfully decoded json: {:?}",
-                settings
-            );
             state
                 .db
                 .clone()
                 .send(Messages::SetDefaultSettings(
                     token, settings,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -198,6 +182,7 @@ fn update_settings(
 ) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |updated_settings| {
             state
@@ -207,6 +192,7 @@ fn update_settings(
                     token,
                     updated_settings,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -219,6 +205,7 @@ fn remove_settings(
 ) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |settings| {
             state
@@ -227,6 +214,7 @@ fn remove_settings(
                 .send(Messages::RemoveSettings(
                     token, settings,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -239,10 +227,7 @@ fn add_employee_settings(
 ) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
-        .map_err(|j| {
-            eprintln!("Json error: {:?}", j);
-            j
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |new_settings| {
             state
@@ -252,6 +237,7 @@ fn add_employee_settings(
                     token,
                     new_settings,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -264,10 +250,7 @@ fn update_employee_settings(
 ) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
-        .map_err(|j| {
-            eprintln!("Json error: {:?}", j);
-            j
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |settings| {
             state
@@ -276,6 +259,7 @@ fn update_employee_settings(
                 .send(Messages::UpdateEmployeeSettings(
                     token, settings,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -289,6 +273,7 @@ fn get_employees((req, state): DbRequest) -> Box<DbFuture> {
         .db
         .clone()
         .send(Messages::GetEmployees(token))
+        .map_err(log_err)
         .from_err()
         .and_then(handle_results)
         .responder()
@@ -297,12 +282,14 @@ fn get_employees((req, state): DbRequest) -> Box<DbFuture> {
 fn get_employee((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |name| {
             state
                 .db
                 .clone()
                 .send(Messages::GetEmployee(token, name))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -313,6 +300,7 @@ fn get_employee((req, state): DbRequest) -> Box<DbFuture> {
 fn add_employee((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |new_employee| {
             state
@@ -322,6 +310,7 @@ fn add_employee((req, state): DbRequest) -> Box<DbFuture> {
                     token,
                     new_employee,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -334,6 +323,7 @@ fn update_employee(
 ) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |updated_employee| {
             state
@@ -343,6 +333,7 @@ fn update_employee(
                     token,
                     updated_employee,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -355,6 +346,7 @@ fn remove_employee(
 ) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |employee| {
             state
@@ -363,6 +355,7 @@ fn remove_employee(
                 .send(Messages::RemoveEmployee(
                     token, employee,
                 ))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -371,11 +364,11 @@ fn remove_employee(
 }
 
 fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
-    println!("get_shifts");
     let token = get_token(&req);
     state
         .db
         .send(Messages::GetShifts(token))
+        .map_err(log_err)
         .from_err()
         .and_then(handle_results)
         .responder()
@@ -396,6 +389,7 @@ fn add_shift((req, state): DbRequest) -> Box<DbFuture> {
                 .db
                 .clone()
                 .send(Messages::AddShift(token, new_shift))
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
@@ -406,6 +400,7 @@ fn add_shift((req, state): DbRequest) -> Box<DbFuture> {
 fn update_shift((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     req.json()
+        .map_err(log_err)
         .from_err()
         .and_then(move |updated| {
             state
@@ -420,26 +415,16 @@ fn update_shift((req, state): DbRequest) -> Box<DbFuture> {
 }
 
 fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
-    println!("remove_shift");
     let token = get_token(&req);
     req.json()
-        .map_err(|j| {
-            eprintln!("Json error: {:?}", j);
-            j
-        })
+        .map_err(log_err)
         .from_err()
         .and_then(move |shift| {
             state
                 .db
                 .clone()
                 .send(Messages::RemoveShift(token, shift))
-                .map_err(|r_err| {
-                    eprintln!(
-                        "Remove Shift error: {:?}",
-                        r_err
-                    );
-                    r_err
-                })
+                .map_err(log_err)
                 .from_err()
                 .and_then(handle_results)
                 .responder()
