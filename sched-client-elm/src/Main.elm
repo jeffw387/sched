@@ -254,11 +254,20 @@ defaultLoginModel =
         Normal
 
 
+type alias EmployeeEditData =
+    { employeeSearchText : String
+    , filteredEmployees : List Employee
+    , employee : Maybe Employee
+    , password : String
+    }
+
+
 type CalendarModal
     = NoModal
     | ViewSelectModal
     | ViewEditModal ViewEditData
     | ShiftModal ShiftModalData
+    | EmployeeEditor EmployeeEditData
 
 
 type alias CalendarData =
@@ -962,6 +971,8 @@ type Message
     | NextMonth
       -- Employee Editor Messages
     | OpenEmployeesEditor
+    | UpdateEmployeeEditorSearch String
+    | EmployeeEditorChooseEmployee Employee
     | -- ShiftModal Messages
       EditShiftRequest (Maybe YearMonthDay) (Maybe Shift)
     | EditShiftResponse (Result Http.Error Shift)
@@ -2304,6 +2315,60 @@ viewLogoutButton =
         { onPress = Just Logout
         , label = text "Log out"
         }
+
+
+employeeEditorEmployeeOption : Employee -> Input.Option Employee Message
+employeeEditorEmployeeOption employee =
+    Input.optionWith employee
+        (\optionState ->
+            case optionState of
+                Input.Selected ->
+                    el
+                        ([ defaultShadow, BG.color white ] ++ defaultBorder)
+                    <|
+                        text <|
+                            nameToString employee.name
+
+                _ ->
+                    el
+                        ([ BG.color modalColor ] ++ defaultBorder)
+                    <|
+                        text <|
+                            nameToString employee.name
+        )
+
+
+viewEmployeeEditor : Model -> EmployeeEditData -> Element Message
+viewEmployeeEditor model editData =
+    column
+        ([ defaultShadow ] ++ defaultBorder)
+        [ el [] <| text "Employee Editor"
+        , searchRadio
+            "employeeEditorSearch"
+            "Filter employees:"
+            ""
+            UpdateEmployeeEditorSearch
+            (case editData.employee of
+                Just employee ->
+                    el
+                        [ padding 5
+                        , BG.color white
+                        , Border.color green
+                        , Border.width 1
+                        , Border.rounded 3
+                        ]
+                    <|
+                        text <|
+                            nameToString employee.name
+
+                Nothing ->
+                    none
+            )
+            EmployeeEditorChooseEmployee
+            editData.employee
+            "Employees:"
+            (List.map employeeEditorEmployeeOption editData.filteredEmployees)
+        ]
 
 
 viewCalendarFooter : Element Message
@@ -4128,6 +4193,9 @@ viewModal model =
 
                 ViewEditModal editData ->
                     editViewElement model editData (getActiveSettings model) model.employees
+
+                EmployeeEditor editData ->
+                    viewEmployeeEditor model editData
 
         _ ->
             text "Error: viewing modal from wrong page"
