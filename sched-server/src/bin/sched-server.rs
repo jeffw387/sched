@@ -452,7 +452,6 @@ fn handle_results(
 ) -> Result<HttpResponse, actix_web::Error> {
     match result {
         Ok(ok) => {
-            println!("OK result");
             match ok {
                 Results::GetSession(token) => {
                     Ok(HttpResponse::Ok()
