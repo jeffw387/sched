@@ -2829,14 +2829,14 @@ employeeEditorEmployeeOption employee =
             case optionState of
                 Input.Selected ->
                     el
-                        ([ BG.color modalColor, padding 5 ] ++ defaultBorder)
+                        ([ defaultShadow, BG.color white, padding 5 ] ++ defaultBorder)
                     <|
                         text <|
                             nameToString employee.name
 
                 _ ->
                     el
-                        ([ defaultShadow, BG.color white, padding 5 ] ++ defaultBorder)
+                        ([ BG.color modalColor, padding 5 ] ++ defaultBorder)
                     <|
                         text <|
                             nameToString employee.name
