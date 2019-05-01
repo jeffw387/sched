@@ -4081,19 +4081,26 @@ dayOfMonthElement day =
         (text (String.fromInt day.day))
 
 
-addShiftElement : YearMonthDay -> Element Message
-addShiftElement day =
-    Input.button
-        [ BG.color lightGreen
-        , Border.rounded 5
-        , Font.size 16
-        , paddingEach { top = 0, bottom = 0, right = 2, left = 1 }
-        ]
-        { onPress = Just (EditShiftRequest (Just day) Nothing)
-        , label =
-            el [ moveUp 1 ]
-                (text "+")
-        }
+addShiftElement : Maybe Employee -> YearMonthDay -> Element Message
+addShiftElement maybeEmployee day =
+    case maybeEmployee of
+        Just employee ->
+            case employee.level of
+                Read ->
+                    none
+                _ ->
+                    Input.button
+                        [ BG.color lightGreen
+                        , Border.rounded 5
+                        , Font.size 16
+                        , paddingEach { top = 0, bottom = 0, right = 2, left = 1 }
+                        ]
+                        { onPress = Just (EditShiftRequest (Just day) Nothing)
+                        , label =
+                            el [ moveUp 1 ]
+                                (text "+")
+                        }
+        _ -> none
 
 
 dayCompare : YearMonthDay -> YearMonthDay -> Order
@@ -4166,7 +4173,7 @@ dayElement model settings shifts employees focusDay maybeYMD =
                         [ padding 5
                         ]
                         [ dayOfMonthElement day
-                        , addShiftElement day
+                        , addShiftElement model.currentEmployee day
                         ]
                     , shiftColumn model settings day shifts employees
                     ]
