@@ -8,7 +8,6 @@ use crate::employee::{
     Session,
     ClientSideEmployee,
     Employee,
-    Name,
     NewEmployee,
     EmployeeLevel,
 };
@@ -560,6 +559,7 @@ impl Handler<Messages> for DbExecutor {
                                 .eq(shift.shift_repeat),
                             shifts::every_x
                                 .eq(shift.every_x),
+                            shifts::note.eq(shift.note)
                         ))
                         .get_result(conn)
                         .map(|updated| {

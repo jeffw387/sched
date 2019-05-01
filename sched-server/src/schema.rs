@@ -63,6 +63,7 @@ table! {
         minutes -> Int4,
         shift_repeat -> Text,
         every_x -> Nullable<Int4>,
+        note -> Nullable<Text>,
     }
 }
 

@@ -57,6 +57,7 @@ pub struct Shift {
     pub minutes: i32,
     pub shift_repeat: ShiftRepeat,
     pub every_x: Option<i32>,
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Insertable, Deserialize)]
@@ -73,4 +74,5 @@ pub struct NewShift {
     pub minutes: i32,
     pub shift_repeat: ShiftRepeat,
     pub every_x: Option<i32>,
+    pub note: Option<String>,
 }

@@ -1,4 +1,4 @@
-module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, Row, RowID, Settings, Shift, ShiftModalData, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Weekdays(..), YearMonth, YearMonthDay, addShiftElement, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, compareDays, dayCompare, dayElement, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, exactShiftMatch, fillX, fillY, filterByYearMonthDay, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, modalColor, monthCode, monthDefault, monthNumToString, monthRowElement, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDecoder, shiftEditorForDay, shiftEditorForShift, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftModalElement, shiftRepeatDecoder, shiftRepeatEncoder, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdFromShift, ymdNextMonth, ymdPriorMonth, ymdToString)
+module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, Row, RowID, Settings, Shift, ShiftModalData, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Weekdays(..), YearMonth, YearMonthDay, addShiftElement, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, compareDays, dayCompare, dayElement, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, exactShiftMatch, fillX, fillY, filterByYearMonthDay, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, modalColor, monthCode, monthDefault, monthNumToString, monthRowElement, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDecoder, shiftEditElement, shiftEditorForDay, shiftEditorForShift, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftRepeatDecoder, shiftRepeatEncoder, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdFromShift, ymdNextMonth, ymdPriorMonth, ymdToString)
 
 import Array exposing (Array)
 import Browser
@@ -313,6 +313,7 @@ type alias Shift =
     , minutes : Int
     , repeat : ShiftRepeat
     , everyX : Maybe Int
+    , note : Maybe String
     }
 
 
@@ -662,6 +663,14 @@ shiftEncoder shift =
                 Nothing ->
                     E.null
           )
+        , ( "note"
+          , case shift.note of
+                Just note ->
+                    E.string note
+
+                Nothing ->
+                    E.null
+          )
         ]
 
 
@@ -854,6 +863,7 @@ shiftDecoder =
         |> JPipe.required "minutes" D.int
         |> JPipe.required "shift_repeat" shiftRepeatDecoder
         |> JPipe.required "every_x" (D.maybe D.int)
+        |> JPipe.required "note" (D.maybe D.string)
 
 
 employeeLevelDecoder : D.Decoder EmployeeLevel
@@ -988,20 +998,21 @@ type Message
     | EmployeeEditUpdateLastName String
     | EmployeeEditUpdatePhoneNumber String
     | EmployeeEditRemoveEmployee
-    | -- ShiftModal Messages
-      EditShiftRequest (Maybe YearMonthDay) (Maybe Shift)
+      -- ShiftModal Messages
+    | EditShiftRequest (Maybe YearMonthDay) (Maybe Shift)
     | EditShiftResponse (Result Http.Error Shift)
     | OpenShiftEditor Shift
     | RemoveShift Shift
     | CloseShiftModal
     | ShiftEmployeeSearch String
+    | ShiftEditUpdateNote String
     | ChooseShiftEmployee Employee
     | UpdateShiftStart Float
     | UpdateShiftDuration Float
     | UpdateShiftRepeat ShiftRepeat
     | UpdateShiftRepeatRate String
-    | -- ViewSelect Messages
-      OpenViewSelect
+      -- ViewSelect Messages
+    | OpenViewSelect
     | ChooseActiveView Int
     | RemoveView
     | DuplicateView
@@ -1303,6 +1314,7 @@ shiftFromDay ymd maybeEmpID =
         0
         NeverRepeat
         (Just 1)
+        Nothing
 
 
 shiftEditorForDay : YearMonthDay -> List Employee -> ShiftModalData
@@ -2116,6 +2128,32 @@ update message model =
                                         | employee = Just employee
                                         , priorShift = Just updatedShift
                                     }
+
+                                updatedPage =
+                                    { page | modal = ShiftModal updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
+                            in
+                            ( updatedModel, updateShift updatedShift )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, ShiftEditUpdateNote note ) ->
+            case page.modal of
+                ShiftModal shiftData ->
+                    case Debug.log "updatenote priorShift" shiftData.priorShift of
+                        Just shift ->
+                            let
+                                updatedShift =
+                                    Debug.log "updatedShift" { shift | note = Just note }
+
+                                updatedData =
+                                    { shiftData | priorShift = Just updatedShift }
 
                                 updatedPage =
                                     { page | modal = ShiftModal updatedData }
@@ -3187,30 +3225,41 @@ formatHour24 showMinutes floatTime =
     String.fromInt hour24 ++ minutes
 
 
-formatHours : Settings -> Float -> Float -> Element Message
-formatHours settings start duration =
-    case settings.hourFormat of
-        Hour12 ->
-            let
-                ( _, end ) =
-                    endsFromStartDur start duration
-            in
-            text
-                (formatHour12 settings.showMinutes start
-                    ++ "-"
-                    ++ formatHour12 settings.showMinutes end
-                )
+formatHours : Settings -> Float -> Float -> Maybe String -> Element Message
+formatHours settings start duration maybeNote =
+    let
+        noteFormatted = case maybeNote of
+                    Just note ->
+                        " ("
+                        ++ note
+                        ++ ")"
+                    Nothing -> ""
+    in
+        case settings.hourFormat of
+            Hour12 ->
+                let
+                    ( _, end ) =
+                        endsFromStartDur start duration
+                    
+                in
+                text
+                    (formatHour12 settings.showMinutes start
+                        ++ "-"
+                        ++ formatHour12 settings.showMinutes end
+                        ++ noteFormatted
+                    )
 
-        Hour24 ->
-            let
-                ( _, end ) =
-                    endsFromStartDur start duration
-            in
-            text
-                (formatHour24 settings.showMinutes start
-                    ++ "-"
-                    ++ formatHour24 settings.showMinutes end
-                )
+            Hour24 ->
+                let
+                    ( _, end ) =
+                        endsFromStartDur start duration
+                in
+                text
+                    (formatHour24 settings.showMinutes start
+                        ++ "-"
+                        ++ formatHour24 settings.showMinutes end
+                        ++ noteFormatted
+                    )
 
 
 type alias Row =
@@ -3447,7 +3496,7 @@ shiftElement model settings employees shift =
                             floatDuration =
                                 hourMinuteToFloat shift.hours shift.minutes
                           in
-                          formatHours settings floatBegin floatDuration
+                          formatHours settings floatBegin floatDuration shift.note
                         ]
                 }
 
@@ -3731,8 +3780,8 @@ headerFontSize =
     Font.size 30
 
 
-shiftModalElement : Model -> ShiftModalData -> Element Message
-shiftModalElement model shiftData =
+shiftEditElement : Model -> ShiftModalData -> Element Message
+shiftEditElement model shiftData =
     case ( shiftData.priorShift, getActiveSettings model ) of
         ( Just shift, Just activeSettings ) ->
             let
@@ -3821,6 +3870,19 @@ shiftModalElement model shiftData =
                                 shiftData.employeeMatches
                         }
                     ]
+                , -- Shift note
+                  el [fillX]
+                  <| Input.text
+                    [
+                        centerX
+                    ]
+                    {
+                        onChange = ShiftEditUpdateNote,
+                        text = Maybe.withDefault "" shift.note,
+                        placeholder = Just 
+                            (Input.placeholder [] (text "Note")),
+                        label = Input.labelHidden "Note"
+                    }
                 , -- Shift start slider
                   column
                     ([ fillX
@@ -4712,7 +4774,7 @@ viewModal model =
                     none
 
                 ShiftModal shiftData ->
-                    shiftModalElement model shiftData
+                    shiftEditElement model shiftData
 
                 ViewSelectModal ->
                     selectViewElement model
