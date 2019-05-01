@@ -25,6 +25,9 @@ use crate::settings::{
     NewSettings,
     PerEmployeeSettings,
     Settings,
+    ViewType,
+    HourFormat,
+    LastNameStyle
 };
 use crate::shift::{
     NewShift,
@@ -63,10 +66,10 @@ pub enum Messages {
     AddEmployeeSettings(Token, NewPerEmployeeSettings),
     UpdateEmployeeSettings(Token, PerEmployeeSettings),
     GetEmployees(Token),
-    GetEmployee(Token, Name),
-    AddEmployee(Token, NewEmployee),
-    UpdateEmployee(Token, Employee),
-    RemoveEmployee(Token, Employee),
+    GetCurrentEmployee(Token),
+    AddEmployee(Token, ClientSideEmployee),
+    UpdateEmployee(Token, ClientSideEmployee),
+    RemoveEmployee(Token, ClientSideEmployee),
     GetShifts(Token),
     AddShift(Token, NewShift),
     UpdateShift(Token, Shift),
@@ -394,31 +397,62 @@ impl Handler<Messages> for DbExecutor {
                     })
                     .map_err(Error::Dsl)
             }
-            Messages::GetEmployee(token, name) => {
+            Messages::GetCurrentEmployee(token) => {
                 println!("Messages::GetEmployee");
-                let _ = check_token(&token, conn)?;
-                employees::table
-                    .filter(employees::first.eq(name.first))
-                    .filter(employees::last.eq(name.last))
-                    .first::<Employee>(conn)
-                    .map(|owner| Results::GetEmployee(owner.into()))
-                    .map_err(Error::Dsl)
+                check_token(&token, conn)
+                    .map(|e| Results::GetEmployee(e.into()))
             }
-            Messages::AddEmployee(token, new_employee) => {
+            Messages::AddEmployee(token, new_client_employee) => {
                 println!("Messages::AddEmployee");
                 let owner = check_token(&token, conn)?;
+                let login_info = LoginInfo {
+                    email: String::new(),
+                    password: String::new()
+                };
+
+                let new_employee = NewEmployee::new(
+                    login_info, 
+                    None, 
+                    EmployeeLevel::Read, 
+                    new_client_employee.name,
+                    new_client_employee.phone_number);
                 match owner.level {
                      EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
                     _ => {
-                        diesel::insert_into(
+                        let inserted_employee = 
+                            diesel::insert_into(
                             employees::table,
                         )
                         .values(new_employee)
-                        .execute(conn)
-                        .map(|_| Results::Nothing)
-                        .map_err(Error::Dsl)
+                        .get_result::<Employee>(conn)
+                        .map_err(Error::Dsl)?;
+
+                        let new_settings = NewSettings {
+                            employee_id: inserted_employee.id,
+                            name: String::from("Default"),
+                            view_type: ViewType::Month,
+                            hour_format: HourFormat::Hour12,
+                            last_name_style: LastNameStyle::FirstInitial,
+                            view_year: 2019,
+                            view_month: 4,
+                            view_day: 29,
+                            view_employees: vec![],
+                            show_minutes: true
+                        };
+
+                        let inserted_settings =
+                            diesel::insert_into(settings::table)
+                            .values(new_settings)
+                            .get_result::<Settings>(conn)
+                            .map_err(Error::Dsl)?;
+                        
+                        diesel::update(&inserted_employee)
+                            .set(employees::startup_settings.eq(inserted_settings.id))
+                            .get_result::<Employee>(conn)
+                            .map(|e| Results::GetEmployee(e.into()))
+                            .map_err(Error::Dsl)
                     }
                 }
             }
@@ -433,10 +467,10 @@ impl Handler<Messages> for DbExecutor {
                         Err(Error::Unauthorized)
                     }
                     _ => {
-                        diesel::update(
-                            &updated_employee.clone(),
-                        )
+                        diesel::update(employees::table)
+                        .filter(employees::id.eq(updated_employee.id))
                         .set((
+                            employees::email.eq(updated_employee.email),
                             employees::first.eq(
                                 updated_employee.name.first,
                             ),
@@ -461,7 +495,8 @@ impl Handler<Messages> for DbExecutor {
                         Err(Error::Unauthorized)
                     }
                     _ => {
-                        diesel::delete(&employee.clone())
+                        diesel::delete(employees::table)
+                            .filter(employees::id.eq(employee.id))
                             .execute(conn)
                             .map(|_count| Results::Nothing)
                             .map_err(Error::Dsl)

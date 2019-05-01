@@ -20,7 +20,7 @@ pub const API_ADD_EMPLOYEE_SETTINGS: &str =
 pub const API_UPDATE_EMPLOYEE_SETTINGS: &str =
     "/sched/update_employee_settings";
 pub const API_GET_EMPLOYEES: &str = "/sched/get_employees";
-pub const API_GET_EMPLOYEE: &str = "/sched/get_employee";
+pub const API_GET_CURRENT_EMPLOYEE: &str = "/sched/get_current_employee";
 pub const API_ADD_EMPLOYEE: &str = "/sched/add_employee";
 pub const API_UPDATE_EMPLOYEE: &str =
     "/sched/update_employee";

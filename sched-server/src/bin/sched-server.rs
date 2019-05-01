@@ -279,21 +279,15 @@ fn get_employees((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn get_employee((req, state): DbRequest) -> Box<DbFuture> {
+fn get_current_employee((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
-    req.json()
+    state
+        .db
+        .clone()
+        .send(Messages::GetCurrentEmployee(token))
         .map_err(log_err)
         .from_err()
-        .and_then(move |name| {
-            state
-                .db
-                .clone()
-                .send(Messages::GetEmployee(token, name))
-                .map_err(log_err)
-                .from_err()
-                .and_then(handle_results)
-                .responder()
-        })
+        .and_then(handle_results)
         .responder()
 }
 
@@ -571,8 +565,8 @@ fn main() {
             .resource(API_GET_EMPLOYEES, |r| {
                 r.post().with_async(get_employees)
             })
-            .resource(API_GET_EMPLOYEE, |r| {
-                r.post().with_async(get_employee)
+            .resource(API_GET_CURRENT_EMPLOYEE, |r| {
+                r.post().with_async(get_current_employee)
             })
             .resource(API_ADD_EMPLOYEE, |r| {
                 r.post().with_async(add_employee)

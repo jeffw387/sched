@@ -127,7 +127,7 @@ impl Session {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ClientSideEmployee {
     pub id: i32,
     pub email: String,

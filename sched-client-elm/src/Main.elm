@@ -971,8 +971,16 @@ type Message
     | NextMonth
       -- Employee Editor Messages
     | OpenEmployeeEditor
+    | CloseEmployeeEditor
+    | EmployeeEditNewEmployee
+    | EmployeeEditGetNewEmployee (Result Http.Error Employee)
     | UpdateEmployeeEditorSearch String
     | EmployeeEditorChooseEmployee Employee
+    | EmployeeEditUpdateEmail String
+    | EmployeeEditUpdateFirstName String
+    | EmployeeEditUpdateLastName String
+    | EmployeeEditUpdatePhoneNumber String
+    | EmployeeEditRemoveEmployee
     | -- ShiftModal Messages
       EditShiftRequest (Maybe YearMonthDay) (Maybe Shift)
     | EditShiftResponse (Result Http.Error Shift)
@@ -1012,6 +1020,15 @@ type Message
     | ReceivePosixTime Time.Posix
     | ReceiveZone Time.Zone
     | ReloadData (Result Http.Error ())
+
+
+updateEmployee : Employee -> Cmd Message
+updateEmployee employee =
+    Http.post
+        { url = "/sched/update_employee"
+        , body = Http.jsonBody <| employeeEncoder employee
+        , expect = Http.expectWhatever ReloadData
+        }
 
 
 getEmployeeSettings : Model -> Maybe Int -> Maybe PerEmployeeSettings
@@ -1402,6 +1419,29 @@ updateSettings settings =
         }
 
 
+updateEmployeeList : List Employee -> Employee -> List Employee
+updateEmployeeList employees updated =
+    let
+        without =
+            removeEmployeeFromList employees updated
+    in
+    updated :: without
+
+
+removeEmployeeFromList : List Employee -> Employee -> List Employee
+removeEmployeeFromList employees toRemove =
+    List.Extra.filterNot (\e -> e.id == toRemove.id) employees
+
+
+sortEmployeeList : List Employee -> List Employee
+sortEmployeeList employees =
+    List.sortWith
+        (\e1 e2 ->
+            compare (nameToString e1.name) (nameToString e2.name)
+        )
+        employees
+
+
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     -- let debug = Debug.log "Message" (message) in
@@ -1508,10 +1548,7 @@ update message model =
                 Ok employees ->
                     let
                         sortedEmps =
-                            List.sortWith
-                                (\e1 e2 ->
-                                    compare (nameToString e1.name) (nameToString e2.name)
-                                )
+                            sortEmployeeList
                                 employees
 
                         updated =
@@ -2019,7 +2056,7 @@ update message model =
             case ( page.modal, getActiveSettings model ) of
                 ( ShiftModal shiftData, Just active ) ->
                     let
-                        filteredEmployees =
+                        viewEmployees =
                             getViewEmployees
                                 (Maybe.withDefault [] model.employees)
                                 active.settings.viewEmployees
@@ -2028,7 +2065,7 @@ update message model =
                             Fuzzy.filter
                                 (\emp -> nameToString emp.name)
                                 searchText
-                                filteredEmployees
+                                viewEmployees
 
                         updatedModal =
                             { shiftData
@@ -2223,11 +2260,20 @@ update message model =
             case page.modal of
                 NoModal ->
                     let
+                        viewEmployees =
+                            Maybe.withDefault [] model.employees
+
                         editData =
                             EmployeeEditData
                                 ""
-                                (Maybe.withDefault [] model.employees)
+                                viewEmployees
+                                (case viewEmployees of
+                                    [ one ] ->
+                                        Just one
+
+                                    _ ->
                                 Nothing
+                                )
                                 ""
 
                         updatedPage =
@@ -2237,6 +2283,356 @@ update message model =
                             { model | page = CalendarPage updatedPage }
                     in
                     ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, CloseEmployeeEditor ) ->
+            case page.modal of
+                EmployeeEditor _ ->
+                    let
+                        updatedPage =
+                            { page | modal = NoModal }
+
+                        updatedModel =
+                            { model | page = CalendarPage updatedPage }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditNewEmployee ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    let
+                        newEmployee =
+                            Employee
+                                0
+                                "email@address.com"
+                                Nothing
+                                Read
+                                (Name "New" "Employee")
+                                (Just "(555) 123-4567")
+                    in
+                    ( model
+                    , Http.post
+                        { url = "/sched/add_employee"
+                        , body = Http.jsonBody <| employeeEncoder newEmployee
+                        , expect = Http.expectJson EmployeeEditGetNewEmployee employeeDecoder
+                        }
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditGetNewEmployee employeeResult ) ->
+            case ( page.modal, Debug.log "employeeResult" employeeResult ) of
+                ( EmployeeEditor editData, Ok employee ) ->
+                    let
+                        employees =
+                            Maybe.withDefault [] model.employees
+
+                        updatedEmployees =
+                            updateEmployeeList employees employee
+
+                        sortedEmployees =
+                            sortEmployeeList updatedEmployees
+
+                        updatedData =
+                            { editData
+                                | employee = Just employee
+                                , filteredEmployees =
+                                    Fuzzy.filter
+                                        (\emp -> nameToString emp.name)
+                                        editData.employeeSearchText
+                                        sortedEmployees
+                            }
+
+                        updatedPage =
+                            { page | modal = EmployeeEditor updatedData }
+
+                        updatedModel =
+                            { model | page = CalendarPage updatedPage }
+                    in
+                    update (ReloadData (Ok ())) updatedModel
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateEmployeeEditorSearch searchText ) ->
+            case ( page.modal, getActiveSettings model ) of
+                ( EmployeeEditor editData, Just active ) ->
+                    let
+                        viewEmployees =
+                            getViewEmployees
+                                (Maybe.withDefault [] model.employees)
+                                active.settings.viewEmployees
+
+                        filteredEmployees =
+                            Fuzzy.filter
+                                (\emp -> nameToString emp.name)
+                                searchText
+                                viewEmployees
+
+                        updatedData =
+                            { editData
+                                | employeeSearchText = searchText
+                                , filteredEmployees = filteredEmployees
+                                , employee =
+                                    case filteredEmployees of
+                                        [ one ] ->
+                                            Just one
+
+                                        _ ->
+                                            Nothing
+                            }
+
+                        updatedPage =
+                            { page
+                                | modal = EmployeeEditor updatedData
+                            }
+
+                        updatedModel =
+                            { model
+                                | page = CalendarPage updatedPage
+                            }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditorChooseEmployee employee ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    let
+                        updatedData =
+                            { editData | employee = Just employee }
+
+                        updatedPage =
+                            { page | modal = EmployeeEditor updatedData }
+
+                        updatedModel =
+                            { model | page = CalendarPage updatedPage }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditRemoveEmployee ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    case editData.employee of
+                        Just employee ->
+                            let
+                                updatedData =
+                                    { editData
+                                        | employee = Nothing
+                                        , filteredEmployees =
+                                            removeEmployeeFromList editData.filteredEmployees employee
+                                    }
+
+                                updatedPage =
+                                    { page | modal = EmployeeEditor updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
+                            in
+                            ( updatedModel
+                            , Http.post
+                                { url = "/sched/remove_employee"
+                                , body = Http.jsonBody <| employeeEncoder employee
+                                , expect = Http.expectWhatever ReloadData
+                                }
+                            )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditUpdateEmail email ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    case editData.employee of
+                        Just employee ->
+                            let
+                                updatedEmployee =
+                                    { employee | email = email }
+
+                                employees =
+                                    Maybe.withDefault [] model.employees
+
+                                updatedEmployees =
+                                    updateEmployeeList employees updatedEmployee
+
+                                sortedEmployees =
+                                    sortEmployeeList updatedEmployees
+
+                                updatedData =
+                                    { editData
+                                        | employee = Just updatedEmployee
+                                        , filteredEmployees =
+                                            Fuzzy.filter
+                                                (\emp -> nameToString emp.name)
+                                                editData.employeeSearchText
+                                                sortedEmployees
+                                    }
+
+                                updatedPage =
+                                    { page | modal = EmployeeEditor updatedData }
+
+                                updatedModel =
+                                    { model
+                                        | page = CalendarPage updatedPage
+                                        , employees = Just updatedEmployees
+                                    }
+                            in
+                            ( updatedModel, updateEmployee updatedEmployee )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditUpdateFirstName first ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    case editData.employee of
+                        Just employee ->
+                            let
+                                name =
+                                    employee.name
+
+                                updatedName =
+                                    { name | first = first }
+
+                                updatedEmployee =
+                                    { employee | name = updatedName }
+
+                                employees =
+                                    Maybe.withDefault [] model.employees
+
+                                updatedEmployees =
+                                    updateEmployeeList employees updatedEmployee
+
+                                sortedEmployees =
+                                    sortEmployeeList updatedEmployees
+
+                                updatedData =
+                                    { editData
+                                        | employee = Just updatedEmployee
+                                        , filteredEmployees =
+                                            Fuzzy.filter
+                                                (\emp -> nameToString emp.name)
+                                                editData.employeeSearchText
+                                                sortedEmployees
+                                    }
+
+                                updatedPage =
+                                    { page | modal = EmployeeEditor updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
+                            in
+                            ( updatedModel, updateEmployee updatedEmployee )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditUpdateLastName last ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    case editData.employee of
+                        Just employee ->
+                            let
+                                name =
+                                    employee.name
+
+                                updatedName =
+                                    { name | last = last }
+
+                                updatedEmployee =
+                                    { employee | name = updatedName }
+
+                                employees =
+                                    Maybe.withDefault [] model.employees
+
+                                updatedEmployees =
+                                    updateEmployeeList employees updatedEmployee
+
+                                sortedEmployees =
+                                    sortEmployeeList updatedEmployees
+
+                                updatedData =
+                                    { editData
+                                        | employee = Just updatedEmployee
+                                        , filteredEmployees =
+                                            Fuzzy.filter
+                                                (\emp -> nameToString emp.name)
+                                                editData.employeeSearchText
+                                                sortedEmployees
+                                    }
+
+                                updatedPage =
+                                    { page | modal = EmployeeEditor updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
+                            in
+                            ( updatedModel, updateEmployee updatedEmployee )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, EmployeeEditUpdatePhoneNumber phoneNumber ) ->
+            case page.modal of
+                EmployeeEditor editData ->
+                    case editData.employee of
+                        Just employee ->
+                            let
+                                updatedEmployee =
+                                    { employee | phoneNumber = Just phoneNumber }
+
+                                employees =
+                                    Maybe.withDefault [] model.employees
+
+                                updatedEmployees =
+                                    updateEmployeeList employees updatedEmployee
+
+                                sortedEmployees =
+                                    sortEmployeeList updatedEmployees
+
+                                updatedData =
+                                    { editData
+                                        | employee = Just updatedEmployee
+                                        , filteredEmployees =
+                                            Fuzzy.filter
+                                                (\emp -> nameToString emp.name)
+                                                editData.employeeSearchText
+                                                sortedEmployees
+                                    }
+
+                                updatedPage =
+                                    { page | modal = EmployeeEditor updatedData }
+
+                                updatedModel =
+                                    { model | page = CalendarPage updatedPage }
+                            in
+                            ( updatedModel, updateEmployee updatedEmployee )
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -2388,14 +2784,14 @@ employeeEditorEmployeeOption employee =
             case optionState of
                 Input.Selected ->
                     el
-                        ([ defaultShadow, BG.color white ] ++ defaultBorder)
+                        ([ BG.color modalColor, padding 5 ] ++ defaultBorder)
                     <|
                         text <|
                             nameToString employee.name
 
                 _ ->
                     el
-                        ([ BG.color modalColor ] ++ defaultBorder)
+                        ([ defaultShadow, BG.color white, padding 5 ] ++ defaultBorder)
                     <|
                         text <|
                             nameToString employee.name
@@ -2405,25 +2801,62 @@ employeeEditorEmployeeOption employee =
 viewEmployeeEditor : Model -> EmployeeEditData -> Element Message
 viewEmployeeEditor model editData =
     column
-        ([ defaultShadow ] ++ defaultBorder)
-        [ el [] <| text "Employee Editor"
-        , searchRadio
+        ([ defaultShadow, centerX, centerY, BG.color modalColor ] ++ defaultBorder)
+        [ el [ fillX, padding 10 ] <| el [ fillX, padding 5, BG.color white ] <| el [ centerX, headerFontSize ] <| text "Employee Editor"
+
+        -- employees list/search
+        , el [ padding 10 ] <|
+            searchRadio
             "employeeEditorSearch"
             "Filter employees:"
-            ""
+                editData.employeeSearchText
             UpdateEmployeeEditorSearch
             (case editData.employee of
                 Just employee ->
-                    el
+                        column
                         [ padding 5
                         , BG.color white
                         , Border.color green
                         , Border.width 1
                         , Border.rounded 3
+                            , width <| px 300
+                            , spacing 5
                         ]
-                    <|
-                        text <|
-                            nameToString employee.name
+                            [ Input.text
+                                []
+                                { onChange = EmployeeEditUpdateEmail
+                                , text = employee.email
+                                , placeholder = Nothing
+                                , label = Input.labelAbove [] <| text "Email:"
+                                }
+                            , Input.text
+                                []
+                                { onChange = EmployeeEditUpdateFirstName
+                                , text = employee.name.first
+                                , placeholder = Nothing
+                                , label = Input.labelAbove [] <| text "First name:"
+                                }
+                            , Input.text
+                                []
+                                { onChange = EmployeeEditUpdateLastName
+                                , text = employee.name.last
+                                , placeholder = Nothing
+                                , label = Input.labelAbove [] <| text "Last name:"
+                                }
+                            , Input.text
+                                []
+                                { onChange = EmployeeEditUpdatePhoneNumber
+                                , text = Maybe.withDefault "" employee.phoneNumber
+                                , placeholder = Nothing
+                                , label = Input.labelAbove [] <| text "Phone number:"
+                                }
+                            , el [ fillX ] <|
+                                Input.button
+                                    [ padding 5, BG.color red, centerX ]
+                                    { onPress = Just EmployeeEditRemoveEmployee
+                                    , label = text "Remove"
+                                    }
+                        ]
 
                 Nothing ->
                     none
@@ -2432,6 +2865,22 @@ viewEmployeeEditor model editData =
             editData.employee
             "Employees:"
             (List.map employeeEditorEmployeeOption editData.filteredEmployees)
+        , row [ fillX, padding 10, spacing 25 ]
+            [ Input.button
+                [ centerX ]
+                { onPress = Just EmployeeEditNewEmployee
+                , label =
+                    el [ padding 5, BG.color green ] <|
+                        text "New employee"
+                }
+            , Input.button
+                [ centerX ]
+                { onPress = Just CloseEmployeeEditor
+                , label =
+                    el [ padding 5, BG.color yellow ] <|
+                        text "Back"
+                }
+            ]
         ]
 
 
