@@ -654,9 +654,14 @@ shiftEncoder shift =
         , ( "hours", E.int shift.hours )
         , ( "minutes", E.int shift.minutes )
         , ( "shift_repeat", shiftRepeatEncoder shift.repeat )
-        , ( "every_x", case shift.everyX of
-            Just everyX -> E.int everyX
-            Nothing -> E.null )
+        , ( "every_x"
+          , case shift.everyX of
+                Just everyX ->
+                    E.int everyX
+
+                Nothing ->
+                    E.null
+          )
         ]
 
 
@@ -2809,21 +2814,21 @@ viewEmployeeEditor model editData =
         -- employees list/search
         , el [ padding 10 ] <|
             searchRadio
-            "employeeEditorSearch"
-            "Filter employees:"
+                "employeeEditorSearch"
+                "Filter employees:"
                 editData.employeeSearchText
-            UpdateEmployeeEditorSearch
-            (case editData.employee of
-                Just employee ->
+                UpdateEmployeeEditorSearch
+                (case editData.employee of
+                    Just employee ->
                         column
-                        [ padding 5
-                        , BG.color white
-                        , Border.color green
-                        , Border.width 1
-                        , Border.rounded 3
+                            [ padding 5
+                            , BG.color white
+                            , Border.color green
+                            , Border.width 1
+                            , Border.rounded 3
                             , width <| px 300
                             , spacing 5
-                        ]
+                            ]
                             [ Input.text
                                 []
                                 { onChange = EmployeeEditUpdateEmail
@@ -2858,15 +2863,15 @@ viewEmployeeEditor model editData =
                                     { onPress = Just EmployeeEditRemoveEmployee
                                     , label = text "Remove"
                                     }
-                        ]
+                            ]
 
-                Nothing ->
-                    none
-            )
-            EmployeeEditorChooseEmployee
-            editData.employee
-            "Employees:"
-            (List.map employeeEditorEmployeeOption editData.filteredEmployees)
+                    Nothing ->
+                        none
+                )
+                EmployeeEditorChooseEmployee
+                editData.employee
+                "Employees:"
+                (List.map employeeEditorEmployeeOption editData.filteredEmployees)
         , row [ fillX, padding 10, spacing 25 ]
             [ Input.button
                 [ centerX ]
@@ -3069,11 +3074,11 @@ shiftMatch ymd shift =
         shiftYMD =
             YearMonthDay shift.year shift.month shift.day
     in
-    case (shift.repeat, shift.everyX) of
-        (EveryWeek, Just everyX) ->
+    case ( shift.repeat, shift.everyX ) of
+        ( EveryWeek, Just everyX ) ->
             weekRepeatMatch shiftYMD ymd everyX
 
-        (EveryDay, Just everyX) ->
+        ( EveryDay, Just everyX ) ->
             dayRepeatMatch shiftYMD ymd everyX
 
         _ ->
@@ -3960,9 +3965,13 @@ shiftModalElement model shiftData =
                         , alignTop
                         ]
                         { onChange = UpdateShiftRepeatRate
-                        , text = case shift.everyX of
-                            Just everyX -> String.fromInt everyX
-                            Nothing -> ""
+                        , text =
+                            case shift.everyX of
+                                Just everyX ->
+                                    String.fromInt everyX
+
+                                Nothing ->
+                                    ""
                         , placeholder = Nothing
                         , label =
                             Input.labelAbove
