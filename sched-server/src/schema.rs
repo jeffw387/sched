@@ -62,7 +62,7 @@ table! {
         hours -> Int4,
         minutes -> Int4,
         shift_repeat -> Text,
-        every_x -> Int4,
+        every_x -> Nullable<Int4>,
     }
 }
 

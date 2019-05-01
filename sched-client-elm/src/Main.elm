@@ -312,7 +312,7 @@ type alias Shift =
     , hours : Int
     , minutes : Int
     , repeat : ShiftRepeat
-    , everyX : Int
+    , everyX : Maybe Int
     }
 
 
@@ -654,7 +654,9 @@ shiftEncoder shift =
         , ( "hours", E.int shift.hours )
         , ( "minutes", E.int shift.minutes )
         , ( "shift_repeat", shiftRepeatEncoder shift.repeat )
-        , ( "every_x", E.int shift.everyX )
+        , ( "every_x", case shift.everyX of
+            Just everyX -> E.int everyX
+            Nothing -> E.null )
         ]
 
 
@@ -837,7 +839,7 @@ shiftDecoder =
     D.succeed Shift
         |> JPipe.required "id" D.int
         |> JPipe.required "supervisor_id" D.int
-        |> JPipe.optional "employee_id" (D.maybe D.int) Nothing
+        |> JPipe.required "employee_id" (D.maybe D.int)
         |> JPipe.required "year" D.int
         |> JPipe.required "month" D.int
         |> JPipe.required "day" D.int
@@ -846,7 +848,7 @@ shiftDecoder =
         |> JPipe.required "hours" D.int
         |> JPipe.required "minutes" D.int
         |> JPipe.required "shift_repeat" shiftRepeatDecoder
-        |> JPipe.required "every_x" D.int
+        |> JPipe.required "every_x" (D.maybe D.int)
 
 
 employeeLevelDecoder : D.Decoder EmployeeLevel
@@ -1295,7 +1297,7 @@ shiftFromDay ymd maybeEmpID =
         8
         0
         NeverRepeat
-        1
+        (Just 1)
 
 
 shiftEditorForDay : YearMonthDay -> List Employee -> ShiftModalData
@@ -2152,7 +2154,7 @@ update message model =
 
         ( CalendarPage page, UpdateShiftRepeatRate rateStr ) ->
             case ( page.modal, String.toInt rateStr ) of
-                ( ShiftModal shiftData, Just rate ) ->
+                ( ShiftModal shiftData, rate ) ->
                     case shiftData.priorShift of
                         Just shift ->
                             let
@@ -2272,7 +2274,7 @@ update message model =
                                         Just one
 
                                     _ ->
-                                Nothing
+                                        Nothing
                                 )
                                 ""
 
@@ -2745,13 +2747,13 @@ editEmployeesButton maybeEmployee =
         Just employee ->
             case employee.level of
                 Admin ->
-    Input.button
-        [ defaultShadow
-        , padding 5
-        ]
-        { onPress = Just OpenEmployeeEditor
-        , label = text "Employees"
-        }
+                    Input.button
+                        [ defaultShadow
+                        , padding 5
+                        ]
+                        { onPress = Just OpenEmployeeEditor
+                        , label = text "Employees"
+                        }
 
                 _ ->
                     Input.button
@@ -3067,15 +3069,15 @@ shiftMatch ymd shift =
         shiftYMD =
             YearMonthDay shift.year shift.month shift.day
     in
-    case shift.repeat of
-        NeverRepeat ->
+    case (shift.repeat, shift.everyX) of
+        (EveryWeek, Just everyX) ->
+            weekRepeatMatch shiftYMD ymd everyX
+
+        (EveryDay, Just everyX) ->
+            dayRepeatMatch shiftYMD ymd everyX
+
+        _ ->
             exactShiftMatch ymd shiftYMD
-
-        EveryWeek ->
-            weekRepeatMatch shiftYMD ymd shift.everyX
-
-        EveryDay ->
-            dayRepeatMatch shiftYMD ymd shift.everyX
 
 
 ymdFromShift : Shift -> YearMonthDay
@@ -3958,7 +3960,9 @@ shiftModalElement model shiftData =
                         , alignTop
                         ]
                         { onChange = UpdateShiftRepeatRate
-                        , text = String.fromInt shift.everyX
+                        , text = case shift.everyX of
+                            Just everyX -> String.fromInt everyX
+                            Nothing -> ""
                         , placeholder = Nothing
                         , label =
                             Input.labelAbove

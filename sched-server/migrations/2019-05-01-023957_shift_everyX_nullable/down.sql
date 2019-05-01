@@ -1,0 +1,1 @@
+ALTER TABLE shifts ALTER COLUMN every_x SET NOT NULL;
