@@ -220,7 +220,7 @@ type alias Employee =
     , startupSettings : Maybe Int
     , level : EmployeeLevel
     , name : Name
-    , phone_number : Maybe String
+    , phoneNumber : Maybe String
     }
 
 
@@ -483,7 +483,7 @@ employeeEncoder e =
           )
         , ( "level", employeeLevelEncoder e.level )
         , ( "name", nameEncoder e.name )
-        , case e.phone_number of
+        , case e.phoneNumber of
             Just pn ->
                 ( "phone_number", E.string pn )
 
