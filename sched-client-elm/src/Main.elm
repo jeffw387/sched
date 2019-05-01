@@ -1003,8 +1003,9 @@ type Message
     | ChooseEmployeeColor Employee EmployeeColor
     | SaveView
     | CloseViewEdit
-    | -- Loading Messages
-      ReceiveEmployees (Result Http.Error (List Employee))
+      -- Loading Messages
+    | ReceiveCurrentEmployee (Result Http.Error Employee)
+    | ReceiveEmployees (Result Http.Error (List Employee))
     | ReceiveShifts (Result Http.Error (List Shift))
     | ReceiveDefaultSettings (Result Http.Error (Maybe Int))
     | ReceiveSettingsList (Result Http.Error (List CombinedSettings))
@@ -1060,6 +1061,15 @@ requestEmployees =
         { url = "/sched/get_employees"
         , body = Http.emptyBody
         , expect = Http.expectJson ReceiveEmployees (genericObjectDecoder (D.list employeeDecoder))
+        }
+
+
+requestCurrentEmployee : Cmd Message
+requestCurrentEmployee =
+    Http.post
+        { url = "/sched/get_current_employee"
+        , body = Http.emptyBody
+        , expect = Http.expectJson ReceiveCurrentEmployee employeeDecoder
         }
 
 
@@ -1284,6 +1294,7 @@ loadData =
     Cmd.batch
         [ getPosixTime
         , getTimeZone
+        , requestCurrentEmployee
         , requestEmployees
         , requestShifts
         , requestSettings
@@ -1480,6 +1491,18 @@ update message model =
             ( updatedModel, Cmd.none )
 
         -- Loading messages
+        ( _, ReceiveCurrentEmployee employeeResult ) ->
+            case employeeResult of
+                Ok employee ->
+                    let
+                        updatedModel =
+                            { model | currentEmployee = Just employee }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ( _, ReceiveEmployees employeesResult ) ->
             case employeesResult of
                 Ok employees ->
@@ -2320,7 +2343,12 @@ editViewButton =
         }
 
 
-editEmployeesButton =
+editEmployeesButton : Maybe Employee -> Element Message
+editEmployeesButton maybeEmployee =
+    case maybeEmployee of
+        Just employee ->
+            case employee.level of
+                Admin ->
     Input.button
         [ defaultShadow
         , padding 5
@@ -2328,6 +2356,19 @@ editEmployeesButton =
         { onPress = Just OpenEmployeeEditor
         , label = text "Employees"
         }
+
+                _ ->
+                    Input.button
+                        [ defaultShadow
+                        , padding 5
+                        , Font.color grey
+                        ]
+                        { onPress = Nothing
+                        , label = text "Employees"
+                        }
+
+        Nothing ->
+            none
 
 
 viewLogoutButton =
@@ -2394,8 +2435,8 @@ viewEmployeeEditor model editData =
         ]
 
 
-viewCalendarFooter : Element Message
-viewCalendarFooter =
+viewCalendarFooter : Maybe Employee -> Element Message
+viewCalendarFooter maybeEmployee =
     row
         [ height (px 32)
         , width fill
@@ -2406,7 +2447,7 @@ viewCalendarFooter =
         ]
         [ selectViewButton
         , editViewButton
-        , editEmployeesButton
+        , editEmployeesButton maybeEmployee
         , viewLogoutButton
         ]
 
@@ -4262,16 +4303,16 @@ viewCalendar model =
                                 (\id -> getEmployee employees (Just id))
                                 activeSettings.settings.viewEmployees
                             )
-                        , viewCalendarFooter
+                        , viewCalendarFooter model.currentEmployee
                         ]
 
                 WeekView ->
                     column [ fillX, fillY, inFront (viewModal model) ]
-                        [ viewCalendarFooter ]
+                        [ viewCalendarFooter model.currentEmployee ]
 
                 DayView ->
                     column [ fillX, fillY, inFront (viewModal model) ]
-                        [ viewCalendarFooter ]
+                        [ viewCalendarFooter model.currentEmployee ]
 
         _ ->
             text "Loading..."
