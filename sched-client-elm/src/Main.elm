@@ -3228,38 +3228,40 @@ formatHour24 showMinutes floatTime =
 formatHours : Settings -> Float -> Float -> Maybe String -> Element Message
 formatHours settings start duration maybeNote =
     let
-        noteFormatted = case maybeNote of
-                    Just note ->
-                        " ("
+        noteFormatted =
+            case maybeNote of
+                Just note ->
+                    " ("
                         ++ note
                         ++ ")"
-                    Nothing -> ""
-    in
-        case settings.hourFormat of
-            Hour12 ->
-                let
-                    ( _, end ) =
-                        endsFromStartDur start duration
-                    
-                in
-                text
-                    (formatHour12 settings.showMinutes start
-                        ++ "-"
-                        ++ formatHour12 settings.showMinutes end
-                        ++ noteFormatted
-                    )
 
-            Hour24 ->
-                let
-                    ( _, end ) =
-                        endsFromStartDur start duration
-                in
-                text
-                    (formatHour24 settings.showMinutes start
-                        ++ "-"
-                        ++ formatHour24 settings.showMinutes end
-                        ++ noteFormatted
-                    )
+                Nothing ->
+                    ""
+    in
+    case settings.hourFormat of
+        Hour12 ->
+            let
+                ( _, end ) =
+                    endsFromStartDur start duration
+            in
+            text
+                (formatHour12 settings.showMinutes start
+                    ++ "-"
+                    ++ formatHour12 settings.showMinutes end
+                    ++ noteFormatted
+                )
+
+        Hour24 ->
+            let
+                ( _, end ) =
+                    endsFromStartDur start duration
+            in
+            text
+                (formatHour24 settings.showMinutes start
+                    ++ "-"
+                    ++ formatHour24 settings.showMinutes end
+                    ++ noteFormatted
+                )
 
 
 type alias Row =
@@ -3780,294 +3782,452 @@ headerFontSize =
     Font.size 30
 
 
+shiftWriteAccess : Employee -> Shift -> Bool
+shiftWriteAccess currentEmployee shift =
+    case currentEmployee.level of
+        Read ->
+            False
+
+        _ ->
+            if currentEmployee.id == shift.supervisorID then
+                True
+
+            else
+                False
+
+
 shiftEditElement : Model -> ShiftModalData -> Element Message
 shiftEditElement model shiftData =
-    case ( shiftData.priorShift, getActiveSettings model ) of
-        ( Just shift, Just activeSettings ) ->
+    case ( shiftData.priorShift, getActiveSettings model, model.currentEmployee ) of
+        ( Just shift, Just activeSettings, Just currentEmployee ) ->
             let
                 settings =
                     activeSettings.settings
             in
-            column
-                [ centerX
-                , centerY
-                , BG.color modalColor
-                , padding 15
-                , defaultShadow
-                , spacingXY 0 15
-                ]
-                [ -- Shift edit header text
-                  el
-                    [ fillX
-                    , fillY
-                    , headerFontSize
-                    , BG.color white
-                    , padding 15
-                    ]
-                    (el
+            case shiftWriteAccess currentEmployee shift of
+                True ->
+                    column
                         [ centerX
                         , centerY
-                        ]
-                     <|
-                        text "Edit shift:"
-                    )
-                , -- Date display
-                  el
-                    [ centerX
-                    , centerY
-                    ]
-                    (text (ymdToString <| ymdFromShift shift))
-                , -- Employee search/select
-                  column
-                    [ spacing 15
-                    , paddingXY 0 15
-                    ]
-                    [ Input.search
-                        [ fillX
+                        , BG.color modalColor
+                        , padding 15
                         , defaultShadow
-                        , centerX
-                        , htmlAttribute (HtmlAttr.id "employeeSearch")
-                        , onRight
-                            (case shiftData.employee of
-                                Just employee ->
-                                    el
-                                        [ fillX, fillY, paddingXY 10 0 ]
-                                        (el
-                                            [ alignBottom
-                                            , BG.color white
-                                            , Border.color lightGreen
-                                            , Border.width 2
-                                            , Border.rounded 3
-                                            , padding 12
-                                            ]
-                                         <|
-                                            text <|
-                                                nameToString employee.name
-                                        )
-
-                                Nothing ->
-                                    el [ fillX ] none
-                            )
+                        , spacingXY 0 15
                         ]
-                        { onChange = ShiftEmployeeSearch
-                        , text = shiftData.employeeSearch
-                        , placeholder = Nothing
-                        , label = Input.labelAbove [ centerX, padding 2 ] (text "Find employee: ")
-                        }
-                    , Input.radio
-                        ([ clipY
-                         , scrollbarY
-                         , height (px 150)
-                         , fillX
-                         ]
-                            ++ defaultBorder
-                        )
-                        { onChange = ChooseShiftEmployee
-                        , selected = shiftData.employee
-                        , label = Input.labelHidden "Employees"
-                        , options =
-                            employeeAutofillElement
-                                shiftData.employeeMatches
-                        }
-                    ]
-                , -- Shift note
-                  el [fillX]
-                  <| Input.text
-                    [
-                        centerX
-                    ]
-                    {
-                        onChange = ShiftEditUpdateNote,
-                        text = Maybe.withDefault "" shift.note,
-                        placeholder = Just 
-                            (Input.placeholder [] (text "Note")),
-                        label = Input.labelHidden "Note"
-                    }
-                , -- Shift start slider
-                  column
-                    ([ fillX
-                     ]
-                        ++ defaultBorder
-                    )
-                    [ row
-                        []
-                        [ text "Start at: "
-                        , el
-                            [ BG.color white
-                            , Border.solid
-                            , Border.color borderColor
-                            , Border.width 1
-                            , Border.rounded 3
-                            , padding 3
-                            , Font.family
-                                [ Font.monospace
-                                ]
+                        [ -- Shift edit header text
+                          el
+                            [ fillX
+                            , fillY
+                            , headerFontSize
+                            , BG.color white
+                            , padding 15
                             ]
-                            (text
-                                (floatToTimeString
-                                    (hourMinuteToFloat shift.hour shift.minute)
-                                    settings.hourFormat
-                                )
-                            )
-                        ]
-                    , Input.slider
-                        [ -- Slider BG
-                          behindContent
                             (el
-                                [ BG.color white
+                                [ centerX
                                 , centerY
-                                , fillX
-                                , height (px 5)
                                 ]
-                                none
+                             <|
+                                text "Edit shift:"
                             )
-                        ]
-                        { onChange = UpdateShiftStart
-                        , label =
-                            Input.labelHidden "Start Time"
-                        , min = 0
-                        , max = 23.75
-                        , value = hourMinuteToFloat shift.hour shift.minute
-                        , step = Just 0.25
-                        , thumb = Input.defaultThumb
-                        }
-                    ]
-                , -- Shift duration slider
-                  column
-                    ([ fillX
-                     ]
-                        ++ defaultBorder
-                    )
-                    [ -- Label for duration slider
-                      row
-                        [ fillX
-                        ]
-                        [ text "Duration: "
-                        , el
-                            ([ BG.color white
-                             , padding 3
-                             , Font.family
-                                [ Font.monospace
-                                ]
-                             ]
-                                ++ defaultBorder
-                            )
-                            (text
-                                (floatToDurationString
-                                    (hourMinuteToFloat shift.hours shift.minutes)
-                                )
-                            )
-                        , text " Ends: "
-                        , el
-                            ([ BG.color white
-                             , padding 3
-                             , Font.family
-                                [ Font.monospace
-                                ]
-                             ]
-                                ++ defaultBorder
-                            )
-                            (text
-                                (floatToTimeString
-                                    (hourMinuteToFloat shift.hour shift.minute
-                                        + hourMinuteToFloat shift.hours shift.minutes
+                        , -- Date display
+                          el
+                            [ centerX
+                            , centerY
+                            ]
+                            (text (ymdToString <| ymdFromShift shift))
+                        , -- Employee search/select
+                          column
+                            [ spacing 15
+                            , paddingXY 0 15
+                            ]
+                            [ Input.search
+                                [ fillX
+                                , defaultShadow
+                                , centerX
+                                , htmlAttribute (HtmlAttr.id "employeeSearch")
+                                , onRight
+                                    (case shiftData.employee of
+                                        Just employee ->
+                                            el
+                                                [ fillX, fillY, paddingXY 10 0 ]
+                                                (el
+                                                    [ alignBottom
+                                                    , BG.color white
+                                                    , Border.color lightGreen
+                                                    , Border.width 2
+                                                    , Border.rounded 3
+                                                    , padding 12
+                                                    ]
+                                                 <|
+                                                    text <|
+                                                        nameToString employee.name
+                                                )
+
+                                        Nothing ->
+                                            el [ fillX ] none
                                     )
-                                    settings.hourFormat
-                                )
-                            )
-                        ]
-                    , Input.slider
-                        [ -- Slider BG
-                          behindContent
-                            (el
-                                [ BG.color white
-                                , centerY
-                                , fillX
-                                , height (px 5)
                                 ]
-                                none
-                            )
-                        ]
-                        { onChange = UpdateShiftDuration
-                        , label =
-                            Input.labelHidden "Shift Duration"
-                        , min = 0
-                        , max = 16
-                        , value = hourMinuteToFloat shift.hours shift.minutes
-                        , step = Just 0.25
-                        , thumb = Input.defaultThumb
-                        }
-                    ]
-                , -- Repeat controls
-                  row
-                    ([ width shrink
-                     , spacing 5
-                     ]
-                        ++ defaultBorder
-                    )
-                    [ Input.radio
-                        [ BG.color white
-                        , padding 5
-                        ]
-                        { onChange = UpdateShiftRepeat
-                        , selected = Just shift.repeat
-                        , label =
-                            Input.labelAbove
-                                [ BG.color lightGrey, fillX, padding 5 ]
-                                (el [ centerX ] (text "Repeat:"))
-                        , options =
-                            [ Input.option NeverRepeat (text "Never")
-                            , Input.option EveryWeek (text "Weekly")
-                            , Input.option EveryDay (text "Daily")
+                                { onChange = ShiftEmployeeSearch
+                                , text = shiftData.employeeSearch
+                                , placeholder = Nothing
+                                , label = Input.labelAbove [ centerX, padding 2 ] (text "Find employee: ")
+                                }
+                            , Input.radio
+                                ([ clipY
+                                 , scrollbarY
+                                 , height (px 150)
+                                 , fillX
+                                 ]
+                                    ++ defaultBorder
+                                )
+                                { onChange = ChooseShiftEmployee
+                                , selected = shiftData.employee
+                                , label = Input.labelHidden "Employees"
+                                , options =
+                                    employeeAutofillElement
+                                        shiftData.employeeMatches
+                                }
                             ]
-                        }
-                    , Input.text
-                        [ width (px 50)
-                        , padding 5
-                        , alignTop
-                        ]
-                        { onChange = UpdateShiftRepeatRate
-                        , text =
-                            case shift.everyX of
-                                Just everyX ->
-                                    String.fromInt everyX
-
-                                Nothing ->
-                                    ""
-                        , placeholder = Nothing
-                        , label =
-                            Input.labelAbove
-                                [ BG.color lightGrey
+                        , -- Shift note
+                          el [ fillX ] <|
+                            Input.text
+                                [ centerX
+                                ]
+                                { onChange = ShiftEditUpdateNote
+                                , text = Maybe.withDefault "" shift.note
+                                , placeholder =
+                                    Just
+                                        (Input.placeholder [] (text "Note"))
+                                , label = Input.labelHidden "Note"
+                                }
+                        , -- Shift start slider
+                          column
+                            ([ fillX
+                             ]
+                                ++ defaultBorder
+                            )
+                            [ row
+                                []
+                                [ text "Start at: "
+                                , el
+                                    [ BG.color white
+                                    , Border.solid
+                                    , Border.color borderColor
+                                    , Border.width 1
+                                    , Border.rounded 3
+                                    , padding 3
+                                    , Font.family
+                                        [ Font.monospace
+                                        ]
+                                    ]
+                                    (text
+                                        (floatToTimeString
+                                            (hourMinuteToFloat shift.hour shift.minute)
+                                            settings.hourFormat
+                                        )
+                                    )
+                                ]
+                            , Input.slider
+                                [ -- Slider BG
+                                  behindContent
+                                    (el
+                                        [ BG.color white
+                                        , centerY
+                                        , fillX
+                                        , height (px 5)
+                                        ]
+                                        none
+                                    )
+                                ]
+                                { onChange = UpdateShiftStart
+                                , label =
+                                    Input.labelHidden "Start Time"
+                                , min = 0
+                                , max = 23.75
+                                , value = hourMinuteToFloat shift.hour shift.minute
+                                , step = Just 0.25
+                                , thumb = Input.defaultThumb
+                                }
+                            ]
+                        , -- Shift duration slider
+                          column
+                            ([ fillX
+                             ]
+                                ++ defaultBorder
+                            )
+                            [ -- Label for duration slider
+                              row
+                                [ fillX
+                                ]
+                                [ text "Duration: "
+                                , el
+                                    ([ BG.color white
+                                     , padding 3
+                                     , Font.family
+                                        [ Font.monospace
+                                        ]
+                                     ]
+                                        ++ defaultBorder
+                                    )
+                                    (text
+                                        (floatToDurationString
+                                            (hourMinuteToFloat shift.hours shift.minutes)
+                                        )
+                                    )
+                                , text " Ends: "
+                                , el
+                                    ([ BG.color white
+                                     , padding 3
+                                     , Font.family
+                                        [ Font.monospace
+                                        ]
+                                     ]
+                                        ++ defaultBorder
+                                    )
+                                    (text
+                                        (floatToTimeString
+                                            (hourMinuteToFloat shift.hour shift.minute
+                                                + hourMinuteToFloat shift.hours shift.minutes
+                                            )
+                                            settings.hourFormat
+                                        )
+                                    )
+                                ]
+                            , Input.slider
+                                [ -- Slider BG
+                                  behindContent
+                                    (el
+                                        [ BG.color white
+                                        , centerY
+                                        , fillX
+                                        , height (px 5)
+                                        ]
+                                        none
+                                    )
+                                ]
+                                { onChange = UpdateShiftDuration
+                                , label =
+                                    Input.labelHidden "Shift Duration"
+                                , min = 0
+                                , max = 16
+                                , value = hourMinuteToFloat shift.hours shift.minutes
+                                , step = Just 0.25
+                                , thumb = Input.defaultThumb
+                                }
+                            ]
+                        , -- Repeat controls
+                          row
+                            ([ width shrink
+                             , spacing 5
+                             ]
+                                ++ defaultBorder
+                            )
+                            [ Input.radio
+                                [ BG.color white
                                 , padding 5
                                 ]
-                                (text "Every:")
-                        }
-                    ]
-                , -- Navigation buttons
-                  row
-                    [ spacing 10
-                    , padding 5
-                    , fillX
-                    ]
-                    [ Input.button
-                        [ BG.color red
-                        , padding 5
-                        , defaultShadow
+                                { onChange = UpdateShiftRepeat
+                                , selected = Just shift.repeat
+                                , label =
+                                    Input.labelAbove
+                                        [ BG.color lightGrey, fillX, padding 5 ]
+                                        (el [ centerX ] (text "Repeat:"))
+                                , options =
+                                    [ Input.option NeverRepeat (text "Never")
+                                    , Input.option EveryWeek (text "Weekly")
+                                    , Input.option EveryDay (text "Daily")
+                                    ]
+                                }
+                            , Input.text
+                                [ width (px 50)
+                                , padding 5
+                                , alignTop
+                                ]
+                                { onChange = UpdateShiftRepeatRate
+                                , text =
+                                    case shift.everyX of
+                                        Just everyX ->
+                                            String.fromInt everyX
+
+                                        Nothing ->
+                                            ""
+                                , placeholder = Nothing
+                                , label =
+                                    Input.labelAbove
+                                        [ BG.color lightGrey
+                                        , padding 5
+                                        ]
+                                        (text "Every:")
+                                }
+                            ]
+                        , -- Navigation buttons
+                          row
+                            [ spacing 10
+                            , padding 5
+                            , fillX
+                            ]
+                            [ Input.button
+                                [ BG.color red
+                                , padding 5
+                                , defaultShadow
+                                ]
+                                { onPress = Just <| RemoveShift shift
+                                , label = text "Delete"
+                                }
+                            , Input.button
+                                [ BG.color yellow
+                                , padding 5
+                                , defaultShadow
+                                , alignRight
+                                ]
+                                { onPress = Just CloseShiftModal
+                                , label = text "Back"
+                                }
+                            ]
                         ]
-                        { onPress = Just <| RemoveShift shift
-                        , label = text "Delete"
-                        }
-                    , Input.button
-                        [ BG.color yellow
-                        , padding 5
+
+                False ->
+                    column
+                        [ centerX
+                        , centerY
+                        , BG.color modalColor
+                        , padding 15
                         , defaultShadow
-                        , alignRight
+                        , spacingXY 0 15
                         ]
-                        { onPress = Just CloseShiftModal
-                        , label = text "Back"
-                        }
-                    ]
-                ]
+                        [ el
+                            [ fillX
+                            , fillY
+                            , headerFontSize
+                            , BG.color white
+                            , padding 15
+                            ]
+                            (el
+                                [ centerX
+                                , centerY
+                                ]
+                             <|
+                                text "View shift:"
+                            )
+                        , -- Date display
+                          el
+                            [ centerX
+                            , centerY
+                            ]
+                            (text (ymdToString <| ymdFromShift shift))
+                        , -- Employee display
+                          case shiftData.employee of
+                            Just employee ->
+                                el
+                                    [ fillX, fillY, paddingXY 10 0 ]
+                                    (el
+                                        [ centerX
+                                        , BG.color white
+                                        , Border.color lightGreen
+                                        , Border.width 2
+                                        , Border.rounded 3
+                                        , padding 12
+                                        ]
+                                     <|
+                                        text <|
+                                            nameToString employee.name
+                                    )
+
+                            Nothing ->
+                                text "No employee selected"
+                        , -- Note display
+                          case shift.note of
+                            Just note ->
+                                row ([ fillX, padding 10 ] ++ defaultBorder)
+                                    [ text "Note: "
+                                    , el [ alignRight, BG.color white, padding 5 ] <|
+                                        text note
+                                    ]
+
+                            Nothing ->
+                                el ([ fillX, padding 10 ] ++ defaultBorder) <|
+                                    text
+                                        "No note attached"
+                        , -- Shift time display
+                          let
+                            floatStart =
+                                hourMinuteToFloat
+                                    shift.hour
+                                    shift.minute
+
+                            floatDuration =
+                                hourMinuteToFloat
+                                    shift.hours
+                                    shift.minutes
+
+                            floatEnd =
+                                floatStart + floatDuration
+
+                            startString =
+                                case settings.hourFormat of
+                                    Hour12 ->
+                                        formatHour12
+                                            True
+                                            floatStart
+
+                                    Hour24 ->
+                                        formatHour24
+                                            True
+                                            floatStart
+
+                            endString =
+                                case settings.hourFormat of
+                                    Hour12 ->
+                                        formatHour12
+                                            True
+                                            floatEnd
+
+                                    Hour24 ->
+                                        formatHour24
+                                            True
+                                            floatEnd
+
+                            durationString =
+                                floatToDurationString
+                                    floatDuration
+                          in
+                          column
+                            ([ fillX, padding 10 ] ++ defaultBorder)
+                            [ row [ fillX ]
+                                [ el [ alignRight ] <| text "Starts at "
+                                , el [ padding 5, BG.color white, alignRight ] <|
+                                    text startString
+                                ]
+                            , row [ fillX ]
+                                [ el [ alignRight ] <| text "Lasts "
+                                , el [ padding 5, BG.color white, alignRight ] <|
+                                    text durationString
+                                ]
+                            , row [ fillX ]
+                                [ el [ alignRight ] <| text "Ends at "
+                                , el [ padding 5, BG.color white, alignRight ] <|
+                                    text endString
+                                ]
+                            ]
+                        , el ([padding 10] ++ defaultBorder) <|
+                            case (shift.repeat, shift.everyX) of
+                                (EveryWeek, Just everyX) ->
+                                    text <| "Shift repeats every "
+                                        ++ case everyX of
+                                            1 -> "week."
+                                            _ ->
+                                                (String.fromInt everyX) 
+                                                ++ " weeks."
+                                (EveryDay, Just everyX) ->
+                                    text <| "Shift repeats every "
+                                        ++ case everyX of
+                                            1 -> "day."
+                                            _ -> (String.fromInt everyX)
+                                                ++ " days."
+                                _ ->
+                                    text "Shift does not repeat."
+
+                        ]
 
         _ ->
             text "Error: viewing calendar from another page"
@@ -4088,6 +4248,7 @@ addShiftElement maybeEmployee day =
             case employee.level of
                 Read ->
                     none
+
                 _ ->
                     Input.button
                         [ BG.color lightGreen
@@ -4100,7 +4261,9 @@ addShiftElement maybeEmployee day =
                             el [ moveUp 1 ]
                                 (text "+")
                         }
-        _ -> none
+
+        _ ->
+            none
 
 
 dayCompare : YearMonthDay -> YearMonthDay -> Order
