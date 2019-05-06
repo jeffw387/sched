@@ -4,12 +4,12 @@ use super::message::{
     LoginInfo,
 };
 use crate::employee::{
-    NewSession,
-    Session,
     ClientSideEmployee,
     Employee,
-    NewEmployee,
     EmployeeLevel,
+    NewEmployee,
+    NewSession,
+    Session,
 };
 use crate::schema::{
     employees,
@@ -17,20 +17,23 @@ use crate::schema::{
     sessions,
     settings,
     shifts,
+    vacations,
 };
 use crate::settings::{
     CombinedSettings,
+    HourFormat,
+    LastNameStyle,
     NewPerEmployeeSettings,
     NewSettings,
     PerEmployeeSettings,
     Settings,
     ViewType,
-    HourFormat,
-    LastNameStyle
 };
 use crate::shift::{
     NewShift,
+    NewVacation,
     Shift,
+    Vacation,
 };
 use actix::prelude::*;
 use crypto::pbkdf2 as crypt;
@@ -73,6 +76,10 @@ pub enum Messages {
     AddShift(Token, NewShift),
     UpdateShift(Token, Shift),
     RemoveShift(Token, Shift),
+    GetVacations(Token),
+    AddVacation(Token, NewVacation),
+    UpdateVacation(Token, Vacation),
+    RemoveVacation(Token, Vacation),
 }
 
 impl Message for Messages {
@@ -100,6 +107,8 @@ pub enum Results {
     GetShiftsVec(JsonObject<Vec<Shift>>),
     GetEmployeeShifts(JsonObject<Vec<Shift>>),
     GetShift(Shift),
+    GetVacations(JsonObject<Vec<Vacation>>),
+    GetVacation(Vacation),
     Nothing,
 }
 
@@ -114,8 +123,10 @@ impl Handler<Messages> for DbExecutor {
         let conn = &self.0.get().map_err(Error::R2)?;
         match req {
             Messages::Login(login_info) => {
-                let owner =
-                    employee_by_email(conn, &login_info.email)?;
+                let owner = employee_by_email(
+                    conn,
+                    &login_info.email,
+                )?;
                 if crypt::pbkdf2_check(
                     &login_info.password,
                     &owner.password_hash,
@@ -124,7 +135,7 @@ impl Handler<Messages> for DbExecutor {
                 {
                     println!("Password matches!");
                     let session_length = match owner.level {
-                         EmployeeLevel::Read => 24,
+                        EmployeeLevel::Read => 24,
                         _ => 1,
                     };
                     diesel::insert_into(sessions::table)
@@ -227,7 +238,9 @@ impl Handler<Messages> for DbExecutor {
                 println!("Messages::GetSettings");
                 let owner = check_token(&token, conn)?;
                 let employee_settings = settings::table
-                    .filter(settings::employee_id.eq(owner.id))
+                    .filter(
+                        settings::employee_id.eq(owner.id),
+                    )
                     .load::<Settings>(conn)
                     .map_err(Error::Dsl)?;
                 let per_employee =
@@ -306,7 +319,10 @@ impl Handler<Messages> for DbExecutor {
                 println!("SetDefaultSettings: start");
                 let owner = check_token(&token, conn)?;
                 let _ = diesel::update(&owner)
-                    .set(employees::startup_settings.eq(settings.id))
+                    .set(
+                        employees::startup_settings
+                            .eq(settings.id),
+                    )
                     .execute(conn)
                     .map_err(|err| {
                         eprintln!("Error: {:?}", err);
@@ -333,7 +349,9 @@ impl Handler<Messages> for DbExecutor {
             Messages::RemoveSettings(token, settings) => {
                 let owner = check_token(&token, conn)?;
                 let employee_settings = settings::table
-                    .filter(settings::employee_id.eq(owner.id))
+                    .filter(
+                        settings::employee_id.eq(owner.id),
+                    )
                     .load::<Settings>(conn)
                     .map_err(Error::Dsl)?;
                 if employee_settings.len() > 1 {
@@ -342,12 +360,16 @@ impl Handler<Messages> for DbExecutor {
                         .map_err(Error::Dsl)?;
                     let new_default = settings::table
                         .filter(
-                            settings::employee_id.eq(owner.id),
+                            settings::employee_id
+                                .eq(owner.id),
                         )
                         .first::<Settings>(conn)
                         .map_err(Error::Dsl)?;
                     let _ = diesel::update(&owner.clone())
-                        .set(employees::startup_settings.eq(new_default.id))
+                        .set(
+                            employees::startup_settings
+                                .eq(new_default.id),
+                        )
                         .execute(conn)
                         .map_err(Error::Dsl)?;
                 }
@@ -387,9 +409,12 @@ impl Handler<Messages> for DbExecutor {
                 employees::table
                     .load::<Employee>(conn)
                     .map(|emps_vec| {
-                        let cs_emps: Vec<ClientSideEmployee> = 
-                            emps_vec.iter()
-                            .map(|emp| emp.clone().into()).collect();
+                        let cs_emps: Vec<
+                            ClientSideEmployee,
+                        > = emps_vec
+                            .iter()
+                            .map(|emp| emp.clone().into())
+                            .collect();
                         Results::GetEmployeesVec(
                             JsonObject::new(cs_emps),
                         )
@@ -401,56 +426,74 @@ impl Handler<Messages> for DbExecutor {
                 check_token(&token, conn)
                     .map(|e| Results::GetEmployee(e.into()))
             }
-            Messages::AddEmployee(token, new_client_employee) => {
+            Messages::AddEmployee(
+                token,
+                new_client_employee,
+            ) => {
                 println!("Messages::AddEmployee");
                 let owner = check_token(&token, conn)?;
                 let login_info = LoginInfo {
                     email: String::new(),
-                    password: String::new()
+                    password: String::new(),
                 };
 
                 let new_employee = NewEmployee::new(
-                    login_info, 
-                    None, 
-                    EmployeeLevel::Read, 
+                    login_info,
+                    None,
+                    EmployeeLevel::Read,
                     new_client_employee.name,
-                    new_client_employee.phone_number);
+                    new_client_employee.phone_number,
+                );
                 match owner.level {
-                     EmployeeLevel::Read => {
+                    EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
                     _ => {
-                        let inserted_employee = 
+                        let inserted_employee =
                             diesel::insert_into(
-                            employees::table,
-                        )
-                        .values(new_employee)
-                        .get_result::<Employee>(conn)
-                        .map_err(Error::Dsl)?;
+                                employees::table,
+                            )
+                            .values(new_employee)
+                            .get_result::<Employee>(conn)
+                            .map_err(Error::Dsl)?;
 
                         let new_settings = NewSettings {
-                            employee_id: inserted_employee.id,
+                            employee_id: inserted_employee
+                                .id,
                             name: String::from("Default"),
                             view_type: ViewType::Month,
                             hour_format: HourFormat::Hour12,
-                            last_name_style: LastNameStyle::FirstInitial,
+                            last_name_style:
+                                LastNameStyle::FirstInitial,
                             view_year: 2019,
                             view_month: 4,
                             view_day: 29,
                             view_employees: vec![],
-                            show_minutes: true
+                            show_minutes: true,
+                            show_shifts: true,
+                            show_vacations: false
                         };
 
                         let inserted_settings =
-                            diesel::insert_into(settings::table)
+                            diesel::insert_into(
+                                settings::table,
+                            )
                             .values(new_settings)
                             .get_result::<Settings>(conn)
                             .map_err(Error::Dsl)?;
-                        
+
                         diesel::update(&inserted_employee)
-                            .set(employees::startup_settings.eq(inserted_settings.id))
+                            .set(
+                                employees::startup_settings
+                                    .eq(inserted_settings
+                                        .id),
+                            )
                             .get_result::<Employee>(conn)
-                            .map(|e| Results::GetEmployee(e.into()))
+                            .map(|e| {
+                                Results::GetEmployee(
+                                    e.into(),
+                                )
+                            })
                             .map_err(Error::Dsl)
                     }
                 }
@@ -462,14 +505,17 @@ impl Handler<Messages> for DbExecutor {
                 println!("Messages::UpdateEmployee");
                 let owner = check_token(&token, conn)?;
                 match owner.level {
-                     EmployeeLevel::Read => {
+                    EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
-                    _ => {
-                        diesel::update(employees::table)
-                        .filter(employees::id.eq(updated_employee.id))
+                    _ => diesel::update(employees::table)
+                        .filter(
+                            employees::id
+                                .eq(updated_employee.id),
+                        )
                         .set((
-                            employees::email.eq(updated_employee.email),
+                            employees::email
+                                .eq(updated_employee.email),
                             employees::first.eq(
                                 updated_employee.name.first,
                             ),
@@ -482,20 +528,22 @@ impl Handler<Messages> for DbExecutor {
                         ))
                         .execute(conn)
                         .map(|_| Results::Nothing)
-                        .map_err(Error::Dsl)
-                    }
+                        .map_err(Error::Dsl),
                 }
             }
             Messages::RemoveEmployee(token, employee) => {
                 println!("Messages::RemoveEmployee");
                 let owner = check_token(&token, conn)?;
                 match owner.level {
-                     EmployeeLevel::Read => {
+                    EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
                     _ => {
                         diesel::delete(employees::table)
-                            .filter(employees::id.eq(employee.id))
+                            .filter(
+                                employees::id
+                                    .eq(employee.id),
+                            )
                             .execute(conn)
                             .map(|_count| Results::Nothing)
                             .map_err(Error::Dsl)
@@ -508,14 +556,11 @@ impl Handler<Messages> for DbExecutor {
                 shifts::table
                     .load::<Shift>(conn)
                     .map(|res| {
-                        Results::GetEmployeeShifts(
+                        Results::GetShiftsVec(
                             JsonObject::new(res),
                         )
                     })
-                    .map_err(|err| {
-                        eprintln!("Error: {:?}", err);
-                        Error::Dsl(err)
-                    })
+                    .map_err(Error::Dsl)
             }
             Messages::AddShift(token, new_shift) => {
                 println!("Messages::AddShift");
@@ -525,14 +570,16 @@ impl Handler<Messages> for DbExecutor {
                     ..new_shift
                 };
                 match owner.level {
-                     EmployeeLevel::Read => {
+                    EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
-                    _ => diesel::insert_into(shifts::table)
-                        .values(new_shift)
-                        .get_result(conn)
-                        .map(Results::GetShift)
-                        .map_err(Error::Dsl),
+                    _ => {
+                        diesel::insert_into(shifts::table)
+                            .values(new_shift)
+                            .get_result(conn)
+                            .map(Results::GetShift)
+                            .map_err(Error::Dsl)
+                    }
                 }
             }
             Messages::UpdateShift(token, shift) => {
@@ -540,38 +587,14 @@ impl Handler<Messages> for DbExecutor {
                 let owner = check_token(&token, conn)?;
                 match_ids(owner.id, shift.supervisor_id)?;
                 match owner.level {
-                     EmployeeLevel::Read => {
+                    EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
                     _ => diesel::update(&shift.clone())
-                        .set((
-                            shifts::employee_id
-                                .eq(shift.employee_id),
-                            shifts::year.eq(shift.year),
-                            shifts::month.eq(shift.month),
-                            shifts::day.eq(shift.day),
-                            shifts::hour.eq(shift.hour),
-                            shifts::minute.eq(shift.minute),
-                            shifts::hours.eq(shift.hours),
-                            shifts::minutes
-                                .eq(shift.minutes),
-                            shifts::shift_repeat
-                                .eq(shift.shift_repeat),
-                            shifts::every_x
-                                .eq(shift.every_x),
-                            shifts::note.eq(shift.note)
-                        ))
+                        .set(shift.clone())
                         .get_result(conn)
-                        .map(|updated| {
-                            Results::GetShift(updated)
-                        })
-                        .map_err(|err| {
-                            eprintln!(
-                                "Shift update error: {}",
-                                err
-                            );
-                            Error::Dsl(err)
-                        }),
+                        .map(Results::GetShift)
+                        .map_err(Error::Dsl),
                 }
             }
             Messages::RemoveShift(token, shift) => {
@@ -579,16 +602,70 @@ impl Handler<Messages> for DbExecutor {
                 let owner = check_token(&token, conn)?;
                 match_ids(owner.id, shift.supervisor_id)?;
                 match owner.level {
-                     EmployeeLevel::Read => {
+                    EmployeeLevel::Read => {
                         Err(Error::Unauthorized)
                     }
                     _ => {
                         diesel::delete(&shift)
                             .execute(conn)
-                            .map(|_count| Results::Nothing)
+                            .map(|_| Results::Nothing)
                             .map_err(Error::Dsl)
                     }
                 }
+            }
+
+            Messages::GetVacations(token) => {
+                println!("Messages::GetVacations");
+                let _ = check_token(&token, conn)?;
+                vacations::table
+                    .load::<Vacation>(conn)
+                    .map(|res| {
+                        Results::GetVacations(
+                            JsonObject::new(res),
+                        )
+                    })
+                    .map_err(|err| {
+                        eprintln!("Error: {:?}", err);
+                        Error::Dsl(err)
+                    })
+            }
+            Messages::AddVacation(token, new_vacation) => {
+                println!("Messages::AddVacation");
+                let _ = check_token(&token, conn)?;
+                diesel::insert_into(vacations::table)
+                    .values(new_vacation)
+                    .get_result(conn)
+                    .map(Results::GetVacation)
+                    .map_err(Error::Dsl)
+            }
+            Messages::UpdateVacation(token, vacation) => {
+                println!("Messages::UpdateVacation");
+                let current_employee =
+                    check_token(&token, conn)?;
+                match_ids(
+                    current_employee.id,
+                    vacation.employee_id,
+                )?;
+
+                diesel::update(&vacation.clone())
+                    .set(vacation.clone())
+                    .get_result(conn)
+                    .map(Results::GetVacation)
+                    .map_err(Error::Dsl)
+            }
+            Messages::RemoveVacation(token, vacation) => {
+                println!("Messages::RemoveVacation");
+                let current_employee =
+                    check_token(&token, conn)?;
+                match_ids(
+                    current_employee.id,
+                    vacation.employee_id,
+                )?;
+
+                diesel::delete(&vacation)
+                    .execute(conn)
+                    .map(|_| Results::Nothing)
+                    .map_err(Error::Dsl)
             }
         }
     }
@@ -632,12 +709,11 @@ fn check_token(
                 std::cmp::Ordering::Greater => {
                     employees::table
                         .filter(
-                            employees::id.eq(session.employee_id),
+                            employees::id
+                                .eq(session.employee_id),
                         )
                         .first::<Employee>(conn)
-                        .map_err(
-                            Error::Dsl
-                        )
+                        .map_err(Error::Dsl)
                 }
                 _ => {
                     println!("Token expired!");

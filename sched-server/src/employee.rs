@@ -1,22 +1,22 @@
+use super::datetime::{
+    self,
+    DateTime,
+};
+use super::message::LoginInfo;
+use super::schema::sessions;
 use crate::schema::employees;
+use crypto::pbkdf2 as crypt;
 use diesel::prelude::*;
+use diesel::sql_types::Text;
 use serde::{
     Deserialize,
     Serialize,
 };
-use super::message::LoginInfo;
-use diesel::sql_types::Text;
 use std::str::FromStr;
 use strum_macros::{
     Display,
     EnumString,
 };
-use crypto::pbkdf2 as crypt;
-use super::datetime::{
-    self,
-    DateTime,
-};
-use super::schema::sessions;
 
 #[derive(
     Clone,
@@ -139,13 +139,13 @@ pub struct ClientSideEmployee {
 
 impl From<Employee> for ClientSideEmployee {
     fn from(employee: Employee) -> Self {
-        ClientSideEmployee { 
-            id: employee.id, 
+        ClientSideEmployee {
+            id: employee.id,
             email: employee.email,
             startup_settings: employee.startup_settings,
             level: employee.level,
             name: employee.name,
-            phone_number: employee.phone_number
+            phone_number: employee.phone_number,
         }
     }
 }
@@ -183,18 +183,16 @@ impl NewEmployee {
         name: Name,
         phone_number: Option<String>,
     ) -> NewEmployee {
-        let password_hash = crypt::pbkdf2_simple(
-                &login_info.password,
-                1,
-            )
-            .expect("Failed to hash password!");
-        NewEmployee { 
+        let password_hash =
+            crypt::pbkdf2_simple(&login_info.password, 1)
+                .expect("Failed to hash password!");
+        NewEmployee {
             email: login_info.email,
             password_hash,
             startup_settings,
             level,
-            name, 
-            phone_number
+            name,
+            phone_number,
         }
     }
 }
@@ -204,7 +202,16 @@ impl NewEmployee {
 impl Queryable<employees::SqlType, diesel::pg::Pg>
     for Employee
 {
-    type Row = (i32, String, String, Option<i32>, EmployeeLevel, String, String, Option<String>);
+    type Row = (
+        i32,
+        String,
+        String,
+        Option<i32>,
+        EmployeeLevel,
+        String,
+        String,
+        Option<String>,
+    );
 
     fn build(row: Self::Row) -> Self {
         Employee {

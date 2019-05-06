@@ -46,6 +46,8 @@ table! {
         view_day -> Int4,
         view_employees -> Array<Int4>,
         show_minutes -> Bool,
+        show_shifts -> Bool,
+        show_vacations -> Bool,
     }
 }
 
@@ -70,15 +72,16 @@ table! {
 table! {
     vacations (id) {
         id -> Int4,
-        employee_id -> Nullable<Int4>,
         supervisor_id -> Nullable<Int4>,
-        approved -> Nullable<Bool>,
+        employee_id -> Int4,
+        approved -> Bool,
         start_year -> Int4,
         start_month -> Int4,
         start_day -> Int4,
-        end_year -> Int4,
-        end_month -> Int4,
-        end_day -> Int4,
+        duration_days -> Nullable<Int4>,
+        request_year -> Int4,
+        request_month -> Int4,
+        request_day -> Int4,
     }
 }
 

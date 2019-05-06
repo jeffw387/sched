@@ -1,5 +1,8 @@
 use super::employee::Employee;
-use super::schema::shifts;
+use super::schema::{
+    shifts,
+    vacations,
+};
 use diesel::sql_types::Text;
 use std::str::FromStr;
 use strum_macros::{
@@ -41,6 +44,7 @@ enum_from_sql!(ShiftRepeat);
     Serialize,
     Deserialize,
     Queryable,
+    AsChangeset,
 )]
 #[table_name = "shifts"]
 #[belongs_to(Employee)]
@@ -75,4 +79,45 @@ pub struct NewShift {
     pub shift_repeat: ShiftRepeat,
     pub every_x: Option<i32>,
     pub note: Option<String>,
+}
+
+#[derive(Debug, Insertable, Deserialize)]
+#[table_name = "vacations"]
+pub struct NewVacation {
+    pub supervisor_id: Option<i32>,
+    pub employee_id: i32,
+    pub approved: bool,
+    pub start_year: i32,
+    pub start_month: i32,
+    pub start_day: i32,
+    pub duration_days: Option<i32>,
+    pub request_year: i32,
+    pub request_month: i32,
+    pub request_day: i32,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    Identifiable,
+    Associations,
+    Queryable,
+    AsChangeset,
+)]
+#[belongs_to(Employee)]
+#[table_name = "vacations"]
+pub struct Vacation {
+    pub id: i32,
+    pub supervisor_id: Option<i32>,
+    pub employee_id: i32,
+    pub approved: bool,
+    pub start_year: i32,
+    pub start_month: i32,
+    pub start_day: i32,
+    pub duration_days: Option<i32>,
+    pub request_year: i32,
+    pub request_month: i32,
+    pub request_day: i32,
 }

@@ -5,23 +5,23 @@ use diesel::prelude::*;
 use getopts::Options;
 use sched_server::api::*;
 use sched_server::db;
+use sched_server::employee::{
+    Employee,
+    EmployeeLevel,
+    Name,
+    NewEmployee,
+};
 use sched_server::env;
 use sched_server::message::LoginInfo;
-use sched_server::employee::{
-    NewEmployee,
-    EmployeeLevel,
-    Employee,
-    Name
-};
+use sched_server::schema::employees;
+use sched_server::schema::settings;
 use sched_server::settings::{
+    HourFormat,
+    LastNameStyle,
     NewSettings,
     Settings,
     ViewType,
-    HourFormat,
-    LastNameStyle,
 };
-use sched_server::schema::employees;
-use sched_server::schema::settings;
 use std::result::Result;
 
 enum Error {
@@ -34,7 +34,7 @@ fn add_employee(
     password: String,
     level: EmployeeLevel,
     name: Name,
-    phone_number: Option<String>
+    phone_number: Option<String>,
 ) {
     let db_url = env::get_env(ENV_DB_URL);
     let conn = PgConnection::establish(&db_url)
@@ -45,17 +45,20 @@ fn add_employee(
     let login_info =
         LoginInfo { email: email.clone(), password };
     let new_employee = NewEmployee::new(
-        login_info, 
+        login_info,
         None,
         level,
         name,
-        phone_number);
-    let inserted_employee = diesel::insert_into(employees::table)
-        .values(new_employee)
-        .get_result::<Employee>(&conn)
-        .map_err(|_| {
-            println!("Employee insert error!");
-        }).unwrap();
+        phone_number,
+    );
+    let inserted_employee =
+        diesel::insert_into(employees::table)
+            .values(new_employee)
+            .get_result::<Employee>(&conn)
+            .map_err(|_| {
+                println!("Employee insert error!");
+            })
+            .unwrap();
     let new_settings = NewSettings {
         employee_id: inserted_employee.id,
         name: String::from("Default"),
@@ -66,14 +69,16 @@ fn add_employee(
         view_month: 4,
         view_day: 27,
         view_employees: vec![],
-        show_minutes: true
+        show_minutes: true,
     };
     let inserted_settings =
         diesel::insert_into(settings::table)
-        .values(new_settings)
-        .get_result::<Settings>(&conn)
-        .map_err(|_| println!("Error inserting new settings!"))
-        .unwrap();
+            .values(new_settings)
+            .get_result::<Settings>(&conn)
+            .map_err(|_| {
+                println!("Error inserting new settings!")
+            })
+            .unwrap();
     let _ = diesel::update(&inserted_employee.clone())
         .set(employees::startup_settings.eq(inserted_settings.id))
         .execute(&conn)
@@ -108,19 +113,19 @@ fn main() {
         "",
         "first",
         "Employee's first name",
-        "FIRSTNAME"
+        "FIRSTNAME",
     );
     opts.optopt(
         "",
         "last",
         "Employee's last name",
-        "LASTNAME"
+        "LASTNAME",
     );
     opts.optopt(
         "",
         "phone",
         "Employee's phone number, optional",
-        "PHONE"
+        "PHONE",
     );
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -158,7 +163,13 @@ fn main() {
             let name = Name { first, last };
             let phone_number = matches.opt_str("phone");
 
-            add_employee(email, password, level, name, phone_number);
+            add_employee(
+                email,
+                password,
+                level,
+                name,
+                phone_number,
+            );
         }
     }
 }

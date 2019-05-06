@@ -1,0 +1,3 @@
+ALTER TABLE settings 
+ADD COLUMN show_shifts BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN show_vacations BOOLEAN NOT NULL DEFAULT false;

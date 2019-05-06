@@ -20,7 +20,8 @@ pub const API_ADD_EMPLOYEE_SETTINGS: &str =
 pub const API_UPDATE_EMPLOYEE_SETTINGS: &str =
     "/sched/update_employee_settings";
 pub const API_GET_EMPLOYEES: &str = "/sched/get_employees";
-pub const API_GET_CURRENT_EMPLOYEE: &str = "/sched/get_current_employee";
+pub const API_GET_CURRENT_EMPLOYEE: &str =
+    "/sched/get_current_employee";
 pub const API_ADD_EMPLOYEE: &str = "/sched/add_employee";
 pub const API_UPDATE_EMPLOYEE: &str =
     "/sched/update_employee";
@@ -30,6 +31,12 @@ pub const API_GET_SHIFTS: &str = "/sched/get_shifts";
 pub const API_ADD_SHIFT: &str = "/sched/add_shift";
 pub const API_UPDATE_SHIFT: &str = "/sched/update_shift";
 pub const API_REMOVE_SHIFT: &str = "/sched/remove_shift";
+pub const API_GET_VACATIONS: &str = "/sched/get_vacations";
+pub const API_ADD_VACATION: &str = "/sched/add_vacation";
+pub const API_UPDATE_VACATION: &str =
+    "/sched/update_vacation";
+pub const API_REMOVE_VACATION: &str =
+    "/sched/remove_vacation";
 
 pub const ENV_DB_URL: &str = "DATABASE_URL";
 pub const ENV_INDEX_BASE: &str = "INDEX_BASE";

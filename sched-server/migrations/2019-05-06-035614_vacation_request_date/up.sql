@@ -1,0 +1,4 @@
+ALTER TABLE vacations
+  ADD COLUMN request_year INTEGER NOT NULL,
+  ADD COLUMN request_month INTEGER NOT NULL,
+  ADD COLUMN request_day INTEGER NOT NULL;

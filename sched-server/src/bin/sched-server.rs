@@ -279,7 +279,9 @@ fn get_employees((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
-fn get_current_employee((req, state): DbRequest) -> Box<DbFuture> {
+fn get_current_employee(
+    (req, state): DbRequest,
+) -> Box<DbFuture> {
     let token = get_token(&req);
     state
         .db
@@ -365,6 +367,65 @@ fn get_shifts((req, state): DbRequest) -> Box<DbFuture> {
         .map_err(log_err)
         .from_err()
         .and_then(handle_results)
+        .responder()
+}
+
+fn get_vacations((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    state
+        .db
+        .send(Messages::GetVacations(token))
+        .map_err(log_err)
+        .from_err()
+        .and_then(handle_results)
+        .responder()
+}
+
+fn add_vacation((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map_err(log_err)
+        .from_err()
+        .and_then(move |new_vacation| {
+            state.db.clone()
+                .send(Messages::AddVacation(token, new_vacation))
+                .map_err(log_err)
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn update_vacation((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map_err(log_err)
+        .from_err()
+        .and_then(move |updated| {
+            state.db.clone()
+                .send(Messages::UpdateVacation(token, updated))
+                .map_err(log_err)
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn remove_vacation((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map_err(log_err)
+        .from_err()
+        .and_then(move |to_remove| {
+            state.db.clone()
+                .send(Messages::RemoveVacation(token, to_remove))
+                .map_err(log_err)
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
         .responder()
 }
 
@@ -469,6 +530,12 @@ fn handle_results(
                 }
                 Results::GetEmployeeShifts(shifts) => {
                     Ok(HttpResponse::Ok().json(shifts))
+                }
+                Results::GetVacations(vacations) => {
+                    Ok(HttpResponse::Ok().json(vacations))
+                }
+                Results::GetVacation(vacation) => {
+                    Ok(HttpResponse::Ok().json(vacation))
                 }
                 Results::Nothing => {
                     Ok(HttpResponse::Ok().finish())
@@ -588,6 +655,18 @@ fn main() {
             })
             .resource(API_REMOVE_SHIFT, |r| {
                 r.post().with_async(remove_shift)
+            })
+            .resource(API_GET_VACATIONS, |r| {
+                r.post().with_async(get_vacations)
+            })
+            .resource(API_ADD_VACATION, |r| {
+                r.post().with_async(add_vacation)
+            })
+            .resource(API_UPDATE_VACATION, |r| {
+                r.post().with_async(update_vacation)
+            })
+            .resource(API_REMOVE_VACATION, |r| {
+                r.post().with_async(remove_vacation)
             })
             .handler(
                 API_INDEX,

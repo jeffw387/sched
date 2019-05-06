@@ -127,6 +127,8 @@ pub struct Settings {
     pub view_day: i32,
     pub view_employees: Vec<i32>,
     pub show_minutes: bool,
+    pub show_shifts: bool,
+    pub show_vacations: bool,
 }
 
 impl From<Settings> for NewSettings {
@@ -142,6 +144,8 @@ impl From<Settings> for NewSettings {
             view_day: settings.view_day,
             view_employees: settings.view_employees,
             show_minutes: settings.show_minutes,
+            show_shifts: settings.show_shifts,
+            show_vacations: settings.show_vacations,
         }
     }
 }
@@ -159,6 +163,8 @@ pub struct NewSettings {
     pub view_day: i32,
     pub view_employees: Vec<i32>,
     pub show_minutes: bool,
+    pub show_shifts: bool,
+    pub show_vacations: bool,
 }
 
 #[derive(
