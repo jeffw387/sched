@@ -3934,9 +3934,10 @@ vacationElement :
     Model
     -> List Employee
     -> CombinedSettings
+    -> YearMonthDay
     -> Vacation
     -> Element Message
-vacationElement model viewEmployees combined vacation =
+vacationElement model viewEmployees combined day vacation =
     let
         matchEmployees =
             List.filter (\e -> e.id == vacation.employeeID) viewEmployees
@@ -3968,7 +3969,7 @@ vacationElement model viewEmployees combined vacation =
                             VacationData
                                 False
                                 vacation
-                                (ymdFromVacationStart vacation)
+                                day
                 , label =
                     text <|
                         nameToString
@@ -3985,9 +3986,10 @@ shiftElement :
     Model
     -> List Employee
     -> CombinedSettings
+    -> YearMonthDay
     -> Shift
     -> Element Message
-shiftElement model viewEmployees combined shift =
+shiftElement model viewEmployees combined day shift =
     let
         settings =
             combined.settings
@@ -3998,7 +4000,7 @@ shiftElement model viewEmployees combined shift =
         matchedVacations =
             List.filter
                 (\v ->
-                    vacationContainsYMD v (ymdFromShift shift)
+                    vacationContainsYMD v day
                         && v.approved
                         == True
                 )
@@ -4019,7 +4021,7 @@ shiftElement model viewEmployees combined shift =
                                 (Just employee)
                                 ""
                                 viewEmployees
-                                (ymdFromShift shift)
+                                day
                 , label =
                     row
                         ([ Font.size 14
@@ -4108,7 +4110,7 @@ shiftColumn model viewEmployees combined day =
         [ fillX
         ]
         (List.map
-            (shiftElement model viewEmployees combined)
+            (shiftElement model viewEmployees combined day)
             (filterShiftsByDate day shifts)
         )
 
@@ -4129,7 +4131,7 @@ vacationColumn model viewEmployees combined day =
         , alignBottom
         ]
         (List.map
-            (vacationElement model viewEmployees combined)
+            (vacationElement model viewEmployees combined day)
             (filterVacationsByDate day vacations)
         )
 
@@ -4877,8 +4879,19 @@ shiftViewElement shift editData settings =
         , defaultShadow
         , spacingXY 0 15
         ]
-        [ -- Employee display
-          case editData.employee of
+        [ -- Selected Day display
+          el
+            ([ padding 5
+             , centerX
+             ]
+                ++ defaultBorder
+            )
+          <|
+            text <|
+                ymdToString editData.date
+
+        -- Employee display
+        , case editData.employee of
             Just employee ->
                 employeeNameElement employee
 
@@ -4960,8 +4973,8 @@ vacationTimeElement vacation settings =
         ]
 
 
-vacationViewElement : Model -> Vacation -> CombinedSettings -> Element Message
-vacationViewElement model vacation combined =
+vacationViewElement : Model -> VacationData -> Vacation -> CombinedSettings -> Element Message
+vacationViewElement model modalData vacation combined =
     let
         employees =
             Maybe.withDefault [] model.employees
@@ -4980,7 +4993,17 @@ vacationViewElement model vacation combined =
         , defaultShadow
         , spacingXY 0 15
         ]
-        [ case maybeSupervisor of
+        [ -- Selected Day display
+          el
+            ([ padding 5
+             , centerX
+             ]
+                ++ defaultBorder
+            )
+          <|
+            text <|
+                ymdToString modalData.date
+        , case maybeSupervisor of
             Just supervisor ->
                 row ([ padding 5 ] ++ defaultBorder) [ text "Supervisor: ", employeeNameElement supervisor ]
 
@@ -5197,6 +5220,7 @@ vacationModalElement model modalData =
                             False ->
                                 vacationViewElement
                                     model
+                                    modalData
                                     vacation
                                     activeSettings
                         , case vacationWriteAccess currentEmployee vacation of
