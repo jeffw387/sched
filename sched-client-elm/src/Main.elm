@@ -1,4 +1,4 @@
-module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), EventData, HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, Row, RowID, Settings, Shift, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Weekdays(..), YearMonth, YearMonthDay, addEventButton, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, dayCompare, dayElement, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, fillX, fillY, filterShiftsByDate, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getDayState, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, modalColor, monthCode, monthDefault, monthNumToString, monthRowElement, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDecoder, shiftEditElement, shiftEditorForDay, shiftEditorForShift, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftRepeatDecoder, shiftRepeatEncoder, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdFromShift, ymdNextMonth, ymdPriorMonth, ymdToString)
+module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, Row, RowID, Settings, Shift, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Weekdays(..), YearMonth, YearMonthDay, addEventButton, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, dayCompare, dayElement, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, fillX, fillY, filterShiftsByDate, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getDayState, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, modalColor, monthCode, monthDefault, monthNumToString, monthRowElement, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDate, shiftDecoder, shiftEditElement, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftRepeatDecoder, shiftRepeatEncoder, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdNextMonth, ymdPriorMonth, ymdToString)
 
 import Array exposing (Array)
 import Browser
@@ -272,7 +272,7 @@ type CalendarModal
     | ShiftModal ShiftData
     | VacationModal VacationData
     | EmployeeEditor EmployeeEditData
-    | VacationEditor VacationEditData
+    | VacationApprovalModal
 
 
 type alias CalendarData =
@@ -301,12 +301,13 @@ type alias Model =
     , vacations : Maybe (List Vacation)
     , posixNow : Maybe Time.Posix
     , here : Maybe Time.Zone
+    , updateViewDate : Bool
     , -- per page data
       page : Page
     }
 
 
-type alias VacationEditData =
+type alias VacationApproveData =
     { selected : Maybe Vacation }
 
 
@@ -1039,6 +1040,7 @@ init _ url key =
             Nothing
             Nothing
             Nothing
+            True
             (LoginPage defaultLoginModel)
         )
         url
@@ -1056,6 +1058,7 @@ type
     | UrlChanged Url.Url
     | UrlRequest Browser.UrlRequest
     | Logout
+    | LogoutResponse (Result Http.Error ())
     | KeyDown (Maybe Keys)
     | FocusResult (Result Dom.Error ())
       -- Login Messages
@@ -1124,9 +1127,9 @@ type
     | CloseViewEdit
     | NewVacationRequest
       -- Vacation Approval Messages
-    | OpenSupervisorVacationEditor
-    | UpdateVacationApproval
-    | CloseVacationEditor
+    | OpenVacationApprovalModal
+    | UpdateVacationApproval Vacation Bool
+    | CloseVacationApprovalModal
       -- Loading Messages
     | ReceiveCurrentEmployee (Result Http.Error Employee)
     | ReceiveEmployees (Result Http.Error (List Employee))
@@ -1137,6 +1140,46 @@ type
     | ReceivePosixTime Time.Posix
     | ReceiveZone Time.Zone
     | ReloadData (Result Http.Error ())
+
+
+updateViewDate : Model -> ( Model, Cmd Message )
+updateViewDate model =
+    case ( model.posixNow, model.here, model.updateViewDate ) of
+        ( Just posixTime, Just here, True ) ->
+            case ( model.settingsList, getActiveSettings model ) of
+                ( Just settingsList, Just active ) ->
+                    let
+                        today =
+                            getTime posixTime here
+
+                        settings =
+                            active.settings
+
+                        updatedSettings =
+                            { settings | viewDate = today }
+
+                        updatedCombined =
+                            { active | settings = updatedSettings }
+
+                        updatedSettingsList =
+                            updateSettingsList settingsList updatedCombined
+
+                        updatedModel =
+                            { model | settingsList = Just updatedSettingsList, updateViewDate = False }
+                    in
+                    ( updatedModel
+                    , Http.post
+                        { url = "/sched/update_settings"
+                        , body = Http.jsonBody <| settingsEncoder updatedSettings
+                        , expect = Http.expectWhatever IgnoreReply
+                        }
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 updateEmployee : Employee -> Cmd Message
@@ -1405,19 +1448,6 @@ hourMinuteToFloat hour minute =
     toFloat hour + fraction
 
 
-shiftEditorForShift : Shift -> List Employee -> EventData
-shiftEditorForShift shift employees =
-    EventData
-        ShiftTab
-        False
-        (Just shift)
-        (getEmployee employees shift.employeeID)
-        ""
-        employees
-        Nothing
-        (ymdFromShift shift)
-
-
 shiftFromDay : YearMonthDay -> Maybe Int -> Shift
 shiftFromDay ymd maybeEmpID =
     Shift
@@ -1436,19 +1466,6 @@ shiftFromDay ymd maybeEmpID =
         Nothing
 
 
-shiftEditorForDay : YearMonthDay -> List Employee -> EventData
-shiftEditorForDay day employees =
-    EventData
-        ShiftTab
-        False
-        Nothing
-        Nothing
-        ""
-        employees
-        Nothing
-        day
-
-
 loadData =
     Cmd.batch
         [ getPosixTime
@@ -1464,7 +1481,7 @@ loadData =
 
 router : Model -> Url.Url -> ( Model, Cmd Message )
 router model url =
-    case url.path of
+    case Debug.log "router path" url.path of
         "/sched" ->
             let
                 updated =
@@ -1562,6 +1579,20 @@ updateSettings settings =
         }
 
 
+removeSettingsFromList : List CombinedSettings -> CombinedSettings -> List CombinedSettings
+removeSettingsFromList settingsList toRemove =
+    List.Extra.filterNot (\s -> s.settings.id == toRemove.settings.id) settingsList
+
+
+updateSettingsList : List CombinedSettings -> CombinedSettings -> List CombinedSettings
+updateSettingsList settingsList updated =
+    let
+        without =
+            removeSettingsFromList settingsList updated
+    in
+    updated :: without
+
+
 updateEmployeeList : List Employee -> Employee -> List Employee
 updateEmployeeList employees updated =
     let
@@ -1574,6 +1605,20 @@ updateEmployeeList employees updated =
 removeEmployeeFromList : List Employee -> Employee -> List Employee
 removeEmployeeFromList employees toRemove =
     List.Extra.filterNot (\e -> e.id == toRemove.id) employees
+
+
+updateVacationList : List Vacation -> Vacation -> List Vacation
+updateVacationList vacations updated =
+    let
+        without =
+            removeVacationFromList vacations updated
+    in
+    updated :: without
+
+
+removeVacationFromList : List Vacation -> Vacation -> List Vacation
+removeVacationFromList vacations toRemove =
+    List.Extra.filterNot (\e -> e.id == toRemove.id) vacations
 
 
 sortEmployeeList : List Employee -> List Employee
@@ -1631,11 +1676,14 @@ update message model =
             , Http.post
                 { url = UB.absolute [ "sched", "logout_request" ] []
                 , body = Http.emptyBody
-                , expect = Http.expectWhatever IgnoreReply
+                , expect = Http.expectWhatever LogoutResponse
                 }
             )
 
         ( _, IgnoreReply _ ) ->
+            ( model, Cmd.none )
+
+        ( _, LogoutResponse _ ) ->
             ( model, Nav.pushUrl model.navkey "/sched/login" )
 
         -- Login messages
@@ -1756,11 +1804,13 @@ update message model =
         ( _, ReceiveSettingsList settingsResult ) ->
             case settingsResult of
                 Ok settingsList ->
-                    ( { model
-                        | settingsList = Just settingsList
-                      }
-                    , Cmd.none
-                    )
+                    let
+                        updated =
+                            { model
+                                | settingsList = Just settingsList
+                            }
+                    in
+                    updateViewDate updated
 
                 Err e ->
                     ( model, Cmd.none )
@@ -1768,16 +1818,18 @@ update message model =
         ( _, ReceivePosixTime posixTime ) ->
             let
                 updatedModel =
-                    { model | posixNow = Just posixTime }
+                    { model
+                        | posixNow = Just posixTime
+                    }
             in
-            ( updatedModel, Cmd.none )
+            updateViewDate updatedModel
 
         ( _, ReceiveZone here ) ->
             let
                 updatedModel =
                     { model | here = Just here }
             in
-            ( updatedModel, Cmd.none )
+            updateViewDate updatedModel
 
         ( _, ReceiveDefaultSettings settingsResult ) ->
             case settingsResult of
@@ -1788,7 +1840,7 @@ update message model =
                                 updated =
                                     { model | activeSettings = Just settings }
                             in
-                            ( updated, Cmd.none )
+                            updateViewDate updated
 
                         Nothing ->
                             ( model, Cmd.none )
@@ -3065,6 +3117,53 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
+        -- Vacation Approval Messages
+        ( CalendarPage page, OpenVacationApprovalModal ) ->
+            case page.modal of
+                NoModal ->
+                    let
+                        updatedPage =
+                            { page | modal = VacationApprovalModal }
+
+                        updatedModel =
+                            { model | page = CalendarPage updatedPage }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateVacationApproval vacation approved ) ->
+            let
+                updatedVacation =
+                    { vacation | approved = approved }
+
+                vacations =
+                    Maybe.withDefault [] model.vacations
+
+                updatedVacationList =
+                    updateVacationList vacations updatedVacation
+
+                updatedModel =
+                    { model | vacations = Just updatedVacationList }
+            in
+            ( updatedModel, updateVacationApproval updatedVacation )
+
+        ( CalendarPage page, CloseVacationApprovalModal ) ->
+            case page.modal of
+                VacationApprovalModal ->
+                    let
+                        updatedPage =
+                            { page | modal = NoModal }
+
+                        updatedModel =
+                            { model | page = CalendarPage updatedPage }
+                    in
+                    ( updatedModel, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         -- Calendar messages
         ( CalendarPage page, KeyDown maybeKey ) ->
             ( model, Cmd.none )
@@ -3188,13 +3287,17 @@ editEmployeesButton maybeEmployee =
             none
 
 
-viewLogoutButton =
+viewLogoutButton empName =
     Input.button
         [ defaultShadow
         , padding 5
         ]
         { onPress = Just Logout
-        , label = text "Log out"
+        , label =
+            row []
+                [ el [ Font.color <| rgb 0 0.5 0 ] <| text empName
+                , text " : Log out"
+                ]
         }
 
 
@@ -3306,9 +3409,172 @@ viewEmployeeEditor model editData =
             ]
 
 
-viewVacationEditor : Model -> VacationEditData -> Element Message
-viewVacationEditor model editData =
-    none
+vacationStartsByDate : YearMonthDay -> Vacation -> Bool
+vacationStartsByDate day vacation =
+    let
+        _ =
+            Debug.log "day" day
+
+        start =
+            Debug.log "Vacation start" <| vacationStartDate vacation
+    in
+    case Debug.log "vacationCompare" <| dayCompare start day of
+        LT ->
+            False
+
+        _ ->
+            True
+
+
+vacationApprovalCheckbox : Model -> Vacation -> Element Message
+vacationApprovalCheckbox model vacation =
+    let
+        start =
+            vacationStartDate vacation
+
+        durationDays =
+            Maybe.withDefault 1 vacation.durationDays
+
+        end =
+            addDaysToDate start durationDays
+
+        startStr =
+            slashDateStringFromYMD start
+
+        endStr =
+            slashDateStringFromYMD end
+
+        dateRangeStr =
+            startStr ++ " to " ++ endStr
+
+        maybeActive =
+            getActiveSettings model
+
+        nameStyle =
+            case maybeActive of
+                Just active ->
+                    active.settings.lastNameStyle
+
+                Nothing ->
+                    FullName
+
+        employees =
+            Maybe.withDefault [] model.employees
+
+        requesterName =
+            case getEmployee employees (Just vacation.employeeID) of
+                Just requester ->
+                    requester.name
+
+                Nothing ->
+                    Name "Unknown" ""
+
+        requesterNameStr =
+            nameToString requesterName nameStyle
+    in
+    Input.checkbox
+        []
+        { onChange = UpdateVacationApproval vacation
+        , icon = Input.defaultCheckbox
+        , checked = vacation.approved
+        , label =
+            Input.labelRight
+                ([ fillX
+                 , padding 5
+                 ]
+                    ++ defaultBorder
+                )
+            <|
+                row
+                    []
+                    [ text dateRangeStr
+                    , text " - "
+                    , text requesterNameStr
+                    ]
+        }
+
+
+slashDateStringFromYMD : YearMonthDay -> String
+slashDateStringFromYMD ymd =
+    let
+        yStr =
+            String.fromInt ymd.year
+
+        mStr =
+            String.fromInt ymd.month
+
+        dStr =
+            String.fromInt ymd.day
+    in
+    mStr
+        ++ "/"
+        ++ dStr
+        ++ "/"
+        ++ yStr
+
+
+vacationApprovalModal : Model -> Element Message
+vacationApprovalModal model =
+    case ( model.posixNow, model.here ) of
+        ( Just now, Just here ) ->
+            let
+                vacations =
+                    Debug.log "vacations" <|
+                        Maybe.withDefault [] model.vacations
+
+                today =
+                    getTime now here
+
+                filtered =
+                    Debug.log "filtered vacations" <|
+                        List.filter (vacationStartsByDate today) vacations
+
+                sorted =
+                    List.sortWith
+                        (\v1 v2 ->
+                            let
+                                d1 =
+                                    vacationRequestDate v1
+
+                                d2 =
+                                    vacationRequestDate v2
+                            in
+                            dayCompare d1 d2
+                        )
+                        filtered
+            in
+            modalOverlay CloseVacationApprovalModal <|
+                el
+                    ([ centerX
+                     , centerY
+                     , BG.color modalColor
+                     , padding 10
+                     ]
+                        ++ defaultBorder
+                    )
+                <|
+                    column
+                        []
+                        [ el
+                            [ BG.color white
+                            , headerFontSize
+                            , padding 10
+                            , fillX
+                            ]
+                          <|
+                            el [ centerX ] <|
+                                text "Vacation Requests"
+                        , column
+                            ([ padding 5
+                             ]
+                                ++ defaultBorder
+                            )
+                          <|
+                            List.map (vacationApprovalCheckbox model) sorted
+                        ]
+
+        _ ->
+            text "Loading..."
 
 
 openVacationsButton : Maybe Employee -> Element Message
@@ -3319,7 +3585,7 @@ openVacationsButton maybeEmployee =
                 Supervisor ->
                     Input.button
                         [ defaultShadow, padding 5 ]
-                        { onPress = Just OpenSupervisorVacationEditor
+                        { onPress = Just OpenVacationApprovalModal
                         , label = text "Vacations"
                         }
 
@@ -3332,6 +3598,15 @@ openVacationsButton maybeEmployee =
 
 viewCalendarFooter : Maybe Employee -> Element Message
 viewCalendarFooter maybeEmployee =
+    let
+        empName =
+            case maybeEmployee of
+                Just employee ->
+                    nameToString employee.name FullName
+
+                Nothing ->
+                    "Loading..."
+    in
     row
         [ height (px 32)
         , width fill
@@ -3344,7 +3619,7 @@ viewCalendarFooter maybeEmployee =
         , editViewButton
         , editEmployeesButton maybeEmployee
         , openVacationsButton maybeEmployee
-        , viewLogoutButton
+        , viewLogoutButton empName
         ]
 
 
@@ -3538,6 +3813,14 @@ convertYMIntToYMD year month dayUnbounded =
         YearMonthDay year month dayUnbounded
 
 
+addDaysToDate : YearMonthDay -> Int -> YearMonthDay
+addDaysToDate ymd days =
+    convertYMIntToYMD
+        ymd.year
+        ymd.month
+        (ymd.day + days)
+
+
 ymdListFromVacation : Vacation -> List YearMonthDay
 ymdListFromVacation vacation =
     let
@@ -3585,16 +3868,16 @@ vacationContainsYMD vacation ymd =
             True
 
 
-ymdFromVacationStart : Vacation -> YearMonthDay
-ymdFromVacationStart vacation =
+vacationStartDate : Vacation -> YearMonthDay
+vacationStartDate vacation =
     YearMonthDay
         vacation.startYear
         vacation.startMonth
         vacation.startDay
 
 
-ymdFromShift : Shift -> YearMonthDay
-ymdFromShift shift =
+shiftDate : Shift -> YearMonthDay
+shiftDate shift =
     YearMonthDay
         shift.year
         shift.month
@@ -3603,7 +3886,7 @@ ymdFromShift shift =
 
 shiftCompare : Shift -> Shift -> Order
 shiftCompare s1 s2 =
-    case dayCompare (ymdFromShift s1) (ymdFromShift s2) of
+    case dayCompare (shiftDate s1) (shiftDate s2) of
         LT ->
             LT
 
@@ -3646,10 +3929,10 @@ filterVacationsByDate day vacations =
             (\v1 v2 ->
                 let
                     d1 =
-                        ymdFromVacationStart v1
+                        vacationStartDate v1
 
                     d2 =
-                        ymdFromVacationStart v2
+                        vacationStartDate v2
                 in
                 dayCompare d1 d2
             )
@@ -4000,9 +4283,16 @@ shiftElement model viewEmployees combined day shift =
         matchedVacations =
             List.filter
                 (\v ->
-                    vacationContainsYMD v day
-                        && v.approved
-                        == True
+                    case shift.employeeID of
+                        Just employeeID ->
+                            vacationContainsYMD v day
+                                && v.employeeID
+                                == employeeID
+                                && v.approved
+                                == True
+
+                        Nothing ->
+                            False
                 )
                 vacations
     in
@@ -4160,9 +4450,13 @@ updateVacation vacation =
         }
 
 
-type EventTab
-    = ShiftTab
-    | VacationTab
+updateVacationApproval : Vacation -> Cmd Message
+updateVacationApproval vacation =
+    Http.post
+        { url = "/sched/update_vacation_approval"
+        , body = Http.jsonBody <| vacationEncoder vacation
+        , expect = Http.expectWhatever ReloadData
+        }
 
 
 type alias ShiftData =
@@ -4178,18 +4472,6 @@ type alias ShiftData =
 type alias VacationData =
     { editEnabled : Bool
     , vacation : Vacation
-    , date : YearMonthDay
-    }
-
-
-type alias EventData =
-    { tab : EventTab
-    , editEnabled : Bool
-    , priorShift : Maybe Shift
-    , employee : Maybe Employee
-    , employeeSearch : String
-    , employeeMatches : List Employee
-    , priorVacation : Maybe Vacation
     , date : YearMonthDay
     }
 
@@ -4941,9 +5223,12 @@ getSupervisors employees =
 vacationTimeElement : Vacation -> Settings -> Element Message
 vacationTimeElement vacation settings =
     let
+        start =
+            vacationStartDate vacation
+
         startString =
             "Starts "
-                ++ (ymdToString <| ymdFromVacationStart vacation)
+                ++ (ymdToString <| start)
 
         durationDays =
             Maybe.withDefault 1 vacation.durationDays
@@ -4959,17 +5244,33 @@ vacationTimeElement vacation settings =
                             " days"
                    )
 
+        end =
+            addDaysToDate start durationDays
+
         endString =
-            ""
+            "Ends " ++ ymdToString end
     in
     column
         ([ padding 5
+         , spacing 5
+         , centerX
          ]
             ++ defaultBorder
         )
-        [ text startString
-        , text durationString
-        , text endString
+        [ el [ centerX ] <| text startString
+        , el
+            [ centerX
+            , Border.widthEach
+                { top = 1
+                , bottom = 1
+                , right = 0
+                , left = 0
+                }
+            , padding 3
+            ]
+          <|
+            text durationString
+        , el [ centerX ] <| text endString
         ]
 
 
@@ -5005,7 +5306,7 @@ vacationViewElement model modalData vacation combined =
                 ymdToString modalData.date
         , case maybeSupervisor of
             Just supervisor ->
-                row ([ padding 5 ] ++ defaultBorder) [ text "Supervisor: ", employeeNameElement supervisor ]
+                row ([ padding 5, centerX ] ++ defaultBorder) [ text "Supervisor: ", employeeNameElement supervisor ]
 
             Nothing ->
                 el
@@ -5038,8 +5339,20 @@ vacationViewElement model modalData vacation combined =
                     ]
                 <|
                     text "Not yet approved"
+        , el ([ padding 5 ] ++ defaultBorder) <|
+            text <|
+                "Requested "
+                    ++ (ymdToString <| vacationRequestDate vacation)
         , vacationTimeElement vacation combined.settings
         ]
+
+
+vacationRequestDate : Vacation -> YearMonthDay
+vacationRequestDate vacation =
+    YearMonthDay
+        vacation.requestYear
+        vacation.requestMonth
+        vacation.requestDay
 
 
 vacationEditElement : Model -> Vacation -> VacationData -> CombinedSettings -> Element Message
@@ -5074,18 +5387,27 @@ vacationEditElement model vacation modalData combined =
                         "Vacation request for "
                             ++ nameToString employee.name FullName
                 , el
-                    [ fillX, clipY, scrollbarY, height <| px 150 ]
+                    [ fillX
+                    , clipY
+                    , scrollbarY
+                    , height <| px 150
+
+                    -- , explain Debug.todo
+                    ]
                   <|
                     Input.radio
                         ([ BG.color white
                          , padding 5
+                         , fillX
+
+                         --  , explain Debug.todo
                          ]
                             ++ defaultBorder
                         )
                         { onChange = UpdateVacationSupervisor
                         , options =
                             List.map
-                                (\e -> Input.option e <| text <| nameToString e.name FullName)
+                                (\e -> Input.option e <| el [ centerX ] <| text <| nameToString e.name FullName)
                                 supervisors
                         , selected = getEmployee supervisors vacation.supervisorID
                         , label = Input.labelAbove [] <| text "Select supervisor:"
@@ -5175,11 +5497,35 @@ shiftModalElement model modalData =
                                                 text "Edit"
 
                                             True ->
-                                                text "Done Editing"
+                                                text "Back"
                                     }
 
                             False ->
-                                none
+                                let
+                                    employees =
+                                        Maybe.withDefault [] model.employees
+
+                                    shiftCreator =
+                                        getEmployee employees <| Just shift.supervisorID
+
+                                    creatorName =
+                                        case shiftCreator of
+                                            Just creator ->
+                                                nameToString creator.name FullName
+
+                                            Nothing ->
+                                                "Unknown"
+                                in
+                                el
+                                    ([ fillX
+                                     , padding 5
+                                     ]
+                                        ++ defaultBorder
+                                    )
+                                <|
+                                    text <|
+                                        "Shift created by "
+                                            ++ creatorName
                         ]
 
         _ ->
@@ -5235,11 +5581,36 @@ vacationModalElement model modalData =
                                                     text "Edit"
 
                                                 True ->
-                                                    text "Done Editing"
+                                                    text "Back"
                                         }
 
                             False ->
-                                none
+                                let
+                                    employees =
+                                        Maybe.withDefault [] model.employees
+
+                                    vacationCreator =
+                                        getEmployee employees <| Just vacation.employeeID
+
+                                    creatorName =
+                                        case vacationCreator of
+                                            Just creator ->
+                                                nameToString creator.name FullName
+
+                                            Nothing ->
+                                                "Unknown"
+                                in
+                                el
+                                    ([ fillX
+                                     , padding 5
+                                     ]
+                                        ++ defaultBorder
+                                    )
+                                <|
+                                    el [ centerX ] <|
+                                        text <|
+                                            "Vacation requested by "
+                                                ++ creatorName
                         ]
 
         _ ->
@@ -5273,7 +5644,7 @@ addEventElement : Model -> YearMonthDay -> Element Message
 addEventElement model day =
     let
         maybeEmployee =
-            Debug.log "add event employee" model.currentEmployee
+            model.currentEmployee
     in
     case maybeEmployee of
         Just currentEmployee ->
@@ -6051,14 +6422,14 @@ viewModal model =
                 ViewSelectModal ->
                     selectViewElement model
 
-                ViewEditModal editData ->
-                    editViewElement model editData (getActiveSettings model) model.employees
+                ViewEditModal modalData ->
+                    editViewElement model modalData (getActiveSettings model) model.employees
 
-                EmployeeEditor editData ->
-                    viewEmployeeEditor model editData
+                EmployeeEditor modalData ->
+                    viewEmployeeEditor model modalData
 
-                VacationEditor editData ->
-                    viewVacationEditor model editData
+                VacationApprovalModal ->
+                    vacationApprovalModal model
 
         _ ->
             text "Error: viewing modal from wrong page"

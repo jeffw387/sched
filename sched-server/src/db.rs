@@ -79,6 +79,7 @@ pub enum Messages {
     GetVacations(Token),
     AddVacation(Token, NewVacation),
     UpdateVacation(Token, Vacation),
+    UpdateVacationApproval(Token, Vacation),
     RemoveVacation(Token, Vacation),
 }
 
@@ -422,7 +423,7 @@ impl Handler<Messages> for DbExecutor {
                     .map_err(Error::Dsl)
             }
             Messages::GetCurrentEmployee(token) => {
-                println!("Messages::GetEmployee");
+                println!("Messages::GetCurrentEmployee");
                 check_token(&token, conn)
                     .map(|e| Results::GetEmployee(e.into()))
             }
@@ -645,6 +646,21 @@ impl Handler<Messages> for DbExecutor {
                 match_ids(
                     current_employee.id,
                     vacation.employee_id,
+                )?;
+
+                diesel::update(&vacation.clone())
+                    .set(vacation.clone())
+                    .get_result(conn)
+                    .map(Results::GetVacation)
+                    .map_err(Error::Dsl)
+            }
+            Messages::UpdateVacationApproval(token, vacation) => {
+                println!("Messages::UpdateVacation");
+                let supervisor =
+                    check_token(&token, conn)?;
+                match_ids(
+                    supervisor.id,
+                    vacation.supervisor_id.unwrap_or(-1),
                 )?;
 
                 diesel::update(&vacation.clone())

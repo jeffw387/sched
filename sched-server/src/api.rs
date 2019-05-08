@@ -35,6 +35,7 @@ pub const API_GET_VACATIONS: &str = "/sched/get_vacations";
 pub const API_ADD_VACATION: &str = "/sched/add_vacation";
 pub const API_UPDATE_VACATION: &str =
     "/sched/update_vacation";
+pub const API_UPDATE_VACATION_APPROVAL: &str = "/sched/update_vacation_approval";
 pub const API_REMOVE_VACATION: &str =
     "/sched/remove_vacation";
 
