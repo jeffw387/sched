@@ -135,10 +135,7 @@ impl Handler<Messages> for DbExecutor {
                 .is_ok()
                 {
                     println!("Password matches!");
-                    let session_length = match owner.level {
-                        EmployeeLevel::Read => 24,
-                        _ => 1,
-                    };
+                    let session_length = 24;
                     diesel::insert_into(sessions::table)
                         .values(NewSession::new(
                             owner.id,
