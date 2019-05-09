@@ -3545,23 +3545,14 @@ vacationApprovalCheckbox model vacation =
         }
 
 
-slashDateStringFromYMD : YearMonthDay -> String
-slashDateStringFromYMD ymd =
-    let
-        yStr =
-            String.fromInt ymd.year
+currentEmployeeSupervisesVacation : Int -> Vacation -> Bool
+currentEmployeeSupervisesVacation currentEmployeeID vacation =
+    case vacation.supervisorID of
+        Just supervisorID ->
+            supervisorID == currentEmployeeID
 
-        mStr =
-            String.fromInt ymd.month
-
-        dStr =
-            String.fromInt ymd.day
-    in
-    mStr
-        ++ "/"
-        ++ dStr
-        ++ "/"
-        ++ yStr
+        Nothing ->
+            False
 
 
 vacationApprovalModal : Model -> Element Message
@@ -3576,9 +3567,17 @@ vacationApprovalModal model =
                 today =
                     getTime now here
 
+                currentEmployeeID =
+                    case model.currentEmployee of
+                        Just employee ->
+                            employee.id
+
+                        Nothing ->
+                            -1
+
                 filtered =
-                    Debug.log "filtered vacations" <|
                         List.filter (vacationStartsByDate today) vacations
+                        |> List.filter (currentEmployeeSupervisesVacation currentEmployeeID)
 
                 sorted =
                     List.sortWith
