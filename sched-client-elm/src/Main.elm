@@ -4822,21 +4822,6 @@ vacationWriteAccess currentEmployee vacation =
         False
 
 
-eventModalHeader : YearMonthDay -> Element Message
-eventModalHeader day =
-    el
-        [ fillX ]
-    <|
-        el
-            [ centerX
-            , centerY
-            , padding 5
-            ]
-        <|
-            text <|
-                ymdToString day
-
-
 shiftEditElement shift editData settings =
     column
         [ centerX
