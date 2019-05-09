@@ -1072,6 +1072,8 @@ type
     | DayClick (Maybe YearMonthDay)
     | PriorMonth
     | NextMonth
+    | PriorWeek
+    | NextWeek
       -- Employee Editor Messages
     | OpenEmployeeEditor
     | CloseEmployeeEditor
@@ -3214,6 +3216,52 @@ update message model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ( CalendarPage page, PriorWeek ) ->
+            case getActiveSettings model of
+                Just active ->
+                    let
+                        settings =
+                            active.settings
+                    in
+                    ( model
+                    , Http.post
+                        { url = "/sched/update_settings"
+                        , body =
+                            Http.jsonBody <|
+                                settingsEncoder
+                                    { settings
+                                        | viewDate = addDaysToDate settings.viewDate -7
+                                    }
+                        , expect = Http.expectWhatever ReloadData
+                        }
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, NextWeek ) ->
+            case getActiveSettings model of
+                Just active ->
+                    let
+                        settings =
+                            active.settings
+                    in
+                    ( model
+                    , Http.post
+                        { url = "/sched/update_settings"
+                        , body =
+                            Http.jsonBody <|
+                                settingsEncoder
+                                    { settings
+                                        | viewDate = addDaysToDate settings.viewDate 7
+                                    }
+                        , expect = Http.expectWhatever ReloadData
+                        }
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
         ( _, _ ) ->
             ( model, Cmd.none )
 
@@ -3809,6 +3857,31 @@ convertYMIntToYMD year month dayUnbounded =
             _ ->
                 convertYMIntToYMD year (month + 1) (dayUnbounded - monthDays)
 
+    else if dayUnbounded < 1 then
+        case month of
+            1 ->
+                let
+                    priorYear =
+                        year - 1
+
+                    priorMonth =
+                        12
+
+                    priorMonthDays =
+                        daysInMonth <| YearMonth priorYear priorMonth
+                in
+                convertYMIntToYMD priorYear priorMonth (dayUnbounded + priorMonthDays)
+
+            _ ->
+                let
+                    priorMonth =
+                        month - 1
+
+                    priorMonthDays =
+                        daysInMonth <| YearMonth year priorMonth
+                in
+                convertYMIntToYMD year priorMonth (dayUnbounded + priorMonthDays)
+
     else
         YearMonthDay year month dayUnbounded
 
@@ -4036,22 +4109,22 @@ formatHours settings start duration maybeNote =
                 )
 
 
-type alias Row =
+type alias Week =
     Array (Maybe YearMonthDay)
 
 
-rowDefault : Row
+rowDefault : Week
 rowDefault =
     Array.repeat 7 Nothing
 
 
 type alias Month =
-    Array Row
+    Array Week
 
 
 type alias RowID =
     { index : Int
-    , maybeRow : Maybe Row
+    , maybeRow : Maybe Week
     }
 
 
@@ -4093,7 +4166,7 @@ allEmpty ymdArray =
     Array.foldl foldAllEmpty True ymdArray
 
 
-foldRowSelect : Int -> Row -> ( RowID, DayID ) -> ( RowID, DayID )
+foldRowSelect : Int -> Week -> ( RowID, DayID ) -> ( RowID, DayID )
 foldRowSelect targetIndex row ( rowID, dayID ) =
     case allEmpty (Array.slice targetIndex 7 row) of
         True ->
@@ -5784,13 +5857,13 @@ dayElement model today combined maybeYMD =
                 column [ fillX ] []
 
 
-monthRowElement :
+weekDaysView :
     Model
     -> YearMonthDay
     -> CombinedSettings
-    -> Row
+    -> Week
     -> Element Message
-monthRowElement model today combined monthRow =
+weekDaysView model today combined week =
     row
         [ fillX
         , fillY
@@ -5799,7 +5872,7 @@ monthRowElement model today combined monthRow =
         ]
         (Array.map
             (dayElement model today combined)
-            monthRow
+            week
             |> Array.toList
         )
 
@@ -6317,7 +6390,7 @@ viewMonthRows model month today combined =
         ]
         (Array.toList
             (Array.map
-                (monthRowElement
+                (weekDaysView
                     model
                     today
                     combined
@@ -6343,6 +6416,87 @@ borderR =
 borderL =
     Border.widthEach
         { top = 0, bottom = 0, left = 1, right = 0 }
+
+
+makeWeekFromYMD : YearMonthDay -> Week
+makeWeekFromYMD ymd =
+    let
+        focusWeekday =
+            toWeekday ymd - 1
+
+        dayRange =
+            List.range (ymd.day - focusWeekday) (ymd.day + (6 - focusWeekday))
+
+        ymdRange =
+            List.map (\d -> Just <| convertYMIntToYMD ymd.year ymd.month d) dayRange
+    in
+    Array.fromList ymdRange
+
+
+viewWeek :
+    Model
+    -> YearMonthDay
+    -> Week
+    -> CombinedSettings
+    -> Element Message
+viewWeek model today week combined =
+    let
+        maybeGetStart =
+            Array.get 0 week
+
+        maybeGetEnd =
+            Array.get 6 week
+
+        dateFormat =
+            Just <| YMDStringSettings LongDate False
+
+        startStr =
+            case maybeGetStart of
+                Just maybeStart ->
+                    case maybeStart of
+                        Just start ->
+                            ymdToString start dateFormat
+
+                        Nothing ->
+                            "?"
+
+                Nothing ->
+                    "?"
+
+        endStr =
+            case maybeGetEnd of
+                Just maybeEnd ->
+                    case maybeEnd of
+                        Just end ->
+                            ymdToString end dateFormat
+
+                        Nothing ->
+                            "?"
+
+                Nothing ->
+                    "?"
+    in
+    column
+        [ fillX
+        , fillY
+        ]
+        [ row
+            [ fillX
+            , spaceEvenly
+            ]
+            [ Input.button [ paddingXY 50 0 ]
+                { onPress = Just PriorWeek
+                , label = text "<<--"
+                }
+            , el [ centerX ] <| text <| startStr ++ " to " ++ endStr
+            , Input.button [ paddingXY 50 0 ]
+                { onPress = Just NextWeek
+                , label = text "-->>"
+                }
+            ]
+        , viewDaysOfWeekHeader
+        , weekDaysView model today combined week
+        ]
 
 
 viewMonth :
@@ -6384,6 +6538,12 @@ viewMonth model today month combined =
                 }
             ]
         , -- Days of week display
+          viewDaysOfWeekHeader
+        , viewMonthRows model month today combined
+        ]
+
+
+viewDaysOfWeekHeader =
           row
             [ fillX
             , height shrink
@@ -6398,8 +6558,6 @@ viewMonth model today month combined =
             , el [ fillX, borderL ] (el [ centerX ] (text "Friday"))
             , el [ fillX, borderL ] (el [ centerX ] (text "Saturday"))
             ]
-        , viewMonthRows model month today combined
-        ]
 
 
 viewModal : Model -> Element Message
@@ -6444,13 +6602,13 @@ viewCalendar model =
             let
                 today =
                     getTime now here
+
+                viewDay =
+                    active.settings.viewDate
             in
             case active.settings.viewType of
                 MonthView ->
                     let
-                        viewDay =
-                            active.settings.viewDate
-
                         month =
                             makeGridFromMonth
                                 (YearMonth viewDay.year viewDay.month)
@@ -6469,8 +6627,14 @@ viewCalendar model =
                         ]
 
                 WeekView ->
+                    let
+                        week =
+                            makeWeekFromYMD viewDay
+                    in
                     column [ fillX, fillY, inFront (viewModal model) ]
-                        [ viewCalendarFooter model.currentEmployee ]
+                        [ viewWeek model today week active
+                        , viewCalendarFooter model.currentEmployee
+                        ]
 
                 DayView ->
                     column [ fillX, fillY, inFront (viewModal model) ]
