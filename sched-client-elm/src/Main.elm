@@ -3486,11 +3486,14 @@ vacationApprovalCheckbox model vacation =
         end =
             addDaysToDate start durationDays
 
+        dateFormat =
+            Just <| YMDStringSettings ShortDate False
+
         startStr =
-            slashDateStringFromYMD start
+            ymdToString start dateFormat
 
         endStr =
-            slashDateStringFromYMD end
+            ymdToString end dateFormat
 
         dateRangeStr =
             startStr ++ " to " ++ endStr
@@ -4230,29 +4233,70 @@ makeGridFromMonth ym =
     placeDays days monthDefault
 
 
-ymdToString : YearMonthDay -> String
-ymdToString ymd =
+type YMDFormat
+    = ShortDate
+    | LongDate
+
+
+type alias YMDStringSettings =
+    { format : YMDFormat
+    , includeWeekday : Bool
+    }
+
+
+ymdToString : YearMonthDay -> Maybe YMDStringSettings -> String
+ymdToString ymd maybeSettings =
     let
+        settings =
+            case maybeSettings of
+                Just includedSettings ->
+                    includedSettings
+
+                Nothing ->
+                    YMDStringSettings LongDate True
+
         yearStr =
             String.fromInt ymd.year
 
         monthStr =
             monthNumToString ymd.month
 
+        monthNumStr =
+            String.fromInt ymd.month
+
         dayStr =
             String.fromInt ymd.day
 
         weekdayStr =
             weekdayNumToString (toWeekday ymd)
-    in
-    -- Weekday, Month Day, Year
-    weekdayStr
-        ++ " "
-        ++ monthStr
+
+        p1 =
+            case settings.includeWeekday of
+                True ->
+                    weekdayStr ++ " "
+
+                False ->
+                    ""
+
+        p2 =
+            case settings.format of
+                LongDate ->
+                    monthStr
         ++ " "
         ++ dayStr
         ++ ", "
         ++ yearStr
+
+                ShortDate ->
+                    monthNumStr
+                        ++ "/"
+                        ++ dayStr
+                        ++ "/"
+                        ++ yearStr
+    in
+    -- Weekday, Month Day, Year
+    p1
+        ++ p2
 
 
 getEmployee : List Employee -> Maybe Int -> Maybe Employee
@@ -5194,7 +5238,7 @@ shiftTimesElement shift settings =
 
 
 shiftRepeatElement shift =
-    el ([ padding 10 ] ++ defaultBorder) <|
+    el ([ padding 10, centerX ] ++ defaultBorder) <|
         case ( shift.repeat, shift.everyX ) of
             ( EveryWeek, Just everyX ) ->
                 text <|
@@ -5226,6 +5270,10 @@ shiftRepeatElement shift =
 
 shiftViewElement : Shift -> ShiftData -> Settings -> Element Message
 shiftViewElement shift editData settings =
+    let
+        dateFormat =
+            Just <| YMDStringSettings LongDate True
+    in
     column
         [ centerX
         , centerY
@@ -5243,7 +5291,7 @@ shiftViewElement shift editData settings =
             )
           <|
             text <|
-                ymdToString editData.date
+                ymdToString editData.date dateFormat
 
         -- Employee display
         , case editData.employee of
@@ -5296,12 +5344,15 @@ getSupervisors employees =
 vacationTimeElement : Vacation -> Settings -> Element Message
 vacationTimeElement vacation settings =
     let
+        dateFormat =
+            Just <| YMDStringSettings LongDate True
+
         start =
             vacationStartDate vacation
 
         startString =
             "Starts "
-                ++ (ymdToString <| start)
+                ++ ymdToString start dateFormat
 
         durationDays =
             Maybe.withDefault 1 vacation.durationDays
@@ -5321,7 +5372,7 @@ vacationTimeElement vacation settings =
             addDaysToDate start durationDays
 
         endString =
-            "Ends " ++ ymdToString end
+            "Ends " ++ ymdToString end dateFormat
     in
     column
         ([ padding 5
@@ -5358,6 +5409,9 @@ vacationViewElement model modalData vacation combined =
 
         maybeSupervisor =
             getEmployee supervisors vacation.supervisorID
+
+        dateFormat =
+            Just <| YMDStringSettings LongDate True
     in
     column
         [ centerX
@@ -5376,7 +5430,7 @@ vacationViewElement model modalData vacation combined =
             )
           <|
             text <|
-                ymdToString modalData.date
+                ymdToString modalData.date dateFormat
         , case maybeSupervisor of
             Just supervisor ->
                 row ([ padding 5, centerX ] ++ defaultBorder) [ text "Supervisor: ", employeeNameElement supervisor ]
@@ -5415,7 +5469,7 @@ vacationViewElement model modalData vacation combined =
         , el ([ padding 5 ] ++ defaultBorder) <|
             text <|
                 "Requested "
-                    ++ (ymdToString <| vacationRequestDate vacation)
+                    ++ ymdToString (vacationRequestDate vacation) dateFormat
         , vacationTimeElement vacation combined.settings
         ]
 
