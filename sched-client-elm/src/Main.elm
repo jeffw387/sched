@@ -7003,7 +7003,7 @@ viewCalendar model =
                 today =
                     getTime now here
 
-                viewDay =
+                viewDate =
                     active.settings.viewDate
             in
             case active.settings.viewType of
@@ -7011,7 +7011,7 @@ viewCalendar model =
                     let
                         month =
                             makeGridFromMonth
-                                (YearMonth viewDay.year viewDay.month)
+                                (YearMonth viewDate.year viewDate.month)
                     in
                     column
                         [ width fill
@@ -7029,7 +7029,7 @@ viewCalendar model =
                 WeekView ->
                     let
                         week =
-                            makeWeekFromYMD viewDay
+                            makeWeekFromYMD viewDate
                     in
                     column [ fillX, fillY, inFront (viewModal model) ]
                         [ viewWeek model today week active
