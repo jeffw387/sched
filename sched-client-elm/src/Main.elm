@@ -3475,7 +3475,7 @@ viewEmployeeEditor model editData =
                                     Input.button
                                         [ padding 5, BG.color red, centerX ]
                                         { onPress = Just EmployeeEditRemoveEmployee
-                                        , label = text "Remove"
+                                        , label = text "Delete"
                                         }
                                 ]
 
@@ -3493,13 +3493,6 @@ viewEmployeeEditor model editData =
                     , label =
                         el [ padding 5, BG.color green ] <|
                             text "New employee"
-                    }
-                , Input.button
-                    [ centerX ]
-                    { onPress = Just CloseEmployeeEditor
-                    , label =
-                        el [ padding 5, BG.color yellow ] <|
-                            text "Back"
                     }
                 ]
             ]
@@ -6407,24 +6400,19 @@ selectViewElement model =
                     }
             , -- navigation
               row
-                ([ fillX, spacing 15 ]
+                ([ fillX, spacing 15, padding 10 ]
                     ++ defaultBorder
                 )
                 [ basicButton
-                    []
-                    red
-                    (Just RemoveView)
-                    "Delete"
-                , basicButton
                     []
                     yellow
                     (Just DuplicateView)
                     "Copy"
                 , basicButton
                     []
-                    green
-                    (Just CloseViewSelect)
-                    "Back"
+                    red
+                    (Just RemoveView)
+                    "Delete"
                 ]
             ]
 
@@ -6620,28 +6608,10 @@ editViewElement model editData maybeSettings employees =
                                     ]
                             )
                             (Maybe.withDefault [] employees)
-                    , -- Save, Save As, Cancel
-                      el ([ fillX ] ++ defaultBorder) <|
-                        row
-                            [ centerX, spacing 15 ]
-                            [ basicButton
-                                []
-                                yellow
-                                (Just CloseViewEdit)
-                                "Back"
-                            ]
                     ]
 
         Nothing ->
-            el ([ fillX ] ++ defaultBorder) <|
-                row
-                    [ centerX, spacing 15 ]
-                    [ basicButton
-                        []
-                        yellow
-                        (Just CloseViewEdit)
-                        "Back"
-                    ]
+            none
 
 
 green =
