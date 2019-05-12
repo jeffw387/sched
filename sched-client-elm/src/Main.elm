@@ -1485,7 +1485,7 @@ loadData =
 
 router : Model -> Url.Url -> ( Model, Cmd Message )
 router model url =
-    case Debug.log "router path" url.path of
+    case url.path of
         "/sched" ->
             let
                 updated =
@@ -1661,7 +1661,6 @@ focusElement element =
 
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
-    -- let debug = Debug.log "Message" (message) in
     case ( model.page, message ) of
         -- General messages
         ( _, UrlRequest request ) ->
@@ -3502,12 +3501,12 @@ vacationStartsByDate : YearMonthDay -> Vacation -> Bool
 vacationStartsByDate day vacation =
     let
         _ =
-            Debug.log "day" day
+            day
 
         start =
-            Debug.log "Vacation start" <| vacationStartDate vacation
+            vacationStartDate vacation
     in
-    case Debug.log "vacationCompare" <| dayCompare start day of
+    case dayCompare start day of
         LT ->
             False
 
@@ -3602,7 +3601,6 @@ vacationApprovalModal model =
         ( Just now, Just here ) ->
             let
                 vacations =
-                    Debug.log "vacations" <|
                         Maybe.withDefault [] model.vacations
 
                 today =
@@ -3655,7 +3653,12 @@ vacationApprovalModal model =
                           <|
                             el [ centerX ] <|
                                 text "Vacation Requests"
-                        , column
+                        , case sorted of
+                            [] ->
+                                el [ centerX ] <| text "No vacations to view"
+
+                            _ ->
+                                column
                             ([ padding 5
                              ]
                                 ++ defaultBorder
@@ -4392,10 +4395,11 @@ vacationElement model viewEmployees combined day vacation =
     case matchEmployees of
         [ employee ] ->
             Input.button
-                [ Font.size 14
+                [ Font.size 18
                 , paddingXY 0 2
                 , Border.width 2
                 , Border.rounded 3
+                , BG.color white
                 , case vacation.approved of
                     True ->
                         Border.solid
@@ -4412,6 +4416,7 @@ vacationElement model viewEmployees combined day vacation =
                                 vacation
                                 day
                 , label =
+                    el [ centerX ] <|
                     text <|
                         nameToString
                             employee.name
@@ -4651,7 +4656,7 @@ shiftElement model viewEmployees combined day shift =
                                 day
                 , label =
                     row
-                        ([ Font.size 14
+                        ([ Font.size 18
                          , paddingXY 0 2
                          , Border.width 2
                          , Border.rounded 3
@@ -5734,16 +5739,12 @@ vacationEditElement model vacation modalData combined =
                     , clipY
                     , scrollbarY
                     , height <| px 150
-
-                    -- , explain Debug.todo
                     ]
                   <|
                     Input.radio
                         ([ BG.color white
                          , padding 5
                          , fillX
-
-                         --  , explain Debug.todo
                          ]
                             ++ defaultBorder
                         )
@@ -6851,7 +6852,7 @@ viewWeek model today week combined =
         , fillY
         ]
         [ row
-            [ fillX
+            [ centerX
             , spaceEvenly
             ]
             [ Input.button [ paddingXY 50 0 ]
@@ -6886,7 +6887,7 @@ viewMonth model today month combined =
         ]
         [ -- Month Header
           row
-            [ fillX
+            [ centerX
             , spaceEvenly
             ]
             [ -- Prior Month button
