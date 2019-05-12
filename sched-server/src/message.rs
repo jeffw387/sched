@@ -11,7 +11,7 @@ pub struct LoginInfo {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ChangePasswordInfo {
-    pub login_info: LoginInfo,
+    pub old_password: String,
     pub new_password: String,
 }
 

@@ -57,7 +57,7 @@ type Token = String;
 pub enum Messages {
     Login(LoginInfo),
     Logout(Token),
-    ChangePassword(ChangePasswordInfo),
+    ChangePassword(Token, ChangePasswordInfo),
     GetSettings(Token),
     AddSettings(Token, NewSettings),
     CopySettings(Token, CombinedSettings),
@@ -189,16 +189,13 @@ impl Handler<Messages> for DbExecutor {
                 }
             }
             Messages::ChangePassword(
+                token,
                 change_password_info,
             ) => {
-                let owner = employee_by_email(
-                    conn,
-                    &change_password_info.login_info.email,
-                )?;
+                let owner = check_token(&token, conn)?;
                 if crypt::pbkdf2_check(
                     &change_password_info
-                        .login_info
-                        .password,
+                        .old_password,
                     &owner.password_hash,
                 )
                 .is_ok()

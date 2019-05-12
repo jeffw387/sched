@@ -72,18 +72,20 @@ fn logout((req, state): DbRequest) -> Box<DbFuture> {
 fn change_password(
     (req, state): DbRequest,
 ) -> Box<DbFuture> {
+    let token = get_token(&req);
     req.json()
         .map(log_json)
-        .map_err(|e| log_err(e, ""))
+        .map_err(|e| log_err(e, "change_password json"))
         .from_err()
         .and_then(move |change_password_info| {
             state
                 .db
                 .clone()
                 .send(Messages::ChangePassword(
+                    token,
                     change_password_info,
                 ))
-                .map_err(|e| log_err(e, ""))
+                .map_err(|e| log_err(e, "change_password"))
                 .from_err()
                 .and_then(handle_results)
                 .responder()
