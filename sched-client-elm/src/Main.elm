@@ -1074,6 +1074,8 @@ type
     | NextMonth
     | PriorWeek
     | NextWeek
+    | PriorDay
+    | NextDay
       -- Employee Editor Messages
     | OpenEmployeeEditor
     | CloseEmployeeEditor
@@ -3262,6 +3264,52 @@ update message model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ( CalendarPage page, PriorDay ) ->
+            case getActiveSettings model of
+                Just active ->
+                    let
+                        settings =
+                            active.settings
+                    in
+                    ( model
+                    , Http.post
+                        { url = "/sched/update_settings"
+                        , body =
+                            Http.jsonBody <|
+                                settingsEncoder
+                                    { settings
+                                        | viewDate = addDaysToDate settings.viewDate -1
+                                    }
+                        , expect = Http.expectWhatever ReloadData
+                        }
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, NextDay ) ->
+            case getActiveSettings model of
+                Just active ->
+                    let
+                        settings =
+                            active.settings
+                    in
+                    ( model
+                    , Http.post
+                        { url = "/sched/update_settings"
+                        , body =
+                            Http.jsonBody <|
+                                settingsEncoder
+                                    { settings
+                                        | viewDate = addDaysToDate settings.viewDate 1
+                                    }
+                        , expect = Http.expectWhatever ReloadData
+                        }
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
         ( _, _ ) ->
             ( model, Cmd.none )
 
@@ -3991,6 +4039,7 @@ filterShiftsByDate :
     -> List Shift
 filterShiftsByDate day shifts =
     List.filter (shiftMatch day) shifts
+        |> List.map (\s -> { s | year = day.year, month = day.month, day = day.day })
         |> List.sortWith shiftHourCompare
 
 
@@ -4381,20 +4430,14 @@ vacationElement model viewEmployees combined day vacation =
             none
 
 
-shiftElement :
-    Model
-    -> List Employee
-    -> CombinedSettings
-    -> YearMonthDay
-    -> Shift
-    -> Element Message
-shiftElement model viewEmployees combined day shift =
+filterVacationsForShift : Model -> Shift -> List Vacation
+filterVacationsForShift model shift =
     let
-        settings =
-            combined.settings
-
         vacations =
             Maybe.withDefault [] model.vacations
+
+        day =
+            shiftDate shift
 
         matchedVacations =
             List.filter
@@ -4411,6 +4454,191 @@ shiftElement model viewEmployees combined day shift =
                             False
                 )
                 vacations
+    in
+    matchedVacations
+
+
+shiftColorStyle : Model -> Shift -> List (Attribute Message)
+shiftColorStyle model shift =
+    case getEmployeeSettings model shift.employeeID of
+        Just perEmployee ->
+            let
+                colorPair =
+                    employeeColor perEmployee.color
+            in
+            [ Border.color <| fromRgb colorPair.dark
+            , BG.color <| fromRgb colorPair.light
+            ]
+
+        Nothing ->
+            [ Border.color <| rgb 0.5 0.5 0.5
+            , BG.color <| rgb 0.8 0.8 0.8
+            ]
+
+
+shiftQuarterHours : Float -> Int
+shiftQuarterHours f =
+    (floatToQuarterHour f // 15)
+        + (floatToHour f * 4)
+
+
+preShiftSpace : Shift -> YearMonthDay -> Int
+preShiftSpace shift viewDate =
+    let
+        f =
+            hourMinuteToFloat shift.hour shift.minute
+    in
+    case dayCompare (shiftDate shift) viewDate of
+        LT ->
+            0
+
+        EQ ->
+            shiftQuarterHours f
+
+        GT ->
+            24 * 4
+
+
+shiftSpace : Shift -> YearMonthDay -> Int
+shiftSpace shift viewDate =
+    let
+        startF =
+            hourMinuteToFloat shift.hour shift.minute
+
+        durF =
+            hourMinuteToFloat shift.hours shift.minutes
+
+        endF =
+            startF + durF
+    in
+    case dayCompare (shiftDate shift) viewDate of
+        LT ->
+            case compare endF 24 of
+                LT ->
+                    0
+
+                _ ->
+                    shiftQuarterHours (endF - 24)
+
+        EQ ->
+            case compare endF 24 of
+                LT ->
+                    shiftQuarterHours durF
+
+                _ ->
+                    shiftQuarterHours (durF - (endF - 24))
+
+        GT ->
+            0
+
+
+postShiftSpace : Shift -> YearMonthDay -> Int
+postShiftSpace shift viewDate =
+    let
+        pre =
+            preShiftSpace shift viewDate
+
+        dur =
+            shiftSpace shift viewDate
+    in
+    (24 * 4) - (pre + dur)
+
+
+shiftHoursElement :
+    Model
+    -> List Employee
+    -> CombinedSettings
+    -> YearMonthDay
+    -> Shift
+    -> Element Message
+shiftHoursElement model viewEmployees combined viewDate shift =
+    let
+        settings =
+            combined.settings
+
+        matchedVacations =
+            filterVacationsForShift model shift
+
+        startFloat =
+            hourMinuteToFloat shift.hour shift.minute
+
+        durationFloat =
+            hourMinuteToFloat shift.hours shift.minutes
+
+        startQuarters =
+            preShiftSpace shift viewDate
+
+        durationQuarters =
+            shiftSpace shift viewDate
+
+        endQuarters =
+            postShiftSpace shift viewDate
+    in
+    case ( getEmployee viewEmployees shift.employeeID, matchedVacations, durationQuarters ) of
+        ( _, _, 0 ) ->
+            none
+
+        ( Just employee, [], _ ) ->
+            row
+                [ fillX
+                , Font.size 18
+                ]
+                [ el [ width <| fillPortion startQuarters ] none
+                , Input.button
+                    ([ width <| fillPortion durationQuarters ] ++ defaultBorder ++ shiftColorStyle model shift)
+                    { onPress =
+                        Just <|
+                            OpenShiftModal <|
+                                ShiftData
+                                    False
+                                    shift
+                                    (Just employee)
+                                    ""
+                                    viewEmployees
+                                    viewDate
+                    , label =
+                        el
+                            [ centerX
+                            , height <| minimum 30 fill
+                            , inFront <|
+                                row
+                                    [ centerX, centerY ]
+                                    [ text
+                                        (nameToString employee.name settings.lastNameStyle
+                                            ++ ": "
+                                        )
+                                    , formatHours settings startFloat durationFloat shift.note
+                                    ]
+                            ]
+                            none
+                    }
+                , el [ width <| fillPortion endQuarters ] none
+                ]
+
+        _ ->
+            none
+
+
+shiftElement :
+    Model
+    -> List Employee
+    -> CombinedSettings
+    -> YearMonthDay
+    -> Shift
+    -> Element Message
+shiftElement model viewEmployees combined day shift =
+    let
+        settings =
+            combined.settings
+
+        matchedVacations =
+            filterVacationsForShift model shift
+
+        floatBegin =
+            hourMinuteToFloat shift.hour shift.minute
+
+        floatDuration =
+            hourMinuteToFloat shift.hours shift.minutes
     in
     case ( getEmployee viewEmployees shift.employeeID, matchedVacations ) of
         ( Just employee, [] ) ->
@@ -4436,35 +4664,14 @@ shiftElement model viewEmployees combined day shift =
                          , Border.rounded 3
                          , fillX
                          ]
-                            ++ (case getEmployeeSettings model shift.employeeID of
-                                    Just perEmployee ->
-                                        let
-                                            colorPair =
-                                                employeeColor perEmployee.color
-                                        in
-                                        [ Border.color <| fromRgb colorPair.dark
-                                        , BG.color <| fromRgb colorPair.light
-                                        ]
-
-                                    Nothing ->
-                                        [ Border.color <| rgb 0.5 0.5 0.5
-                                        , BG.color <| rgb 0.8 0.8 0.8
-                                        ]
-                               )
+                            ++ shiftColorStyle model shift
                         )
                         [ el [ padding 1 ] <|
                             text
                                 (nameToString employee.name settings.lastNameStyle
                                     ++ ": "
                                 )
-                        , let
-                            floatBegin =
-                                hourMinuteToFloat shift.hour shift.minute
-
-                            floatDuration =
-                                hourMinuteToFloat shift.hours shift.minutes
-                          in
-                          formatHours settings floatBegin floatDuration shift.note
+                        , formatHours settings floatBegin floatDuration shift.note
                         ]
                 }
 
@@ -4499,6 +4706,38 @@ dayStyle dayState =
                 None ->
                     []
            )
+
+
+shiftHoursColumn :
+    Model
+    -> List Employee
+    -> CombinedSettings
+    -> YearMonthDay
+    -> Element Message
+shiftHoursColumn model viewEmployees combined viewDate =
+    let
+        shifts =
+            Maybe.withDefault [] model.shifts
+
+        priorDate =
+            addDaysToDate viewDate -1
+
+        viewDateShifts =
+            filterShiftsByDate viewDate shifts
+
+        priorDayShifts =
+            filterShiftsByDate priorDate shifts
+
+        viewShifts =
+            priorDayShifts ++ viewDateShifts
+    in
+    column
+        [ fillX
+        ]
+        (List.map
+            (shiftHoursElement model viewEmployees combined viewDate)
+            viewShifts
+        )
 
 
 shiftColumn :
@@ -5833,13 +6072,13 @@ type DayState
     | Future
 
 
-dayElement :
+viewDayInMonth :
     Model
     -> YearMonthDay
     -> CombinedSettings
     -> Maybe YearMonthDay
     -> Element Message
-dayElement model today combined maybeYMD =
+viewDayInMonth model today combined maybeYMD =
     let
         dayState =
             getDayState maybeYMD (Just today)
@@ -5908,10 +6147,9 @@ weekDaysView model today combined week =
         , spacing 0
         , Border.widthEach { top = 0, bottom = 1, right = 0, left = 0 }
         ]
-        (Array.map
-            (dayElement model today combined)
-            week
+        (week
             |> Array.toList
+            |> List.map (viewDayInMonth model today combined)
         )
 
 
@@ -6471,6 +6709,130 @@ makeWeekFromYMD ymd =
     Array.fromList ymdRange
 
 
+hourBGFromInt : Int -> Element Message
+hourBGFromInt i =
+    el
+        [ Border.color <| rgba 0.5 0.5 0.5 0.5
+        , Border.widthEach
+            { right = 1
+            , left = 0
+            , top = 0
+            , bottom = 0
+            }
+        , fillX
+        , fillY
+        ]
+        none
+
+
+viewDay :
+    Model
+    -> YearMonthDay
+    -> YearMonthDay
+    -> CombinedSettings
+    -> Element Message
+viewDay model today viewDate combined =
+    let
+        dateFormat =
+            Just <| YMDStringSettings LongDate True
+
+        dateStr =
+            ymdToString viewDate dateFormat
+
+        dayState =
+            getDayState (Just viewDate) (Just today)
+
+        employees =
+            Maybe.withDefault [] model.employees
+
+        settings =
+            combined.settings
+
+        viewEmployees =
+            getViewEmployees
+                employees
+                settings.viewEmployees
+
+        hourRange =
+            List.range 0 23
+    in
+    column
+        ([ fillX
+         , fillY
+         , behindContent <|
+            row
+                [ fillX
+                , fillY
+                ]
+                (List.map hourBGFromInt hourRange)
+         ]
+            ++ defaultBorder
+        )
+        [ column
+            [ fillX
+            , spacing 5
+            , paddingXY 0 5
+            , BG.color white
+            , Border.color black
+            , Border.widthEach
+                { bottom = 1
+                , top = 0
+                , left = 0
+                , right = 0
+                }
+            ]
+            [ row
+                [ centerX
+                , spaceEvenly
+                ]
+                [ Input.button [ paddingXY 50 0 ]
+                    { onPress = Just PriorDay
+                    , label = text "<<--"
+                    }
+                , el [ centerX ] <| text dateStr
+                , Input.button [ paddingXY 50 0 ]
+                    { onPress = Just NextDay
+                    , label = text "-->>"
+                    }
+                ]
+            , Input.button
+                [ BG.color lightGreen
+                , Border.rounded 3
+                , centerX
+                , padding 2
+                ]
+                { onPress = Just <| OpenAddEvent viewDate
+                , label = text "Add Event"
+                }
+            , row
+                [ fillX
+                , spaceEvenly
+                ]
+                [ el [ fillX, borderL ] <| el [ alignLeft ] <| text "12am"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "3am"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "6am"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "9am"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "12pm"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "3pm"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "6pm"
+                , el [ fillX, borderL ] <| el [ alignLeft ] <| text "9pm"
+                ]
+            ]
+        , case combined.settings.showShifts of
+            True ->
+                shiftHoursColumn model viewEmployees combined viewDate
+
+            False ->
+                none
+        , case settings.showVacations of
+            True ->
+                vacationColumn model viewEmployees combined viewDate
+
+            False ->
+                none
+        ]
+
+
 viewWeek :
     Model
     -> YearMonthDay
@@ -6676,7 +7038,9 @@ viewCalendar model =
 
                 DayView ->
                     column [ fillX, fillY, inFront (viewModal model) ]
-                        [ viewCalendarFooter model.currentEmployee ]
+                        [ viewDay model today viewDate active
+                        , viewCalendarFooter model.currentEmployee
+                        ]
 
         _ ->
             text "Loading..."
