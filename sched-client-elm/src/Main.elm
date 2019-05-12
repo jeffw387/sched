@@ -153,7 +153,7 @@ employeeColor c =
             employeeRGB c
     in
     ColorPair
-        { crgb | alpha = 0.25 }
+        { crgb | alpha = 1 }
         { crgb | alpha = 1 }
 
 
