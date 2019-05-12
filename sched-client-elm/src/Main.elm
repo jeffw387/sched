@@ -3601,7 +3601,7 @@ vacationApprovalModal model =
         ( Just now, Just here ) ->
             let
                 vacations =
-                        Maybe.withDefault [] model.vacations
+                    Maybe.withDefault [] model.vacations
 
                 today =
                     getTime now here
@@ -3615,7 +3615,7 @@ vacationApprovalModal model =
                             -1
 
                 filtered =
-                        List.filter (vacationStartsByDate today) vacations
+                    List.filter (vacationStartsByDate today) vacations
                         |> List.filter (currentEmployeeSupervisesVacation currentEmployeeID)
 
                 sorted =
@@ -3659,12 +3659,12 @@ vacationApprovalModal model =
 
                             _ ->
                                 column
-                            ([ padding 5
-                             ]
-                                ++ defaultBorder
-                            )
-                          <|
-                            List.map (vacationApprovalCheckbox model) sorted
+                                    ([ padding 5
+                                     ]
+                                        ++ defaultBorder
+                                    )
+                                <|
+                                    List.map (vacationApprovalCheckbox model) sorted
                         ]
 
         _ ->
@@ -4326,10 +4326,10 @@ ymdToString ymd maybeSettings =
             case settings.format of
                 LongDate ->
                     monthStr
-        ++ " "
-        ++ dayStr
-        ++ ", "
-        ++ yearStr
+                        ++ " "
+                        ++ dayStr
+                        ++ ", "
+                        ++ yearStr
 
                 ShortDate ->
                     monthNumStr
@@ -4417,11 +4417,11 @@ vacationElement model viewEmployees combined day vacation =
                                 day
                 , label =
                     el [ centerX ] <|
-                    text <|
-                        nameToString
-                            employee.name
-                            settings.lastNameStyle
-                            ++ " off"
+                        text <|
+                            nameToString
+                                employee.name
+                                settings.lastNameStyle
+                                ++ " off"
                 }
 
         _ ->
@@ -6915,20 +6915,20 @@ viewMonth model today month combined =
 
 
 viewDaysOfWeekHeader =
-          row
-            [ fillX
-            , height shrink
-            , Border.widthEach
-                { top = 1, bottom = 1, left = 0, right = 0 }
-            ]
-            [ el [ fillX, borderL ] (el [ centerX ] (text "Sunday"))
-            , el [ fillX, borderL ] (el [ centerX ] (text "Monday"))
-            , el [ fillX, borderL ] (el [ centerX ] (text "Tuesday"))
-            , el [ fillX, borderL ] (el [ centerX ] (text "Wednesday"))
-            , el [ fillX, borderL ] (el [ centerX ] (text "Thursday"))
-            , el [ fillX, borderL ] (el [ centerX ] (text "Friday"))
-            , el [ fillX, borderL ] (el [ centerX ] (text "Saturday"))
-            ]
+    row
+        [ fillX
+        , height shrink
+        , Border.widthEach
+            { top = 1, bottom = 1, left = 0, right = 0 }
+        ]
+        [ el [ fillX, borderL ] (el [ centerX ] (text "Sunday"))
+        , el [ fillX, borderL ] (el [ centerX ] (text "Monday"))
+        , el [ fillX, borderL ] (el [ centerX ] (text "Tuesday"))
+        , el [ fillX, borderL ] (el [ centerX ] (text "Wednesday"))
+        , el [ fillX, borderL ] (el [ centerX ] (text "Thursday"))
+        , el [ fillX, borderL ] (el [ centerX ] (text "Friday"))
+        , el [ fillX, borderL ] (el [ centerX ] (text "Saturday"))
+        ]
 
 
 viewModal : Model -> Element Message
