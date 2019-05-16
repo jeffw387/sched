@@ -31,13 +31,19 @@ pub const API_GET_SHIFTS: &str = "/sched/get_shifts";
 pub const API_ADD_SHIFT: &str = "/sched/add_shift";
 pub const API_UPDATE_SHIFT: &str = "/sched/update_shift";
 pub const API_REMOVE_SHIFT: &str = "/sched/remove_shift";
+
+pub const API_GET_CALL_SHIFTS: &str = "/sched/get_call_shifts";
+pub const API_ADD_CALL_SHIFT: &str = "/sched/add_call_shift";
+pub const API_UPDATE_CALL_SHIFT: &str = "/sched/update_call_shift";
+pub const API_REMOVE_CALL_SHIFT: &str = "/sched/remove_call_shift";
+
 pub const API_GET_VACATIONS: &str = "/sched/get_vacations";
 pub const API_ADD_VACATION: &str = "/sched/add_vacation";
 pub const API_UPDATE_VACATION: &str =
     "/sched/update_vacation";
-pub const API_UPDATE_VACATION_APPROVAL: &str = "/sched/update_vacation_approval";
 pub const API_REMOVE_VACATION: &str =
     "/sched/remove_vacation";
+pub const API_UPDATE_VACATION_APPROVAL: &str = "/sched/update_vacation_approval";
 
 pub const ENV_DB_URL: &str = "DATABASE_URL";
 pub const ENV_INDEX_BASE: &str = "INDEX_BASE";

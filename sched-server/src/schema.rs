@@ -49,6 +49,7 @@ table! {
         show_minutes -> Bool,
         show_shifts -> Bool,
         show_vacations -> Bool,
+        show_call_shifts -> Bool,
     }
 }
 
@@ -67,6 +68,7 @@ table! {
         shift_repeat -> Text,
         every_x -> Nullable<Int4>,
         note -> Nullable<Text>,
+        on_call -> Bool,
     }
 }
 

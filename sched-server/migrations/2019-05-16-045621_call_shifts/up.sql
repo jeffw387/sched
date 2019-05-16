@@ -1,0 +1,2 @@
+ALTER TABLE shifts
+ADD COLUMN on_call BOOL NOT NULL DEFAULT false;

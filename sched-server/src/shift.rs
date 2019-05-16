@@ -62,6 +62,7 @@ pub struct Shift {
     pub shift_repeat: ShiftRepeat,
     pub every_x: Option<i32>,
     pub note: Option<String>,
+    pub on_call: bool,
 }
 
 #[derive(Debug, Insertable, Deserialize)]
@@ -79,6 +80,7 @@ pub struct NewShift {
     pub shift_repeat: ShiftRepeat,
     pub every_x: Option<i32>,
     pub note: Option<String>,
+    pub on_call: bool,
 }
 
 #[derive(Debug, Insertable, Deserialize)]

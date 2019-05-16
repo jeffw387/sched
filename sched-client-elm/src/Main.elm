@@ -1,4 +1,4 @@
-module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, RowID, Settings, Shift, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Week, Weekdays(..), YearMonth, YearMonthDay, addEventButton, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, dayCompare, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, fillX, fillY, filterShiftsByDate, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getDayState, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, makeWeekFromYMD, modalColor, monthCode, monthDefault, monthNumToString, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, postShiftSpace, preShiftSpace, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDate, shiftDecoder, shiftEditElement, shiftElement, shiftEncoder, shiftFromDay, shiftHourCompare, shiftMatch, shiftQuarterHours, shiftRepeatDecoder, shiftRepeatEncoder, shiftSpace, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewDayInMonth, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekDaysView, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdNextMonth, ymdPriorMonth, ymdToString)
+module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, RowID, Settings, Shift, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Week, Weekdays(..), YearMonth, YearMonthDay, addEventButton, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, dayCompare, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, fillX, fillY, filterShiftsByDate, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getDayState, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, makeWeekFromYMD, modalColor, monthCode, monthDefault, monthNumToString, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, postShiftSpace, preShiftSpace, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDate, shiftDecoder, shiftEditElement, shiftElement, shiftEncoder, shiftHourCompare, shiftMatch, shiftQuarterHours, shiftRepeatDecoder, shiftRepeatEncoder, shiftSpace, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewDayInMonth, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekDaysView, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdNextMonth, ymdPriorMonth, ymdToString)
 
 import Array exposing (Array)
 import Browser
@@ -74,6 +74,7 @@ type alias Settings =
     , showMinutes : Bool
     , showShifts : Bool
     , showVacations : Bool
+    , showCallShifts : Bool
     }
 
 
@@ -90,6 +91,7 @@ type EmployeeColor
     | LightGrey
     | Black
     | Brown
+    | Purple
 
 
 type alias ColorRecord =
@@ -110,31 +112,31 @@ employeeRGB : EmployeeColor -> ColorRecord
 employeeRGB c =
     case c of
         Red ->
-            { red = 1, green = 0.25, blue = 0.25, alpha = 0 }
-
-        LightRed ->
             { red = 1, green = 0.5, blue = 0.5, alpha = 0 }
 
-        Green ->
-            { red = 0.25, green = 1, blue = 0.25, alpha = 0 }
+        LightRed ->
+            { red = 1, green = 0.827, blue = 0.941, alpha = 0 }
 
-        LightGreen ->
+        Green ->
             { red = 0.5, green = 1, blue = 0.5, alpha = 0 }
 
-        Blue ->
-            { red = 0.25, green = 0.25, blue = 1, alpha = 0 }
+        LightGreen ->
+            { red = 0.75, green = 1, blue = 0.729, alpha = 0 }
 
-        LightBlue ->
+        Blue ->
             { red = 0.5, green = 0.5, blue = 1, alpha = 0 }
 
-        Yellow ->
-            { red = 1, green = 1, blue = 0.25, alpha = 0 }
+        LightBlue ->
+            { red = 0.655, green = 0.918, blue = 0.976, alpha = 0 }
 
-        LightYellow ->
+        Yellow ->
             { red = 1, green = 1, blue = 0.5, alpha = 0 }
 
+        LightYellow ->
+            { red = 1, green = 1, blue = 0.75, alpha = 0 }
+
         Grey ->
-            { red = 0.5, green = 0.5, blue = 0.5, alpha = 0 }
+            { red = 0.75, green = 0.75, blue = 0.75, alpha = 0 }
 
         LightGrey ->
             { red = 0.95, green = 0.95, blue = 0.95, alpha = 0 }
@@ -144,6 +146,9 @@ employeeRGB c =
 
         Brown ->
             { red = 0.65, green = 0.35, blue = 0.2, alpha = 0 }
+
+        Purple ->
+            { red = 0.8, green = 0.729, blue = 1, alpha = 0 }
 
 
 employeeColor : EmployeeColor -> ColorPair
@@ -351,6 +356,7 @@ type alias Shift =
     , repeat : ShiftRepeat
     , everyX : Maybe Int
     , note : Maybe String
+    , onCall : Bool
     }
 
 
@@ -621,7 +627,51 @@ settingsEncoder settings =
         , ( "show_minutes", E.bool settings.showMinutes )
         , ( "show_shifts", E.bool settings.showShifts )
         , ( "show_vacations", E.bool settings.showVacations )
+        , ( "show_call_shifts", E.bool settings.showCallShifts )
         ]
+
+stringToColor : String -> EmployeeColor
+stringToColor color =
+    case color of
+        "Red" ->
+            Red
+
+        "LightRed" ->
+            LightRed
+
+        "Green" ->
+            Green
+
+        "LightGreen" ->
+            LightGreen
+
+        "LightBlue" ->
+            LightBlue
+
+        "Yellow" ->
+            Yellow
+
+        "LightYellow" ->
+            LightYellow
+
+        "Grey" ->
+            Grey
+
+        "LightGrey" ->
+            LightGrey
+
+        "Black" ->
+            Black
+
+        "Brown" ->
+            Brown
+
+        "Purple" ->
+            Purple
+
+        _ ->
+            Blue
+            
 
 colorToString : EmployeeColor -> String
 colorToString c =
@@ -661,6 +711,9 @@ colorToString c =
 
         Brown ->
             "Brown"
+
+        Purple ->
+            "Purple"
 
 
 employeeColorEncoder : EmployeeColor -> E.Value
@@ -731,6 +784,7 @@ shiftEncoder shift =
                 Nothing ->
                     E.null
           )
+        , ( "on_call", E.bool shift.onCall )
         ]
 
 
@@ -790,51 +844,14 @@ settingsDecoder =
         |> JPipe.required "show_minutes" D.bool
         |> JPipe.required "show_shifts" D.bool
         |> JPipe.required "show_vacations" D.bool
+        |> JPipe.required "show_call_shifts" D.bool
 
 
 employeeColorDecoder : D.Decoder EmployeeColor
 employeeColorDecoder =
     D.string
         |> D.andThen
-            (\color ->
-                D.succeed <|
-                    case color of
-                        "Red" ->
-                            Red
-
-                        "LightRed" ->
-                            LightRed
-
-                        "Green" ->
-                            Green
-
-                        "LightGreen" ->
-                            LightGreen
-
-                        "LightBlue" ->
-                            LightBlue
-
-                        "Yellow" ->
-                            Yellow
-
-                        "LightYellow" ->
-                            LightYellow
-
-                        "Grey" ->
-                            Grey
-
-                        "LightGrey" ->
-                            LightGrey
-
-                        "Black" ->
-                            Black
-
-                        "Brown" ->
-                            Brown
-
-                        _ ->
-                            Blue
-            )
+            (\s -> D.succeed <| stringToColor s)
 
 
 perEmployeeSettingsDecoder : D.Decoder PerEmployeeSettings
@@ -958,6 +975,7 @@ shiftDecoder =
         |> JPipe.required "shift_repeat" shiftRepeatDecoder
         |> JPipe.required "every_x" (D.maybe D.int)
         |> JPipe.required "note" (D.maybe D.string)
+        |> JPipe.required "on_call" D.bool
 
 
 vacationDecoder : D.Decoder Vacation
@@ -1134,6 +1152,8 @@ type
     | CloseEventModal
     | CreateShiftRequest YearMonthDay
     | CreateShiftResponse (Result Http.Error Shift)
+    | CreateCallShiftRequest YearMonthDay
+    | CreateCallShiftResponse (Result Http.Error Shift)
     | RemoveEventAndClose Event
     | EventToggleEdit
     | UpdateVacationSupervisor Employee
@@ -1147,6 +1167,7 @@ type
     | UpdateShiftDuration Float
     | UpdateShiftRepeat ShiftRepeat
     | UpdateShiftRepeatRate String
+    | UpdateShiftOnCall Bool
       -- View Select Messages
     | OpenViewSelect
     | ChooseActiveView Int
@@ -1161,6 +1182,7 @@ type
     | UpdateLastNameStyle LastNameStyle
     | UpdateShowMinutes Bool
     | UpdateShowShifts Bool
+    | UpdateShowCallShifts Bool
     | UpdateShowVacations Bool
     | EmployeeViewCheckbox Int Bool
     | OpenEmployeeColorSelector Employee
@@ -1496,24 +1518,6 @@ hourMinuteToFloat hour minute =
     toFloat hour + fraction
 
 
-shiftFromDay : YearMonthDay -> Maybe Int -> Shift
-shiftFromDay ymd maybeEmpID =
-    Shift
-        0
-        0
-        maybeEmpID
-        ymd.year
-        ymd.month
-        ymd.day
-        8
-        0
-        8
-        0
-        NeverRepeat
-        (Just 1)
-        Nothing
-
-
 loadData =
     Cmd.batch
         [ getPosixTime
@@ -1654,6 +1658,19 @@ removeEmployeeFromList : List Employee -> Employee -> List Employee
 removeEmployeeFromList employees toRemove =
     List.Extra.filterNot (\e -> e.id == toRemove.id) employees
 
+
+updateShiftList : List Shift -> Shift -> List Shift
+updateShiftList shifts updated =
+    let
+        without =
+            removeShiftFromList shifts updated
+    in
+    updated :: without
+
+
+removeShiftFromList : List Shift -> Shift -> List Shift
+removeShiftFromList shifts toRemove =
+    List.Extra.filterNot (\e -> e.id == toRemove.id) shifts
 
 updateVacationList : List Vacation -> Vacation -> List Vacation
 updateVacationList vacations updated =
@@ -2255,6 +2272,21 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
+        ( CalendarPage page, UpdateShowCallShifts show ) ->
+            case ( page.modal, getActiveSettings model ) of
+                ( ViewEditModal data, Just active ) ->
+                    let
+                        settings =
+                            active.settings
+
+                        updatedSettings =
+                            { settings | showCallShifts = show }
+                    in
+                    ( model, updateSettings updatedSettings )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ( CalendarPage page, UpdateShowVacations show ) ->
             case ( page.modal, getActiveSettings model ) of
                 ( ViewEditModal data, Just active ) ->
@@ -2464,23 +2496,115 @@ update message model =
                 _ ->
                     ( model, Cmd.none )
 
-        ( CalendarPage page, CreateShiftRequest day ) ->
+        ( CalendarPage page, CreateShiftRequest ymd ) ->
             case page.modal of
                 AddEventModal _ ->
+                    let
+                        newShift = Shift
+                            0
+                            0
+                            Nothing
+                            ymd.year
+                            ymd.month
+                            ymd.day
+                            8
+                            0
+                            8
+                            0
+                            NeverRepeat
+                            (Just 1)
+                            Nothing
+                            False
+                    in
                     ( model
                     , Http.post
                         { url = "/sched/add_shift"
                         , body =
                             Http.jsonBody
-                                (shiftEncoder <|
-                                    shiftFromDay day Nothing
-                                )
+                                <| shiftEncoder newShift
                         , expect = Http.expectJson CreateShiftResponse shiftDecoder
                         }
                     )
 
                 _ ->
                     ( model, Cmd.none )
+
+
+        ( CalendarPage page, CreateCallShiftResponse shiftResult ) ->
+            case ( page.modal, shiftResult, getActiveSettings model ) of
+                ( AddEventModal day, Ok shift, Just active ) ->
+                    let
+                        employees =
+                            Maybe.withDefault [] model.employees
+
+                        viewEmployees =
+                            getViewEmployees
+                                employees
+                                active.settings.viewEmployees
+
+                        shiftEmployee =
+                            getEmployee
+                                viewEmployees
+                                shift.employeeID
+
+                        modalData =
+                            ShiftData
+                                True
+                                shift
+                                shiftEmployee
+                                ""
+                                viewEmployees
+                                day
+
+                        updatedModel =
+                            openShiftModal
+                                model
+                                page
+                                modalData
+                    in
+                    ( updatedModel
+                    , Cmd.batch
+                        [ focusElement "employeeSearch"
+                        , loadData
+                        ]
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, CreateCallShiftRequest ymd ) ->
+            case page.modal of
+                AddEventModal _ ->
+                    let
+                        newShift = Shift
+                            0
+                            0
+                            Nothing
+                            ymd.year
+                            ymd.month
+                            ymd.day
+                            8
+                            0
+                            8
+                            0
+                            NeverRepeat
+                            (Just 1)
+                            Nothing
+                            True
+                    in
+                    ( model
+                    , Http.post
+                        { url = "/sched/add_shift"
+                        , body =
+                            Http.jsonBody
+                                <| shiftEncoder newShift
+                        , expect = Http.expectJson CreateCallShiftResponse shiftDecoder
+                        }
+                    )
+
+                _ ->
+                    ( model, Cmd.none )
+
 
         ( CalendarPage page, OpenShiftModal modalData ) ->
             case page.modal of
@@ -2903,6 +3027,22 @@ update message model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateShiftOnCall onCall ) ->
+            case page.modal of
+                ShiftModal modalData ->
+                    let
+                        shift = modalData.shift
+                        updatedShift = { shift | onCall = onCall }
+                        shifts = Maybe.withDefault [] model.shifts
+                        updatedShifts = updateShiftList shifts updatedShift
+                        updateReq = updateShift updatedShift
+                        updatedModal = { modalData | shift = updatedShift }
+                        updatedPage = { page | modal = ShiftModal updatedModal }
+                        updatedModel = { model | shifts = Just updatedShifts
+                            , page = CalendarPage updatedPage }
+                    in ( updatedModel, updateReq)
+                _ -> ( model, Cmd.none )
 
         ( CalendarPage page, RemoveEventAndClose event ) ->
             let
@@ -3509,6 +3649,25 @@ update message model =
 
 
 -- VIEW
+
+dividerBar : Color -> Element Message
+dividerBar color =
+    el
+        [ fillX
+        , paddingXY 0 5
+        ]
+        <| el 
+            [ paddingXY 5 0
+            , fillX
+            , Border.widthEach
+                { top = 2
+                , bottom = 0
+                , right = 0
+                , left = 0
+                }
+            , Border.color color
+            ]
+            none
 
 
 toDocument : Element Message -> Browser.Document Message
@@ -4804,16 +4963,25 @@ shiftHoursElement model viewEmployees combined viewDate shift =
                     , label =
                         el
                             [ centerX
-                            , height <| minimum 30 fill
+                            , height <| minimum 40 fill
                             , inFront <|
-                                row
-                                    [ centerX, centerY ]
+                                column
+                                [ centerX, centerY ]
+                                [ row
+                                    []
                                     [ text
                                         (nameToString employee.name settings.lastNameStyle
                                             ++ ": "
                                         )
                                     , formatHours settings startFloat durationFloat shift.note
                                     ]
+                                , case (shift.onCall, employee.phoneNumber) of
+                                        (True, Just phoneNumber) -> 
+                                            case phoneNumber of
+                                                "" -> none
+                                                _ -> el [] <| text <| phoneNumber
+                                        _ -> none
+                                ]
                             ]
                             none
                     }
@@ -4862,21 +5030,31 @@ shiftElement model viewEmployees combined day shift =
                                 viewEmployees
                                 day
                 , label =
-                    row
+                    column
                         ([ Font.size 18
-                         , paddingXY 0 2
-                         , Border.width 2
-                         , Border.rounded 3
-                         , fillX
-                         ]
+                        , paddingXY 0 2
+                        , Border.width 2
+                        , Border.rounded 3
+                        , fillX
+                        ]
                             ++ shiftColorStyle model shift
                         )
-                        [ el [ padding 1 ] <|
-                            text
-                                (nameToString employee.name settings.lastNameStyle
-                                    ++ ": "
-                                )
-                        , formatHours settings floatBegin floatDuration shift.note
+                        [ row
+                          []
+                            [ el [ padding 1 ] <|
+                                text
+                                    (nameToString employee.name settings.lastNameStyle
+                                        ++ ": "
+                                    )
+                            
+                            , formatHours settings floatBegin floatDuration shift.note
+                            ]
+                        , case (shift.onCall, employee.phoneNumber) of
+                            (True, Just phoneNumber) -> 
+                                case phoneNumber of
+                                    "" -> none
+                                    _ -> el [] <| text <| phoneNumber
+                            _ -> none
                         ]
                 }
 
@@ -4923,6 +5101,39 @@ shiftHoursColumn model viewEmployees combined viewDate =
     let
         shifts =
             Maybe.withDefault [] model.shifts
+            |> List.filter (\s -> s.onCall == False)
+
+        priorDate =
+            addDaysToDate viewDate -1
+
+        viewDateShifts =
+            filterShiftsByDate viewDate shifts
+
+        priorDayShifts =
+            filterShiftsByDate priorDate shifts
+
+        viewShifts =
+            priorDayShifts ++ viewDateShifts
+    in
+    column
+        [ fillX
+        ]
+        (List.map
+            (shiftHoursElement model viewEmployees combined viewDate)
+            viewShifts
+        )
+
+callShiftHoursColumn :
+    Model
+    -> List Employee
+    -> CombinedSettings
+    -> YearMonthDay
+    -> Element Message
+callShiftHoursColumn model viewEmployees combined viewDate =
+    let
+        shifts =
+            Maybe.withDefault [] model.shifts
+            |> List.filter (\s -> s.onCall == True)
 
         priorDate =
             addDaysToDate viewDate -1
@@ -4955,6 +5166,27 @@ shiftColumn model viewEmployees combined day =
     let
         shifts =
             Maybe.withDefault [] model.shifts
+            |> List.filter (\s -> s.onCall == False)
+    in
+    column
+        [ fillX
+        ]
+        (List.map
+            (shiftElement model viewEmployees combined day)
+            (filterShiftsByDate day shifts)
+        )
+
+callShiftColumn :
+    Model
+    -> List Employee
+    -> CombinedSettings
+    -> YearMonthDay
+    -> Element Message
+callShiftColumn model viewEmployees combined day =
+    let
+        shifts =
+            Maybe.withDefault [] model.shifts
+            |> List.filter (\s -> s.onCall == True)
     in
     column
         [ fillX
@@ -5475,47 +5707,61 @@ shiftEditElement shift editData settings =
             ]
         , -- Repeat controls
           row
-            ([ width shrink
-             , spacing 5
-             ]
-                ++ defaultBorder
-            )
-            [ Input.radio
-                [ BG.color white
-                , padding 5
+            []
+            [ row
+                ([ width shrink
+                , spacing 5
                 ]
-                { onChange = UpdateShiftRepeat
-                , selected = Just shift.repeat
-                , label =
-                    Input.labelAbove
-                        [ BG.color lightGrey, fillX, padding 5 ]
-                        (el [ centerX ] (text "Repeat:"))
-                , options =
-                    [ Input.option NeverRepeat (text "Never")
-                    , Input.option EveryWeek (text "Weekly")
-                    , Input.option EveryDay (text "Daily")
+                    ++ defaultBorder
+                )
+                [ Input.radio
+                    [ BG.color white
+                    , padding 5
                     ]
-                }
-            , Input.text
-                [ width (px 50)
-                , padding 5
-                , alignTop
-                ]
-                { onChange = UpdateShiftRepeatRate
-                , text =
-                    case shift.everyX of
-                        Just everyX ->
-                            String.fromInt everyX
-
-                        Nothing ->
-                            ""
-                , placeholder = Nothing
-                , label =
-                    Input.labelAbove
-                        [ BG.color lightGrey
-                        , padding 5
+                    { onChange = UpdateShiftRepeat
+                    , selected = Just shift.repeat
+                    , label =
+                        Input.labelAbove
+                            [ BG.color lightGrey, fillX, padding 5 ]
+                            (el [ centerX ] (text "Repeat:"))
+                    , options =
+                        [ Input.option NeverRepeat (text "Never")
+                        , Input.option EveryWeek (text "Weekly")
+                        , Input.option EveryDay (text "Daily")
                         ]
-                        (text "Every:")
+                    }
+                , Input.text
+                    [ width (px 50)
+                    , padding 5
+                    , alignTop
+                    ]
+                    { onChange = UpdateShiftRepeatRate
+                    , text =
+                        case shift.everyX of
+                            Just everyX ->
+                                String.fromInt everyX
+
+                            Nothing ->
+                                ""
+                    , placeholder = Nothing
+                    , label =
+                        Input.labelAbove
+                            [ BG.color lightGrey
+                            , padding 5
+                            ]
+                            (text "Every:")
+                    }
+                ]
+            , Input.checkbox
+                ([ BG.color white
+                , padding 10] ++ defaultBorder)
+                { onChange = UpdateShiftOnCall
+                , checked = shift.onCall
+                , label =
+                    Input.labelRight
+                        [ BG.color lightGrey, fillX, padding 5 ]
+                        (el [ centerX ] (text "On call"))
+                , icon = Input.defaultCheckbox
                 }
             ]
         ]
@@ -5735,6 +5981,18 @@ shiftViewElement shift editData settings =
                     ]
                 <|
                     text "No employee selected"
+        , -- On Call Status
+          case shift.onCall of
+            True -> el
+                [ fillX
+                , padding 10
+                , BG.color white
+                , Border.width 2
+                , Border.color yellow
+                , Border.rounded 3
+                ]
+                <| el [centerX] <| text "On Call"
+            False -> none
         , -- Note display
           case shift.note of
             Just note ->
@@ -5746,8 +6004,8 @@ shiftViewElement shift editData settings =
 
             Nothing ->
                 el ([ fillX, padding 10 ] ++ defaultBorder) <|
-                    text
-                        "No note attached"
+                    el [centerX] <|
+                    text "No note attached"
         , -- Shift time display
           shiftTimesElement shift settings
         , -- Shift repeat display
@@ -6216,6 +6474,16 @@ addEventElement model day =
                                         { onPress = Just <| CreateShiftRequest day
                                         , label = el [ centerX ] <| text "Shift"
                                         }
+                            , case currentEmployee.level of
+                                Read ->
+                                    none
+
+                                _ ->
+                                    Input.button
+                                        ([ fillX, padding 5, BG.color white ] ++ defaultBorder)
+                                        { onPress = Just <| CreateCallShiftRequest day
+                                        , label = el [ centerX ] <| text "Call Shift"
+                                        }
                             , Input.button
                                 ([ fillX, padding 5, BG.color white ] ++ defaultBorder)
                                 { onPress = Just <| CreateVacationRequest day
@@ -6307,25 +6575,37 @@ viewDayInMonth model today combined maybeYMD =
                     , fillY
                     , paddingXY 5 0
                     ]
-                    [ row
+                    ([ row
                         [ padding 5
                         ]
                         [ dayOfMonthElement day
                         , addEventButton day
                         ]
-                    , case combined.settings.showShifts of
-                        True ->
-                            shiftColumn model viewEmployees combined day
-
-                        False ->
-                            none
-                    , case settings.showVacations of
-                        True ->
-                            vacationColumn model viewEmployees combined day
-
-                        False ->
-                            none
                     ]
+                    ++ (case settings.showShifts of
+                        True ->
+                            [ shiftColumn model viewEmployees combined day
+                            ]
+
+                        False ->
+                            [])
+                    ++ (case settings.showCallShifts of
+                        True ->
+                            [ dividerBar grey
+                            , callShiftColumn model viewEmployees combined day
+                            ]
+
+                        False ->
+                            [])
+                    ++ (case settings.showVacations of
+                        True ->
+                            [ dividerBar grey
+                            , vacationColumn model viewEmployees combined day
+                            ]
+
+                        False ->
+                            [])
+                    )
                 )
 
         Nothing ->
@@ -6488,8 +6768,8 @@ colorOptions =
     , colorOpt LightYellow
     , colorOpt Grey
     , colorOpt LightGrey
-    , colorOpt Brown
-    , colorOpt Black
+    -- , colorOpt Brown
+    , colorOpt Purple
     ]
 
 colorSelector : Employee -> EmployeeColor -> Element Message
@@ -6766,6 +7046,20 @@ editViewElement model editData maybeSettings employees =
                                     }
                             ]
                         , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
+                            [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Call Shifts:"
+                            , el [ fillX ] <|
+                                Input.radio
+                                    ([ centerX ] ++ defaultBorder)
+                                    { onChange = UpdateShowCallShifts
+                                    , options =
+                                        [ Input.option True <| text "Show"
+                                        , Input.option False <| text "Hide"
+                                        ]
+                                    , selected = Just settings.showCallShifts
+                                    , label = Input.labelHidden "Call Shifts"
+                                    }
+                            ]
+                        , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
                             [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Vacations:"
                             , el [ fillX ] <|
                                 Input.radio
@@ -6942,7 +7236,7 @@ viewDay model today viewDate combined =
          ]
             ++ defaultBorder
         )
-        [ column
+        ([ column
             [ fillX
             , spacing 5
             , paddingXY 0 5
@@ -6973,7 +7267,8 @@ viewDay model today viewDate combined =
                 [ BG.color lightGreen
                 , Border.rounded 3
                 , centerX
-                , padding 2
+                , padding 4
+                , defaultShadow
                 ]
                 { onPress = Just <| OpenAddEvent viewDate
                 , label = text "Add Event"
@@ -6992,19 +7287,33 @@ viewDay model today viewDate combined =
                 , el [ fillX, borderL ] <| el [ alignLeft ] <| text "9pm"
                 ]
             ]
-        , case combined.settings.showShifts of
-            True ->
-                shiftHoursColumn model viewEmployees combined viewDate
-
-            False ->
-                none
-        , case settings.showVacations of
-            True ->
-                vacationColumn model viewEmployees combined viewDate
-
-            False ->
-                none
         ]
+        ++ (case combined.settings.showShifts of
+            True ->
+                [shiftHoursColumn model viewEmployees combined viewDate]
+
+            False ->
+                [])
+        ++ (case combined.settings.showCallShifts of
+            True ->
+                [ 
+                  dividerBar grey
+                , el 
+                    ([centerX, BG.color white, padding 3] ++ defaultBorder) 
+                    <| text "On Call"
+                , callShiftHoursColumn model viewEmployees combined viewDate
+                ]
+
+            False ->
+                [])
+        ++ (case settings.showVacations of
+            True ->
+                [vacationColumn model viewEmployees combined viewDate]
+
+            False ->
+                [])
+        )
+        
 
 
 viewWeek :

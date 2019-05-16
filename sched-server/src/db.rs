@@ -468,7 +468,8 @@ impl Handler<Messages> for DbExecutor {
                             view_employees: vec![],
                             show_minutes: true,
                             show_shifts: true,
-                            show_vacations: false
+                            show_vacations: false,
+                            show_call_shifts: false
                         };
 
                         let inserted_settings =

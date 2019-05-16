@@ -91,6 +91,7 @@ pub enum EmployeeColor {
     LightGrey,
     Black,
     Brown,
+    Purple
 }
 
 enum_to_sql!(HourFormat);
@@ -129,6 +130,7 @@ pub struct Settings {
     pub show_minutes: bool,
     pub show_shifts: bool,
     pub show_vacations: bool,
+    pub show_call_shifts: bool,
 }
 
 impl From<Settings> for NewSettings {
@@ -146,6 +148,7 @@ impl From<Settings> for NewSettings {
             show_minutes: settings.show_minutes,
             show_shifts: settings.show_shifts,
             show_vacations: settings.show_vacations,
+            show_call_shifts: settings.show_call_shifts
         }
     }
 }
@@ -165,6 +168,7 @@ pub struct NewSettings {
     pub show_minutes: bool,
     pub show_shifts: bool,
     pub show_vacations: bool,
+    pub show_call_shifts: bool,
 }
 
 #[derive(
