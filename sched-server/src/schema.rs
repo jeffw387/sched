@@ -8,6 +8,7 @@ table! {
         first -> Text,
         last -> Text,
         phone_number -> Nullable<Text>,
+        default_color -> Text,
     }
 }
 

@@ -223,6 +223,7 @@ type alias Employee =
     , level : EmployeeLevel
     , name : Name
     , phoneNumber : Maybe String
+    , defaultColor : EmployeeColor
     }
 
 
@@ -264,6 +265,15 @@ type alias EmployeeEditData =
     }
 
 
+type alias AccountModalData =
+    { colorSelectOpen : Bool
+    , oldPassword : String
+    , newPassword : String
+    , newPasswordAgain : String
+    , status : String
+    }
+
+
 type CalendarModal
     = NoModal
     | ViewSelectModal
@@ -273,6 +283,7 @@ type CalendarModal
     | VacationModal VacationData
     | EmployeeEditor EmployeeEditData
     | VacationApprovalModal
+    | AccountModal AccountModalData
 
 
 type alias CalendarData =
@@ -521,7 +532,15 @@ employeeEncoder e =
 
             Nothing ->
                 ( "phone_number", E.null )
+        , ("default_color", employeeColorEncoder e.defaultColor )
         ]
+
+loginInfoEncoder : AccountModalData -> E.Value
+loginInfoEncoder modalData =
+    E.object
+    [ ( "old_password", E.string modalData.oldPassword )
+    , ( "new_password", E.string modalData.newPassword )
+    ]
 
 
 employeeLevelEncoder : EmployeeLevel -> E.Value
@@ -604,50 +623,58 @@ settingsEncoder settings =
         , ( "show_vacations", E.bool settings.showVacations )
         ]
 
+colorToString : EmployeeColor -> String
+colorToString c =
+    case c of
+        Red ->
+            "Red"
+
+        LightRed ->
+            "LightRed"
+
+        Green ->
+            "Green"
+
+        LightGreen ->
+            "LightGreen"
+
+        Blue ->
+            "Blue"
+
+        LightBlue ->
+            "LightBlue"
+
+        Yellow ->
+            "Yellow"
+
+        LightYellow ->
+            "LightYellow"
+
+        Grey ->
+            "Grey"
+
+        LightGrey ->
+            "LightGrey"
+
+        Black ->
+            "Black"
+
+        Brown ->
+            "Brown"
+
 
 employeeColorEncoder : EmployeeColor -> E.Value
 employeeColorEncoder c =
-    let
-        str =
-            case c of
-                Red ->
-                    "Red"
+    E.string <| colorToString c
 
-                LightRed ->
-                    "LightRed"
-
-                Green ->
-                    "Green"
-
-                LightGreen ->
-                    "LightGreen"
-
-                Blue ->
-                    "Blue"
-
-                LightBlue ->
-                    "LightBlue"
-
-                Yellow ->
-                    "Yellow"
-
-                LightYellow ->
-                    "LightYellow"
-
-                Grey ->
-                    "Grey"
-
-                LightGrey ->
-                    "LightGrey"
-
-                Black ->
-                    "Black"
-
-                Brown ->
-                    "Brown"
-    in
-    E.string str
-
+httpErrorString : Http.Error -> String
+httpErrorString e =
+    case e of
+        Http.BadUrl u -> "Bad URL: " ++ u ++ "!"
+        Http.Timeout -> "Request timeout!"
+        Http.NetworkError -> "Network Error!"
+        Http.BadStatus i -> "Bad request status: " ++ (String.fromInt i)
+        Http.BadBody b -> "Error: " ++ b
 
 perEmployeeSettingsEncoder : PerEmployeeSettings -> E.Value
 perEmployeeSettingsEncoder perEmployee =
@@ -895,6 +922,7 @@ employeeDecoder =
         |> JPipe.required "level" employeeLevelDecoder
         |> JPipe.required "name" nameDecoder
         |> JPipe.required "phone_number" (D.maybe D.string)
+        |> JPipe.required "default_color" employeeColorDecoder
 
 
 shiftRepeatDecoder : D.Decoder ShiftRepeat
@@ -1061,6 +1089,16 @@ type
     | LogoutResponse (Result Http.Error ())
     | KeyDown (Maybe Keys)
     | FocusResult (Result Dom.Error ())
+      -- Account modal messages
+    | OpenAccountModal
+    | OpenDefaultColorSelector
+    | UpdateAccountDefaultColor EmployeeColor
+    | UpdateAccountOldPassword String
+    | UpdateAccountNewPassword String
+    | UpdateAccountNewPasswordAgain String
+    | ChangePassword 
+    | ChangePasswordResponse (Result Http.Error ())
+    | CloseAccountModal
       -- Login Messages
     | LoginRequest
     | LoginResponse (Result Http.Error ())
@@ -1145,6 +1183,12 @@ type
     | ReceiveZone Time.Zone
     | ReloadData (Result Http.Error ())
 
+
+matchPasswords : AccountModalData -> Maybe String
+matchPasswords modalData =
+    case modalData.newPassword == modalData.newPasswordAgain of
+        True -> Just modalData.newPassword
+        False -> Nothing
 
 updateViewDate : Model -> ( Model, Cmd Message )
 updateViewDate model =
@@ -1688,6 +1732,154 @@ update message model =
 
         ( _, LogoutResponse _ ) ->
             ( model, Nav.pushUrl model.navkey "/sched/login" )
+
+        -- Account modal messages
+        ( CalendarPage page, OpenAccountModal ) ->
+            case page.modal of
+                NoModal ->
+                    let
+                        modalData = AccountModalData
+                            False
+                            ""
+                            ""
+                            ""
+                            ""
+                        
+                        updatedPage = { page | modal = AccountModal modalData }
+
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in (updatedModel, Cmd.none)
+                    
+                _ -> (model, Cmd.none)
+
+        ( CalendarPage page, OpenDefaultColorSelector ) ->
+            case page.modal of 
+                AccountModal modalData ->
+                    if modalData.colorSelectOpen == False then 
+                        let
+                            updatedData = { modalData | colorSelectOpen = True }
+
+                            updatedPage = { page | modal = AccountModal updatedData }
+
+                            updatedModel = { model | page = CalendarPage updatedPage }
+
+                        in ( updatedModel, Cmd.none )
+                    else ( model, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateAccountDefaultColor color ) ->
+            case (page.modal, model.currentEmployee) of
+                (AccountModal modalData, Just currentEmployee) ->
+                    let
+                        colorString = colorToString color
+
+                        updatedData = { modalData | colorSelectOpen = False
+                            , status = "Changed default color to " ++ colorString }
+
+                        updatedPage = { page | modal = AccountModal updatedData }
+
+                        employees = Maybe.withDefault [] model.employees
+
+                        updatedEmployee = { currentEmployee | defaultColor = color }
+
+                        updatedEmployees = updateEmployeeList employees updatedEmployee
+
+                        updatedModel = { model | 
+                            page = CalendarPage updatedPage
+                            , employees = Just updatedEmployees
+                            , currentEmployee = Just updatedEmployee }
+
+                    in ( updatedModel, updateEmployee updatedEmployee )
+
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateAccountOldPassword oldPassword ) ->
+            case page.modal of
+                AccountModal modalData ->
+                    let
+                        updatedModal = { modalData | oldPassword = oldPassword }
+                        updatedPage = { page | modal = AccountModal updatedModal }
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateAccountNewPassword newPassword ) ->
+            case page.modal of
+                AccountModal modalData ->
+                    let
+                        updatedModal = { modalData | newPassword = newPassword }
+                        updatedPage = { page | modal = AccountModal updatedModal }
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateAccountNewPasswordAgain newPasswordAgain ) ->
+            case page.modal of
+                AccountModal modalData ->
+                    let
+                        updatedModal = { modalData | newPasswordAgain = newPasswordAgain }
+                        updatedPage = { page | modal = AccountModal updatedModal }
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, ChangePassword ) ->
+            case page.modal of
+                AccountModal modalData ->
+                    let 
+                        match = matchPasswords modalData
+
+                        newStatus = case match of
+                            Just _ -> "Changing password"
+                            Nothing -> "Passwords don't match!"
+
+                        pwRequest =
+                            case match of
+                                Just _ ->
+                                    Http.post
+                                        { url = "/sched/change_password"
+                                        , body = Http.jsonBody <| loginInfoEncoder modalData
+                                        , expect = Http.expectWhatever ChangePasswordResponse
+                                        }
+                                _ -> Cmd.none
+
+                        updatedModal = { modalData | status = newStatus }
+
+                        updatedPage = { page | modal = AccountModal updatedModal }
+
+                        updatedModel = { model | page = CalendarPage updatedPage }
+
+                    in ( updatedModel, pwRequest )
+                                    
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, ChangePasswordResponse response ) ->
+            case page.modal of
+                AccountModal modalData ->
+                    let 
+                        newStatus = case response of
+                            Ok _ -> "Changed password!"
+
+                            Err e -> httpErrorString e
+
+                        updatedModal = { modalData | status = newStatus }
+
+                        updatedPage = { page | modal = AccountModal updatedModal }
+
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, CloseAccountModal ) ->
+            case page.modal of
+                AccountModal _ ->
+                    let
+                        updatedPage = { page | modal = NoModal }
+
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+                _ -> ( model, Cmd.none )
 
         -- Login messages
         ( LoginPage page, LoginRequest ) ->
@@ -2474,7 +2666,8 @@ update message model =
                             modalData.vacation
 
                         updatedVacation =
-                            { vacation | durationDays = String.toInt days }
+                            { vacation | durationDays = String.toInt days
+                                , approved = False }
 
                         updatedData =
                             { modalData | vacation = updatedVacation }
@@ -2797,6 +2990,7 @@ update message model =
                                 Read
                                 (Name "New" "Employee")
                                 (Just "(555) 123-4567")
+                                Green
                     in
                     ( model
                     , Http.post
@@ -3382,17 +3576,13 @@ editEmployeesButton maybeEmployee =
             none
 
 
-viewLogoutButton empName =
+viewLogoutButton =
     Input.button
         [ defaultShadow
         , padding 5
         ]
         { onPress = Just Logout
-        , label =
-            row []
-                [ el [ Font.color <| rgb 0 0.5 0 ] <| text empName
-                , text " : Log out"
-                ]
+        , label = text "Log out"
         }
 
 
@@ -3689,6 +3879,15 @@ openVacationsButton maybeEmployee =
         Nothing ->
             none
 
+openAccountModal : String -> Element Message
+openAccountModal empName =
+    Input.button
+        [ defaultShadow, padding 5 ]
+        { onPress = Just OpenAccountModal
+        , label = text empName
+        }
+
+
 
 viewCalendarFooter : Maybe Employee -> Element Message
 viewCalendarFooter maybeEmployee =
@@ -3713,7 +3912,8 @@ viewCalendarFooter maybeEmployee =
         , editViewButton
         , editEmployeesButton maybeEmployee
         , openVacationsButton maybeEmployee
-        , viewLogoutButton empName
+        , openAccountModal empName
+        , viewLogoutButton
         ]
 
 
@@ -4455,24 +4655,31 @@ filterVacationsForShift model shift =
     in
     matchedVacations
 
+getEmployeeColor : Model -> Maybe Int -> EmployeeColor
+getEmployeeColor model maybeID =
+    case getEmployeeSettings model maybeID of
+        Just perEmployee -> perEmployee.color
+        Nothing -> 
+            let
+                employees = Maybe.withDefault [] model.employees
+                maybeEmployee = getEmployee employees maybeID
+                defaultColor = case maybeEmployee of
+                    Just employee ->
+                        employee.defaultColor
+                    Nothing -> Green
+                
+            in
+                defaultColor
 
 shiftColorStyle : Model -> Shift -> List (Attribute Message)
 shiftColorStyle model shift =
-    case getEmployeeSettings model shift.employeeID of
-        Just perEmployee ->
-            let
-                colorPair =
-                    employeeColor perEmployee.color
-            in
-            [ Border.color <| fromRgb colorPair.dark
-            , BG.color <| fromRgb colorPair.light
-            ]
-
-        Nothing ->
-            [ Border.color <| rgb 0.5 0.5 0.5
-            , BG.color <| rgb 0.8 0.8 0.8
-            ]
-
+    let
+        colorPair =
+            employeeColor <| getEmployeeColor model shift.employeeID
+    in
+    [ Border.color <| fromRgb colorPair.dark
+    , BG.color <| fromRgb colorPair.light
+    ]
 
 shiftQuarterHours : Float -> Int
 shiftQuarterHours f =
@@ -6254,6 +6461,37 @@ colorSelectOpenButton employee color =
         }
 
 
+colorOpt c =
+        Input.optionWith c
+            (\o ->
+                case o of
+                    Input.Selected ->
+                        el 
+                        [ Border.width 1
+                        , Border.color black
+                        , Border.rounded 3
+                        , Border.innerGlow (rgb 0.6 0.95 0.6) 1
+                        ] <| colorDisplay c
+
+                    _ ->
+                        colorDisplay c
+            )
+
+colorOptions =
+    [ colorOpt Red
+    , colorOpt LightRed
+    , colorOpt Green
+    , colorOpt LightGreen
+    , colorOpt Blue
+    , colorOpt LightBlue
+    , colorOpt Yellow
+    , colorOpt LightYellow
+    , colorOpt Grey
+    , colorOpt LightGrey
+    , colorOpt Brown
+    , colorOpt Black
+    ]
+
 colorSelector : Employee -> EmployeeColor -> Element Message
 colorSelector employee color =
     Input.radioRow
@@ -6265,33 +6503,7 @@ colorSelector employee color =
         { onChange = ChooseEmployeeColor employee
         , selected = Just color
         , label = Input.labelHidden "Employee color"
-        , options =
-            let
-                colorOpt =
-                    \c ->
-                        Input.optionWith c
-                            (\o ->
-                                case o of
-                                    Input.Selected ->
-                                        el defaultBorder <| colorDisplay c
-
-                                    _ ->
-                                        colorDisplay c
-                            )
-            in
-            [ colorOpt Red
-            , colorOpt LightRed
-            , colorOpt Green
-            , colorOpt LightGreen
-            , colorOpt Blue
-            , colorOpt LightBlue
-            , colorOpt Yellow
-            , colorOpt LightYellow
-            , colorOpt Grey
-            , colorOpt LightGrey
-            , colorOpt Brown
-            , colorOpt Black
-            ]
+        , options = colorOptions
         }
 
 
@@ -6584,16 +6796,7 @@ editViewElement model editData maybeSettings employees =
                         List.map
                             (\e ->
                                 let
-                                    maybePerEmployee =
-                                        getEmployeeSettings model (Just e.id)
-
-                                    color =
-                                        case maybePerEmployee of
-                                            Just perEmployee ->
-                                                perEmployee.color
-
-                                            Nothing ->
-                                                Green
+                                    color = getEmployeeColor model (Just e.id)
 
                                     selectOpen =
                                         case editData.colorSelect of
@@ -6931,6 +7134,91 @@ viewDaysOfWeekHeader =
         ]
 
 
+viewAccountModal : Model -> AccountModalData -> Element Message
+viewAccountModal model modalData =
+    case model.currentEmployee of
+        Just currentEmployee ->
+            modalOverlay CloseAccountModal <|
+            column
+            [ centerX
+            , centerY
+            , BG.color modalColor
+            , spacing 5
+            , padding 10
+            , defaultShadow
+            ]
+            [ el [padding 10, centerX] <| text "Account Settings"
+            , row
+                []
+                [ text "Select default color: "
+                , case modalData.colorSelectOpen of
+                    False ->
+                        Input.button
+                            []
+                            { onPress = Just 
+                                <| OpenDefaultColorSelector
+                            , label = row []
+                                [ colorDisplay currentEmployee.defaultColor
+                                ]
+                            }
+                    True ->
+                        Input.radioRow
+                            ([ BG.color white
+                            , defaultShadow
+                            ]
+                                ++ defaultBorder
+                            )
+                            { onChange = UpdateAccountDefaultColor
+                            , selected = Just currentEmployee.defaultColor
+                            , label = Input.labelHidden "Employee color"
+                            , options = colorOptions
+                            }
+                ]
+            , Input.currentPassword
+                []
+                { onChange = UpdateAccountOldPassword
+                , text = modalData.oldPassword
+                , placeholder = Nothing
+                , label = Input.labelLeft [] <| text "Current password:"
+                , show = False
+                }
+            , Input.newPassword
+                []
+                { onChange = UpdateAccountNewPassword
+                , text = modalData.newPassword
+                , placeholder = Nothing
+                , label = Input.labelLeft [] <| text "New password:"
+                , show = False
+                }
+            , Input.newPassword
+                []
+                { onChange = UpdateAccountNewPasswordAgain
+                , text = modalData.newPasswordAgain
+                , placeholder = Nothing
+                , label = Input.labelLeft [] <| text "New password again:"
+                , show = False
+                }
+            , Input.button
+                ([ padding 5
+                , centerX
+                , BG.color white
+                , defaultShadow
+                ] ++ defaultBorder)
+                { onPress = Just ChangePassword
+                , label = text "Change password"
+                }
+            , el
+                (
+                [ fillX
+                , padding 5
+                -- , BG.color white
+                ] ++ defaultBorder)
+                <| el [centerX] <| text modalData.status
+            ]
+
+        Nothing ->
+            text "No employee logged in"
+
 viewModal : Model -> Element Message
 viewModal model =
     case model.page of
@@ -6959,6 +7247,9 @@ viewModal model =
 
                 VacationApprovalModal ->
                     vacationApprovalModal model
+                
+                AccountModal modalData ->
+                    viewAccountModal model modalData
 
         _ ->
             text "Error: viewing modal from wrong page"

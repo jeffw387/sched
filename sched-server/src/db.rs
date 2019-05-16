@@ -28,6 +28,7 @@ use crate::settings::{
     PerEmployeeSettings,
     Settings,
     ViewType,
+    EmployeeColor
 };
 use crate::shift::{
     NewShift,
@@ -438,6 +439,7 @@ impl Handler<Messages> for DbExecutor {
                     EmployeeLevel::Read,
                     new_client_employee.name,
                     new_client_employee.phone_number,
+                    EmployeeColor::Green
                 );
                 match owner.level {
                     EmployeeLevel::Read => {
@@ -520,6 +522,8 @@ impl Handler<Messages> for DbExecutor {
                             employees::phone_number
                                 .eq(updated_employee
                                     .phone_number),
+                            employees::default_color
+                                .eq(updated_employee.default_color)
                         ))
                         .execute(conn)
                         .map(|_| Results::Nothing)
