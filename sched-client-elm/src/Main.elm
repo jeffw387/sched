@@ -1172,6 +1172,7 @@ type
     | CreateVacationResponse (Result Http.Error Vacation)
     | ShiftEmployeeSearch String
     | ShiftEditUpdateNote String
+    | ShiftEditUnfocusNote
     | ChooseShiftEmployee Employee
     | UpdateShiftStart Float
     | UpdateShiftDuration Float
@@ -1187,6 +1188,7 @@ type
       -- View Edit Messages
     | OpenViewEdit
     | UpdateViewName String
+    | ViewEditUnfocusName
     | UpdateViewType ViewType
     | UpdateHourFormat HourFormat
     | UpdateLastNameStyle LastNameStyle
@@ -2225,11 +2227,28 @@ update message model =
 
                         updatedSettings =
                             { settings | name = name }
+
+                        updatedCombined =
+                            { active | settings = updatedSettings }
+
+                        settingsList = Maybe.withDefault [] model.settingsList
+
+                        updatedSettingsList = updateSettingsList settingsList updatedCombined
+
+                        updatedModel = { model | settingsList = Just updatedSettingsList }
                     in
-                    ( model, updateSettings updatedSettings )
+                    ( updatedModel, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
+
+        ( CalendarPage page, ViewEditUnfocusName ) ->
+            case page.modal of
+                ViewEditModal modalData ->
+                    let
+                        req = updateSettings modalData.settings
+                    in ( model, req )
+                _ -> ( model, Cmd.none )
 
         ( CalendarPage page, UpdateViewType viewType ) ->
             case ( page.modal, getActiveSettings model ) of
@@ -2513,6 +2532,7 @@ update message model =
                                 ""
                                 viewEmployees
                                 day
+                                (Maybe.withDefault "" shift.note)
 
                         updatedModel =
                             openShiftModal
@@ -2589,6 +2609,7 @@ update message model =
                                 ""
                                 viewEmployees
                                 day
+                                (Maybe.withDefault "" shift.note)
 
                         updatedModel =
                             openShiftModal
@@ -2940,11 +2961,25 @@ update message model =
             case page.modal of
                 ShiftModal modalData ->
                     let
+                        updatedModal = { modalData | note = note }
+                        updatedPage = { page | modal = ShiftModal updatedModal }
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, ShiftEditUnfocusNote ) ->
+            case page.modal of
+                ShiftModal modalData ->
+                    let
                         shift =
                             modalData.shift
 
                         updatedShift =
-                            { shift | note = Just note }
+                            { shift | note = Just modalData.note }
+
+                        shifts = Maybe.withDefault [] model.shifts
+
+                        updatedShifts = updateShiftList shifts updatedShift
 
                         updatedData =
                             { modalData | shift = updatedShift }
@@ -2953,7 +2988,8 @@ update message model =
                             { page | modal = ShiftModal updatedData }
 
                         updatedModel =
-                            { model | page = CalendarPage updatedPage }
+                            { model | page = CalendarPage updatedPage 
+                                , shifts = Just updatedShifts }
                     in
                     ( updatedModel, updateShift updatedShift )
 
@@ -4516,9 +4552,12 @@ formatHours settings start duration maybeNote =
         noteFormatted =
             case maybeNote of
                 Just note ->
-                    " ("
-                        ++ note
-                        ++ ")"
+                    case note of
+                        "" -> note
+                        _ ->
+                            " ("
+                                ++ note
+                                ++ ")"
 
                 Nothing ->
                     ""
@@ -4994,6 +5033,7 @@ shiftHoursElement model viewEmployees combined viewDate shift =
                                     ""
                                     viewEmployees
                                     viewDate
+                                    (Maybe.withDefault "" shift.note)
                     , label =
                         el
                             [ centerX
@@ -5063,6 +5103,7 @@ shiftElement model viewEmployees combined day shift =
                                 ""
                                 viewEmployees
                                 day
+                                (Maybe.withDefault "" shift.note)
                 , label =
                     column
                         ([ Font.size 18
@@ -5292,6 +5333,7 @@ type alias ShiftData =
     , employeeSearch : String
     , employeeMatches : List Employee
     , date : YearMonthDay
+    , note : String
     }
 
 
@@ -5616,9 +5658,10 @@ shiftEditElement shift editData settings =
           el [ fillX ] <|
             Input.text
                 [ centerX
+                , Events.onLoseFocus ShiftEditUnfocusNote
                 ]
                 { onChange = ShiftEditUpdateNote
-                , text = Maybe.withDefault "" shift.note
+                , text = editData.note
                 , placeholder =
                     Just
                         (Input.placeholder [] (text "Note"))
