@@ -64,6 +64,7 @@ pub enum ViewType {
     Month,
     Week,
     Day,
+    AltDay,
 }
 
 #[derive(

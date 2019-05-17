@@ -49,6 +49,7 @@ type ViewType
     = MonthView
     | WeekView
     | DayView
+    | AltDayView
 
 
 type HourFormat
@@ -272,6 +273,7 @@ type alias EmployeeEditData =
 
 type alias AccountModalData =
     { colorSelectOpen : Bool
+    , phoneNumber : String
     , oldPassword : String
     , newPassword : String
     , newPasswordAgain : String
@@ -573,6 +575,9 @@ viewTypeEncoder viewType =
 
         DayView ->
             E.string "Day"
+        
+        AltDayView ->
+            E.string "AltDay"
 
 
 hourFormatEncoder : HourFormat -> E.Value
@@ -882,6 +887,9 @@ viewTypeDecoder =
                     "Day" ->
                         D.succeed DayView
 
+                    "AltDay" ->
+                        D.succeed AltDayView
+
                     _ ->
                         D.succeed MonthView
             )
@@ -1111,6 +1119,8 @@ type
     | OpenAccountModal
     | OpenDefaultColorSelector
     | UpdateAccountDefaultColor EmployeeColor
+    | UpdateAccountPhoneNumber String
+    | AccountModalUnfocusPhoneNumber
     | UpdateAccountOldPassword String
     | UpdateAccountNewPassword String
     | UpdateAccountNewPasswordAgain String
@@ -1752,11 +1762,12 @@ update message model =
 
         -- Account modal messages
         ( CalendarPage page, OpenAccountModal ) ->
-            case page.modal of
-                NoModal ->
+            case (page.modal, model.currentEmployee) of
+                (NoModal, Just currentEmployee) ->
                     let
                         modalData = AccountModalData
                             False
+                            (Maybe.withDefault "" currentEmployee.phoneNumber)
                             ""
                             ""
                             ""
@@ -1782,6 +1793,29 @@ update message model =
 
                         in ( updatedModel, Cmd.none )
                     else ( model, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateAccountPhoneNumber phoneNumber ) ->
+            case page.modal of
+                AccountModal modalData ->
+                    let
+                        updatedModal = { modalData | phoneNumber = phoneNumber }
+                        updatedPage = { page | modal = AccountModal updatedModal }
+                        updatedModel = { model | page = CalendarPage updatedPage }
+                    in ( updatedModel, Cmd.none )
+                _ -> ( model, Cmd.none )
+
+        ( CalendarPage page, AccountModalUnfocusPhoneNumber ) ->
+            case (page.modal, model.currentEmployee) of
+                (AccountModal modalData, Just currentEmployee) ->
+                    let
+                        updatedEmployee = { currentEmployee | phoneNumber = Just modalData.phoneNumber }
+                        req = updateEmployee updatedEmployee
+                        employees = Maybe.withDefault [] model.employees
+                        updatedEmployees = updateEmployeeList employees updatedEmployee
+                        updatedModel = { model | currentEmployee = Just updatedEmployee
+                            , employees = Just updatedEmployees }
+                    in ( updatedModel, req )
                 _ -> ( model, Cmd.none )
 
         ( CalendarPage page, UpdateAccountDefaultColor color ) ->
@@ -5982,17 +6016,25 @@ shiftViewElement shift editData settings =
                 <|
                     text "No employee selected"
         , -- On Call Status
-          case shift.onCall of
-            True -> el
-                [ fillX
-                , padding 10
-                , BG.color white
-                , Border.width 2
-                , Border.color yellow
-                , Border.rounded 3
-                ]
-                <| el [centerX] <| text "On Call"
-            False -> none
+          case (shift.onCall, editData.employee) of
+            (True, Just employee) -> 
+                let 
+                    phoneNumber = case employee.phoneNumber of
+                        Just pn -> case pn of
+                            "" -> "No number listed"
+                            _ -> pn
+                        Nothing -> "No number listed"
+                in
+                el
+                    [ fillX
+                    , padding 10
+                    , BG.color white
+                    , Border.width 2
+                    , Border.color yellow
+                    , Border.rounded 3
+                    ]
+                    <| el [centerX] <| text ("On Call: " ++ phoneNumber)
+            _ -> none
         , -- Note display
           case shift.note of
             Just note ->
@@ -6970,6 +7012,7 @@ editViewElement model editData maybeSettings employees =
                                         [ Input.option MonthView (text "Month view")
                                         , Input.option WeekView (text "Week view")
                                         , Input.option DayView (text "Day view")
+                                        , Input.option AltDayView (text "Alternate day view")
                                         ]
                                     , selected = Just settings.viewType
                                     , label = Input.labelHidden "View type"
@@ -7315,6 +7358,109 @@ viewDay model today viewDate combined =
         )
         
 
+viewDayAlt :
+    Model
+    -> YearMonthDay
+    -> YearMonthDay
+    -> CombinedSettings
+    -> Element Message
+viewDayAlt model today viewDate combined =
+    let
+        dateFormat =
+            Just <| YMDStringSettings LongDate True
+
+        dateStr =
+            ymdToString viewDate dateFormat
+
+        dayState =
+            getDayState (Just viewDate) (Just today)
+
+        employees =
+            Maybe.withDefault [] model.employees
+
+        settings =
+            combined.settings
+
+        viewEmployees =
+            getViewEmployees
+                employees
+                settings.viewEmployees
+
+        hourRange =
+            List.range 0 23
+    in
+    column
+        ([ fillX
+         , fillY
+         , padding 20
+         ]
+            ++ defaultBorder
+        )
+        ([ column
+            [ fillX
+            , spacing 5
+            , paddingXY 0 5
+            , BG.color white
+            , Border.color black
+            , Border.widthEach
+                { bottom = 1
+                , top = 0
+                , left = 0
+                , right = 0
+                }
+            ]
+            [ row
+                [ centerX
+                , spaceEvenly
+                ]
+                [ Input.button [ paddingXY 50 0 ]
+                    { onPress = Just PriorDay
+                    , label = text "<<--"
+                    }
+                , el [ centerX ] <| text dateStr
+                , Input.button [ paddingXY 50 0 ]
+                    { onPress = Just NextDay
+                    , label = text "-->>"
+                    }
+                ]
+            , Input.button
+                [ BG.color lightGreen
+                , Border.rounded 3
+                , centerX
+                , padding 4
+                , defaultShadow
+                ]
+                { onPress = Just <| OpenAddEvent viewDate
+                , label = text "Add Event"
+                }
+            ]
+        ]
+        ++ (case combined.settings.showShifts of
+            True ->
+                [shiftColumn model viewEmployees combined viewDate]
+
+            False ->
+                [])
+        ++ (case combined.settings.showCallShifts of
+            True ->
+                [ 
+                  dividerBar grey
+                , el 
+                    ([centerX, BG.color white, padding 3] ++ defaultBorder) 
+                    <| text "On Call"
+                , callShiftColumn model viewEmployees combined viewDate
+                ]
+
+            False ->
+                [])
+        ++ (case settings.showVacations of
+            True ->
+                [vacationColumn model viewEmployees combined viewDate]
+
+            False ->
+                [])
+        )
+
 
 viewWeek :
     Model
@@ -7483,39 +7629,49 @@ viewAccountModal model modalData =
                             , options = colorOptions
                             }
                 ]
-            , Input.currentPassword
-                []
-                { onChange = UpdateAccountOldPassword
-                , text = modalData.oldPassword
+            , Input.text
+                [ Events.onLoseFocus AccountModalUnfocusPhoneNumber ]
+                { onChange = UpdateAccountPhoneNumber
+                , text = modalData.phoneNumber
                 , placeholder = Nothing
-                , label = Input.labelLeft [] <| text "Current password:"
-                , show = False
+                , label = Input.labelLeft [] <| text "Phone number:"
                 }
-            , Input.newPassword
-                []
-                { onChange = UpdateAccountNewPassword
-                , text = modalData.newPassword
-                , placeholder = Nothing
-                , label = Input.labelLeft [] <| text "New password:"
-                , show = False
-                }
-            , Input.newPassword
-                []
-                { onChange = UpdateAccountNewPasswordAgain
-                , text = modalData.newPasswordAgain
-                , placeholder = Nothing
-                , label = Input.labelLeft [] <| text "New password again:"
-                , show = False
-                }
-            , Input.button
-                ([ padding 5
-                , centerX
-                , BG.color white
-                , defaultShadow
-                ] ++ defaultBorder)
-                { onPress = Just ChangePassword
-                , label = text "Change password"
-                }
+            , column
+                defaultBorder
+                [ Input.currentPassword
+                    []
+                    { onChange = UpdateAccountOldPassword
+                    , text = modalData.oldPassword
+                    , placeholder = Nothing
+                    , label = Input.labelLeft [] <| text "Current password:"
+                    , show = False
+                    }
+                , Input.newPassword
+                    []
+                    { onChange = UpdateAccountNewPassword
+                    , text = modalData.newPassword
+                    , placeholder = Nothing
+                    , label = Input.labelLeft [] <| text "New password:"
+                    , show = False
+                    }
+                , Input.newPassword
+                    []
+                    { onChange = UpdateAccountNewPasswordAgain
+                    , text = modalData.newPasswordAgain
+                    , placeholder = Nothing
+                    , label = Input.labelLeft [] <| text "New password again:"
+                    , show = False
+                    }
+                , Input.button
+                    ([ padding 5
+                    , centerX
+                    , BG.color white
+                    , defaultShadow
+                    ] ++ defaultBorder)
+                    { onPress = Just ChangePassword
+                    , label = text "Change password"
+                    }
+                ]
             , el
                 (
                 [ fillX
@@ -7610,6 +7766,12 @@ viewCalendar model =
                 DayView ->
                     column [ fillX, fillY, inFront (viewModal model) ]
                         [ viewDay model today viewDate active
+                        , viewCalendarFooter model.currentEmployee
+                        ]
+
+                AltDayView ->
+                    column [ fillX, fillY, inFront (viewModal model) ]
+                        [ viewDayAlt model today viewDate active
                         , viewCalendarFooter model.currentEmployee
                         ]
 

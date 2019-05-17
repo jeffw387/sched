@@ -129,36 +129,41 @@ impl Handler<Messages> for DbExecutor {
                     conn,
                     &login_info.email,
                 )?;
-                if crypt::pbkdf2_check(
+                match crypt::pbkdf2_check(
                     &login_info.password,
                     &owner.password_hash,
-                )
-                .is_ok()
-                {
-                    println!("Password matches!");
-                    let session_length = 24;
-                    diesel::insert_into(sessions::table)
-                        .values(NewSession::new(
-                            owner.id,
-                            datetime::now_plus_hours(
-                                session_length,
-                            ),
-                        ))
-                        .get_result::<Session>(conn)
-                        .map(|session| {
-                            Results::GetSession(
-                                JsonObject::new(
-                                    session.token,
-                                ),
-                            )
-                        })
-                        .map_err(|dsl_err| {
-                            Error::Dsl(dsl_err)
-                        })
-                } else {
-                    println!("Password does not match!");
-                    Err(Error::InvalidPassword)
+                ) {
+                    Ok(matches) => {
+                        if matches {
+                            println!("Password matches!");
+                            let session_length = 24;
+                            diesel::insert_into(sessions::table)
+                                .values(NewSession::new(
+                                    owner.id,
+                                    datetime::now_plus_hours(
+                                        session_length,
+                                    ),
+                                ))
+                                .get_result::<Session>(conn)
+                                .map(|session| {
+                                    Results::GetSession(
+                                        JsonObject::new(
+                                            session.token,
+                                        ),
+                                    )
+                                })
+                                .map_err(|dsl_err| {
+                                    Error::Dsl(dsl_err)
+                                })
+                        }
+                        else {
+                            println!("Password does not match!");
+                            Err(Error::InvalidPassword)
+                        }
+                    }
+                    Err(e) => Err(Error::Misc(String::from(e))) 
                 }
+                
             }
             Messages::Logout(token) => {
                 println!("Logout DB message");
@@ -193,41 +198,49 @@ impl Handler<Messages> for DbExecutor {
                 token,
                 change_password_info,
             ) => {
+                println!("Messages::ChangePassword");
                 let owner = check_token(&token, conn)?;
-                if crypt::pbkdf2_check(
+                // println!("Owner: {:#?}", owner);
+                match crypt::pbkdf2_check(
                     &change_password_info
                         .old_password,
                     &owner.password_hash,
-                )
-                .is_ok()
-                {
-                    let new_hash = crypt::pbkdf2_simple(
-                        &change_password_info.new_password,
-                        1,
-                    )
-                    .map_err(|hash_err| {
-                        Error::Misc(format!(
-                            "Hash error: {:?}",
-                            hash_err
-                        ))
-                    })?;
-                    match diesel::update(&owner)
-                        .set(
-                            employees::password_hash
-                                .eq(new_hash),
-                        )
-                        .execute(conn)
-                    {
-                        Ok(1) => Ok(Results::Nothing),
-                        Ok(_) => {
-                            Err(Error::Misc(String::from(
-                                "Updated the wrong number of password hashes! DB corruption may have occurred.",
-                            )))
+                ) {
+                    Ok(matches) => {
+                        if matches {
+                            let new_hash = crypt::pbkdf2_simple(
+                                &change_password_info.new_password,
+                                1,
+                            )
+                            .map_err(|hash_err| {
+                                Error::Misc(format!(
+                                    "Hash error: {:?}",
+                                    hash_err
+                                ))
+                            })?;
+                            match diesel::update(&owner)
+                                .set(
+                                    employees::password_hash
+                                        .eq(new_hash),
+                                )
+                                .execute(conn)
+                            {
+                                Ok(1) => Ok(Results::Nothing),
+                                Ok(_) => {
+                                    Err(Error::Misc(String::from(
+                                        "Updated the wrong number of password hashes! DB corruption may have occurred.",
+                                    )))
+                                }
+                                Err(e) => Err(Error::Dsl(e)),
+                            }
                         }
-                        Err(e) => Err(Error::Dsl(e)),
+                        else {
+                            eprintln!("Error: Invalid password!");
+                            Err(Error::InvalidPassword)
+                        }
                     }
-                } else {
-                    Err(Error::InvalidPassword)
+                    Err(e) => Err(Error::Misc(String::from(e)))
+                
                 }
             }
             Messages::GetSettings(token) => {
