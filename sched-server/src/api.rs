@@ -47,4 +47,4 @@ pub const API_UPDATE_VACATION_APPROVAL: &str = "/sched/update_vacation_approval"
 
 pub const ENV_DB_URL: &str = "DATABASE_URL";
 pub const ENV_INDEX_BASE: &str = "INDEX_BASE";
-pub const ENV_SERVER_PORT: &str = "SERVER_PORT";
+pub const ENV_SERVER_SOCKET: &str = "SERVER_SOCKET_URL";

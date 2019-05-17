@@ -600,7 +600,7 @@ fn index(
 fn main() {
     let sys = actix::System::new("database-system");
     let db_url = env::get_env(ENV_DB_URL);
-    let port = env::get_env(ENV_SERVER_PORT);
+    let socket_url = env::get_env(ENV_SERVER_SOCKET);
 
     println!("database url: {}", db_url);
     let manager =
@@ -719,7 +719,7 @@ fn main() {
                     .unwrap(),
             )
     })
-    .bind(format!("localhost:{}", port))
+    .bind(format!("{}", socket_url))
     .unwrap()
     .start();
 
