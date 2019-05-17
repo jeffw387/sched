@@ -629,7 +629,9 @@ fn main() {
             .middleware(
                 actix_web::middleware::Logger::default(),
             )
+            .resource("/", |r| r.get().f(index))
             .resource("/sched", |r| r.get().f(index))
+            .resource("/sched/", |r| r.get().f(index))
             .resource("/sched/login", |r| r.get().f(index))
             .resource("/sched/calendar", |r| {
                 r.get().f(index)
