@@ -1,4 +1,5 @@
 pub const API_INDEX: &str = "/sched";
+pub const API_CHECK_TOKEN: &str = "/sched/check_token";
 pub const API_CHANGE_PASSWORD: &str =
     "/sched/change_password";
 pub const API_DEFAULT_SETTINGS: &str =

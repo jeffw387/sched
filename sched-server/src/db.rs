@@ -57,6 +57,7 @@ type Token = String;
 
 pub enum Messages {
     Login(LoginInfo),
+    CheckToken(Token),
     Logout(Token),
     ChangePassword(Token, ChangePasswordInfo),
     GetSettings(Token),
@@ -164,6 +165,11 @@ impl Handler<Messages> for DbExecutor {
                     Err(e) => Err(Error::Misc(String::from(e))) 
                 }
                 
+            }
+            Messages::CheckToken(token) => {
+                println!("Messages::CheckToken");
+                check_token(&token, conn)
+                    .map(|_| Results::Nothing)
             }
             Messages::Logout(token) => {
                 println!("Logout DB message");

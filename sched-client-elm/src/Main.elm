@@ -1,4 +1,4 @@
-module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, RowID, Settings, Shift, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Week, Weekdays(..), YearMonth, YearMonthDay, addEventButton, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, dayCompare, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, fillX, fillY, filterShiftsByDate, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getDayState, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, makeWeekFromYMD, modalColor, monthCode, monthDefault, monthNumToString, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, postShiftSpace, preShiftSpace, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, router, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDate, shiftDecoder, shiftEditElement, shiftElement, shiftEncoder, shiftHourCompare, shiftMatch, shiftQuarterHours, shiftRepeatDecoder, shiftRepeatEncoder, shiftSpace, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewDayInMonth, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekDaysView, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdNextMonth, ymdPriorMonth, ymdToString)
+module Main exposing (CalendarData, CalendarModal(..), ColorPair, ColorRecord, CombinedSettings, DayID, DayState(..), Employee, EmployeeColor(..), EmployeeLevel(..), HourFormat(..), HoverData, InputState(..), Keys(..), LastNameStyle(..), LoginInfo, LoginModel, Message(..), Model, Month, Name, Page(..), PerEmployeeSettings, RowID, Settings, Shift, ShiftRepeat(..), ViewEditData, ViewSelectData, ViewType(..), Week, Weekdays(..), YearMonth, YearMonthDay, addEventButton, allEmpty, basicButton, black, borderColor, borderL, borderR, centuryCode, chooseSuffix, colorDisplay, colorSelectOpenButton, colorSelector, combinedSettingsDecoder, dayCompare, dayOfMonthElement, dayRepeatMatch, dayStyle, daysApart, daysInMonth, daysLeftInMonth, defaultBorder, defaultCalendarModel, defaultID, defaultLoginModel, defaultShadow, defaultViewEdit, editViewButton, editViewElement, employeeAutofillElement, employeeColor, employeeColorDecoder, employeeColorEncoder, employeeDecoder, employeeDefault, employeeEncoder, employeeLevelDecoder, employeeLevelEncoder, employeeRGB, employeeToCheckbox, employeeToColorPicker, encodeLoginInfo, endsFromStartDur, fillX, fillY, filterShiftsByDate, floatToDurationString, floatToHour, floatToMinuteString, floatToQuarterHour, floatToTimeString, foldAddDaysBetween, foldAllEmpty, foldDaysLeftInYear, foldPlaceDay, foldRowSelect, formatHour12, formatHour24, formatHours, formatLastName, fromZellerWeekday, genericObjectDecoder, getActiveSettings, getDayState, getEmployee, getEmployeeSettings, getPosixTime, getSettings, getTime, getTimeZone, getViewEmployees, green, grey, headerFontSize, hourFormatDecoder, hourFormatEncoder, hourMinuteToFloat, init, isLeapYear, keyDecoder, keyMap, lastNameStyleDecoder, lastNameStyleEncoder, leapYearOffset, lightGreen, lightGrey, loadData, loginRequest, main, makeDaysForMonth, makeGridFromMonth, makeWeekFromYMD, modalColor, monthCode, monthDefault, monthNumToString, monthToNum, nameDecoder, nameEncoder, nameToString, perEmployeeSettingsDecoder, perEmployeeSettingsEncoder, placeDays, postShiftSpace, preShiftSpace, red, requestDefaultSettings, requestEmployees, requestSettings, requestShifts, rowDefault, searchRadio, selectPositionForDay, selectViewButton, selectViewElement, settingsDecoder, settingsDefault, settingsEncoder, settingsToOption, shiftColumn, shiftCompare, shiftDate, shiftDecoder, shiftEditElement, shiftElement, shiftEncoder, shiftHourCompare, shiftMatch, shiftQuarterHours, shiftRepeatDecoder, shiftRepeatEncoder, shiftSpace, subscriptions, toDocument, toWeekday, update, updateLoginButton, updateSettings, updateShift, view, viewCalendar, viewCalendarFooter, viewDayInMonth, viewLogin, viewLogoutButton, viewModal, viewMonth, viewMonthRows, viewTypeDecoder, viewTypeEncoder, viewYMDDecoder, weekDaysView, weekRepeatMatch, weekdayNumToString, white, withDay, yearLastTwo, yellow, ymFromYmd, ymdNextMonth, ymdPriorMonth, ymdToString)
 
 import Array exposing (Array)
 import Browser
@@ -1080,25 +1080,32 @@ settingsDefault =
         (YearMonthDay 2019 3 23)
         []
 
+checkToken : Message -> Message -> Cmd Message
+checkToken onFail onSuccess =
+    Http.post
+        { url = "/sched/check_token"
+        , body = Http.emptyBody
+        , expect = Http.expectWhatever (CheckTokenResponse onFail onSuccess)
+        }
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Message )
-init _ url key =
-    router
-        (Model
-            key
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            Nothing
-            True
-            (LoginPage defaultLoginModel)
-        )
-        url
+init _ _ key =
+        let 
+            model = Model
+                key
+                Nothing
+                Nothing
+                Nothing
+                Nothing
+                Nothing
+                Nothing
+                Nothing
+                Nothing
+                True
+                (LoginPage defaultLoginModel)
 
+            req = checkToken GoToLogin GoToCalendar
+        in ( model, req )
 
 
 -- UPDATE
@@ -1109,6 +1116,9 @@ type
     -- General Messages
     = NoOp
     | IgnoreReply (Result Http.Error ())
+    | CheckTokenResponse Message Message (Result Http.Error ())
+    | GoToLogin
+    | GoToCalendar
     | UrlChanged Url.Url
     | UrlRequest Browser.UrlRequest
     | Logout
@@ -1542,21 +1552,6 @@ loadData =
         , requestDefaultSettings
         ]
 
-
-router : Model -> Url.Url -> ( Model, Cmd Message )
-router model url =
-    case url.path of
-        "/sched/login" ->
-            ( { model | page = LoginPage defaultLoginModel }, Cmd.none )
-
-        _ ->
-            let
-                updated =
-                    { model | page = CalendarPage defaultCalendarModel }
-            in
-            ( updated, loadData )
-
-
 requestSettings =
     Http.post
         { url = "/sched/get_settings"
@@ -1726,16 +1721,29 @@ update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case ( model.page, message ) of
         -- General messages
-        ( _, UrlRequest request ) ->
-            case request of
-                Browser.Internal url ->
-                    ( model, Nav.pushUrl model.navkey (Url.toString url) )
 
-                _ ->
-                    ( model, Cmd.none )
+        ( _, CheckTokenResponse onFail onSuccess result ) ->
+            case result of
+                Ok _ ->
+                    update onSuccess model
+                Err _ ->
+                    update onFail model
+
+        ( CalendarPage page, GoToLogin ) ->
+            let
+                updatedModel = { model | page = LoginPage defaultLoginModel }
+            in ( updatedModel, Cmd.none )
+
+        ( LoginPage page, GoToCalendar ) ->
+            let
+                updatedModel = { model | page = CalendarPage defaultCalendarModel }
+            in ( updatedModel, Cmd.none )
+
+        ( _, UrlRequest request ) ->
+            ( model, Cmd.none )
 
         ( _, UrlChanged url ) ->
-            router model url
+            ( model, Cmd.none )
 
         ( _, Logout ) ->
             ( model
@@ -1750,7 +1758,7 @@ update message model =
             ( model, Cmd.none )
 
         ( _, LogoutResponse _ ) ->
-            ( model, Nav.pushUrl model.navkey "/sched/login" )
+            update GoToLogin model
 
         -- Account modal messages
         ( CalendarPage page, OpenAccountModal ) ->
@@ -1943,11 +1951,7 @@ update message model =
             in
             case r of
                 Ok _ ->
-                    ( updatedModel
-                    , Nav.pushUrl
-                        model.navkey
-                        "/sched/calendar"
-                    )
+                    update GoToCalendar updatedModel
 
                 Err _ ->
                     ( updatedModel, Cmd.none )
@@ -2011,7 +2015,7 @@ update message model =
                     ( updated, Cmd.none )
 
                 Err e ->
-                    ( model, Nav.pushUrl model.navkey "/sched/login" )
+                    update GoToLogin model
 
         ( _, ReceiveShifts shiftsResult ) ->
             case shiftsResult of

@@ -57,6 +57,16 @@ fn login((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
+fn check_token((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    state.db.send(Messages::CheckToken(token))
+        .map_err(|e| log_err(e, "check_token"))
+        .from_err()
+        .and_then(handle_results)
+        .responder()
+
+}
+
 fn logout((req, state): DbRequest) -> Box<DbFuture> {
     let token = get_token(&req);
     state
@@ -638,6 +648,9 @@ fn main() {
             })
             .resource(API_LOGIN_REQUEST, |r| {
                 r.post().with_async(login)
+            })
+            .resource(API_CHECK_TOKEN, |r| {
+                r.post().with_async(check_token);
             })
             .resource(API_LOGOUT_REQUEST, |r| {
                 r.post().with_async(logout)
