@@ -1737,7 +1737,7 @@ update message model =
         ( LoginPage page, GoToCalendar ) ->
             let
                 updatedModel = { model | page = CalendarPage defaultCalendarModel }
-            in ( updatedModel, Cmd.none )
+            in ( updatedModel, loadData )
 
         ( _, UrlRequest request ) ->
             ( model, Cmd.none )
