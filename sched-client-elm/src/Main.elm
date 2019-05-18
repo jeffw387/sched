@@ -4110,7 +4110,7 @@ openAccountModal empName =
         , label = 
             row
                 []
-                [ el [Font.color <| rgb 0.2 0.4 0.2] <| text "Account: "
+                [ el [Font.color <| rgb 0 0.3 0] <| text "Account: "
                 , text empName
                 ]
         }
