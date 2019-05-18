@@ -5775,7 +5775,7 @@ shiftEditElement shift editData settings =
                 , label =
                     Input.labelHidden "Shift Duration"
                 , min = 0
-                , max = 16
+                , max = 24
                 , value = hourMinuteToFloat shift.hours shift.minutes
                 , step = Just 0.25
                 , thumb = Input.defaultThumb
