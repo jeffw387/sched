@@ -1546,25 +1546,15 @@ loadData =
 router : Model -> Url.Url -> ( Model, Cmd Message )
 router model url =
     case url.path of
-        "/sched" ->
-            let
-                updated =
-                    { model | page = CalendarPage defaultCalendarModel }
-            in
-            ( updated, loadData )
-
-        "/sched/calendar" ->
-            let
-                updated =
-                    { model | page = CalendarPage defaultCalendarModel }
-            in
-            ( updated, loadData )
-
         "/sched/login" ->
             ( { model | page = LoginPage defaultLoginModel }, Cmd.none )
 
         _ ->
-            ( { model | page = LoginPage defaultLoginModel }, Cmd.none )
+            let
+                updated =
+                    { model | page = CalendarPage defaultCalendarModel }
+            in
+            ( updated, loadData )
 
 
 requestSettings =
