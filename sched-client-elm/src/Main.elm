@@ -4107,7 +4107,12 @@ openAccountModal empName =
     Input.button
         [ defaultShadow, padding 5 ]
         { onPress = Just OpenAccountModal
-        , label = text empName
+        , label = 
+            row
+                []
+                [ el [Font.color <| rgb 0.2 0.4 0.2] <| text "Account: "
+                , text empName
+                ]
         }
 
 
