@@ -83,6 +83,33 @@ pub struct NewShift {
     pub on_call: bool,
 }
 
+#[derive(
+    Clone,
+    Debug,
+    Identifiable,
+    Associations,
+    Serialize,
+    Deserialize,
+    Queryable,
+    AsChangeset,
+)]
+#[table_name = "shift_exceptions"]
+pub struct ShiftException {
+    pub id: i32,
+    pub shift_id: i32,
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
+}
+
+#[derive(Debug, Insertable, Deserialize)]
+pub struct NewShiftException {
+    pub shift_id: i32,
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
+}
+
 #[derive(Debug, Insertable, Deserialize)]
 #[table_name = "vacations"]
 pub struct NewVacation {
