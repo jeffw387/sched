@@ -54,6 +54,16 @@ table! {
 }
 
 table! {
+    shift_exceptions (id) {
+        id -> Int4,
+        shift_id -> Int4,
+        year -> Int4,
+        month -> Int4,
+        day -> Int4,
+    }
+}
+
+table! {
     shifts (id) {
         id -> Int4,
         supervisor_id -> Int4,
@@ -93,6 +103,7 @@ allow_tables_to_appear_in_same_query!(
     per_employee_settings,
     sessions,
     settings,
+    shift_exceptions,
     shifts,
     vacations,
 );
