@@ -20,7 +20,9 @@ use sched_server::db::{
     DbExecutor,
     Messages,
     Results,
+    JsonObject
 };
+use sched_server::settings::EmployeeColor;
 use sched_server::env;
 use sched_server::message::LoginInfo;
 
@@ -39,6 +41,38 @@ fn get_token(request: &HttpRequest<AppState>) -> String {
         Some(token) => String::from(token.value()),
         None => String::new(),
     }
+}
+
+fn update_employee_color((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map(|json_color: JsonObject<EmployeeColor>| json_color.contents)
+        .map_err(|e| log_err(e, "update_employee_color json"))
+        .from_err()
+        .and_then(move |color| {
+            state.db.clone()
+                .send(Messages::UpdateEmployeeColor(token, color))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn update_employee_phone_number((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map(|json_phone_number: JsonObject<String>| json_phone_number.contents)
+        .map_err(|e| log_err(e, "update_employee_phone_number json"))
+        .from_err()
+        .and_then(move |phone_number| {
+            state.db.clone()
+                .send(Messages::UpdateEmployeePhoneNumber(token, phone_number))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
 }
 
 fn login((req, state): DbRequest) -> Box<DbFuture> {
@@ -539,6 +573,72 @@ fn remove_shift((req, state): DbRequest) -> Box<DbFuture> {
         .responder()
 }
 
+fn get_shift_exceptions((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    state.db
+        .send(Messages::GetShiftExceptions(token))
+        .map_err(|e| log_err(e, "get_shift_exceptions"))
+        .from_err()
+        .and_then(handle_results)
+        .responder()
+}
+
+fn add_shift_exception((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map(log_json)
+        .map_err(|e| log_err(e, ""))
+        .from_err()
+        .and_then(move |new_shift_exception| {
+            state
+                .db
+                .clone()
+                .send(Messages::AddShiftException(token, new_shift_exception))
+                .map_err(|e| log_err(e, ""))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn update_shift_exception((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map(log_json)
+        .map_err(|e| log_err(e, ""))
+        .from_err()
+        .and_then(move |updated| {
+            state
+                .db
+                .clone()
+                .send(Messages::UpdateShiftException(token, updated))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
+fn remove_shift_exception((req, state): DbRequest) -> Box<DbFuture> {
+    let token = get_token(&req);
+    req.json()
+        .map(log_json)
+        .map_err(|e| log_err(e, ""))
+        .from_err()
+        .and_then(move |shift_exception| {
+            state
+                .db
+                .clone()
+                .send(Messages::RemoveShiftException(token, shift_exception))
+                .map_err(|e| log_err(e, ""))
+                .from_err()
+                .and_then(handle_results)
+                .responder()
+        })
+        .responder()
+}
+
 fn handle_results(
     result: Result<Results, DbError>,
 ) -> Result<HttpResponse, actix_web::Error> {
@@ -546,6 +646,7 @@ fn handle_results(
         Ok(ok) => {
             match ok {
                 Results::GetSession(token) => {
+                    println!("Results::GetSession");
                     Ok(HttpResponse::Ok()
                         .cookie(
                             Cookie::build(
@@ -559,37 +660,56 @@ fn handle_results(
                         .finish())
                 }
                 Results::GetCombinedSettings(combined) => {
+                    println!("Results::GetCombinedSettings");
                     Ok(HttpResponse::Ok().json(combined))
                 }
                 Results::GetSettings(settings) => {
+                    println!("Results::GetSettings");
                     Ok(HttpResponse::Ok().json(settings))
                 }
                 Results::GetSettingsID(id) => {
+                    println!("Results::GetSettingsID");
                     Ok(HttpResponse::Ok().json(id))
                 }
                 Results::GetEmployeesVec(employees_vec) => {
+                    println!("Results::GetEmployeesVec");
                     Ok(HttpResponse::Ok()
                         .json(employees_vec))
                 }
                 Results::GetEmployee(employee) => {
+                    println!("Results::GetEmployee");
                     Ok(HttpResponse::Ok().json(employee))
                 }
                 Results::GetShiftsVec(shifts_vec) => {
+                    println!("Results::GetShiftsVec");
                     Ok(HttpResponse::Ok().json(shifts_vec))
                 }
                 Results::GetShift(shift) => {
+                    println!("Results::GetShift");
                     Ok(HttpResponse::Ok().json(shift))
                 }
+                Results::GetShiftExceptionsVec(shift_exceptions_vec) => {
+                    println!("Results::GetShiftExceptionsVec");
+                    Ok(HttpResponse::Ok().json(shift_exceptions_vec))
+                }
+                Results::GetShiftException(shift_exception) => {
+                    println!("Results::GetShiftException");
+                    Ok(HttpResponse::Ok().json(shift_exception))
+                }
                 Results::GetEmployeeShifts(shifts) => {
+                    println!("Results::GetEmployeeShifts");
                     Ok(HttpResponse::Ok().json(shifts))
                 }
                 Results::GetVacations(vacations) => {
+                    println!("Results::GetVacations");
                     Ok(HttpResponse::Ok().json(vacations))
                 }
                 Results::GetVacation(vacation) => {
+                    println!("Results::GetVacation");
                     Ok(HttpResponse::Ok().json(vacation))
                 }
                 Results::Nothing => {
+                    println!("Results::Nothing");
                     Ok(HttpResponse::Ok().finish())
                 }
             }
@@ -701,6 +821,12 @@ fn main() {
             .resource(API_REMOVE_EMPLOYEE, |r| {
                 r.post().with_async(remove_employee)
             })
+            .resource(API_UPDATE_EMPLOYEE_COLOR, |r| {
+                r.post().with_async(update_employee_color)
+            })
+            .resource(API_UPDATE_EMPLOYEE_PHONE_NUMBER, |r| {
+                r.post().with_async(update_employee_phone_number)
+            })
             .resource(API_GET_SHIFTS, |r| {
                 r.post().with_async(get_shifts)
             })
@@ -712,6 +838,18 @@ fn main() {
             })
             .resource(API_REMOVE_SHIFT, |r| {
                 r.post().with_async(remove_shift)
+            })
+            .resource(API_GET_SHIFT_EXCEPTIONS, |r| {
+                r.post().with_async(get_shift_exceptions)
+            })
+            .resource(API_ADD_SHIFT_EXCEPTION, |r| {
+                r.post().with_async(add_shift_exception)
+            })
+            .resource(API_UPDATE_SHIFT_EXCEPTION, |r| {
+                r.post().with_async(update_shift_exception)
+            })
+            .resource(API_REMOVE_SHIFT_EXCEPTION, |r| {
+                r.post().with_async(remove_shift_exception)
             })
             .resource(API_GET_VACATIONS, |r| {
                 r.post().with_async(get_vacations)

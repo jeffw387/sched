@@ -316,6 +316,7 @@ type alias Model =
     , currentEmployee : Maybe Employee
     , employees : Maybe (List Employee)
     , shifts : Maybe (List Shift)
+    , shiftExceptions : Maybe (List ShiftException)
     , vacations : Maybe (List Vacation)
     , posixNow : Maybe Time.Posix
     , here : Maybe Time.Zone
@@ -343,6 +344,14 @@ type alias Vacation =
     , requestDay : Int
     }
 
+
+type alias ShiftException = 
+    { id : Int
+    , shiftID : Int
+    , year : Int
+    , month : Int
+    , day : Int
+    }
 
 type alias Shift =
     { id : Int
@@ -517,6 +526,18 @@ nameEncoder n =
         [ ( "first", E.string n.first )
         , ( "last", E.string n.last )
         ]
+
+jsonPhoneNumberEncoder : String -> E.Value
+jsonPhoneNumberEncoder phoneNumber =
+    E.object
+        [ ( "contents", E.string phoneNumber ) ]
+
+
+jsonEmployeeColorEncoder : EmployeeColor -> E.Value
+jsonEmployeeColorEncoder color =
+    E.object
+        [ ( "contents", employeeColorEncoder color ) ]
+
 
 
 employeeEncoder : Employee -> E.Value
@@ -792,6 +813,15 @@ shiftEncoder shift =
         , ( "on_call", E.bool shift.onCall )
         ]
 
+shiftExceptionEncoder : ShiftException -> E.Value
+shiftExceptionEncoder exception =
+    E.object
+        [ ( "id", E.int exception.id )
+        , ( "shift_id", E.int exception.shiftID )
+        , ( "year", E.int exception.year )
+        , ( "month", E.int exception.month )
+        , ( "day", E.int exception.day )
+        ]
 
 vacationEncoder : Vacation -> E.Value
 vacationEncoder vacation =
@@ -985,6 +1015,15 @@ shiftDecoder =
         |> JPipe.required "note" (D.maybe D.string)
         |> JPipe.required "on_call" D.bool
 
+shiftExceptionDecoder : D.Decoder ShiftException
+shiftExceptionDecoder =
+    D.succeed ShiftException
+        |> JPipe.required "id" D.int
+        |> JPipe.required "shift_id" D.int
+        |> JPipe.required "year" D.int
+        |> JPipe.required "month" D.int
+        |> JPipe.required "day" D.int
+
 
 vacationDecoder : D.Decoder Vacation
 vacationDecoder =
@@ -1101,6 +1140,7 @@ init _ _ key =
                 Nothing
                 Nothing
                 Nothing
+                Nothing
                 True
                 (LoginPage defaultLoginModel)
 
@@ -1189,6 +1229,7 @@ type
     | UpdateShiftRepeat ShiftRepeat
     | UpdateShiftRepeatRate String
     | UpdateShiftOnCall Bool
+    | UpdateShiftException Bool
       -- View Select Messages
     | OpenViewSelect
     | ChooseActiveView Int
@@ -1220,6 +1261,7 @@ type
     | ReceiveCurrentEmployee (Result Http.Error Employee)
     | ReceiveEmployees (Result Http.Error (List Employee))
     | ReceiveShifts (Result Http.Error (List Shift))
+    | ReceiveShiftExceptions (Result Http.Error (List ShiftException))
     | ReceiveVacations (Result Http.Error (List Vacation))
     | ReceiveDefaultSettings (Result Http.Error (Maybe Int))
     | ReceiveSettingsList (Result Http.Error (List CombinedSettings))
@@ -1355,6 +1397,16 @@ requestShifts =
         { url = "/sched/get_shifts"
         , body = Http.emptyBody
         , expect = Http.expectJson ReceiveShifts (genericObjectDecoder (D.list shiftDecoder))
+        }
+
+requestShiftExceptions : Cmd Message
+requestShiftExceptions =
+    Http.post
+        { url = "/sched/get_shift_exceptions"
+        , body = Http.emptyBody
+        , expect = Http.expectJson ReceiveShiftExceptions 
+            <| genericObjectDecoder 
+                <| D.list shiftExceptionDecoder
         }
 
 
@@ -1547,6 +1599,7 @@ loadData =
         , requestCurrentEmployee
         , requestEmployees
         , requestShifts
+        , requestShiftExceptions
         , requestVacations
         , requestSettings
         , requestDefaultSettings
@@ -1810,7 +1863,7 @@ update message model =
                 (AccountModal modalData, Just currentEmployee) ->
                     let
                         updatedEmployee = { currentEmployee | phoneNumber = Just modalData.phoneNumber }
-                        req = updateEmployee updatedEmployee
+                        req = updateEmployeePhoneNumber modalData.phoneNumber
                         employees = Maybe.withDefault [] model.employees
                         updatedEmployees = updateEmployeeList employees updatedEmployee
                         updatedModel = { model | currentEmployee = Just updatedEmployee
@@ -1840,7 +1893,7 @@ update message model =
                             , employees = Just updatedEmployees
                             , currentEmployee = Just updatedEmployee }
 
-                    in ( updatedModel, updateEmployee updatedEmployee )
+                    in ( updatedModel, updateEmployeeColor color )
 
                 _ -> ( model, Cmd.none )
 
@@ -2029,6 +2082,14 @@ update message model =
 
                 Err e ->
                     ( model, Cmd.none )
+
+        ( _, ReceiveShiftExceptions exceptionsResult ) ->
+            case Debug.log "received exceptions" exceptionsResult of
+                Ok exceptions ->
+                    ( { model
+                        | shiftExceptions = Just exceptions }
+                    , Cmd.none )
+                _ -> (model, Cmd.none )
 
         ( _, ReceiveVacations vacationsResult ) ->
             case vacationsResult of
@@ -3108,6 +3169,32 @@ update message model =
                     in ( updatedModel, updateReq)
                 _ -> ( model, Cmd.none )
 
+        ( CalendarPage page, UpdateShiftException bool ) ->
+            case page.modal of
+                ShiftModal modalData ->
+                    let
+                        shift = modalData.shift
+                        ymd = modalData.date
+                        maybeException = getException model shift ymd
+                    in case maybeException of
+                        Just exception ->
+                            case bool of
+                                False -> 
+                                    ( model, removeShiftException exception )
+                                _ -> ( model, Cmd.none )
+                        _ ->
+                            case bool of
+                                True ->
+                                    ( model, addShiftException <|
+                                        ShiftException
+                                            0
+                                            shift.id
+                                            ymd.year
+                                            ymd.month
+                                            ymd.day )
+                                _ -> ( model, Cmd.none)
+                _ -> ( model, Cmd.none)
+
         ( CalendarPage page, RemoveEventAndClose event ) ->
             let
                 updatedPage =
@@ -3711,6 +3798,21 @@ update message model =
             ( model, Cmd.none )
 
 
+updateEmployeePhoneNumber : String -> Cmd Message
+updateEmployeePhoneNumber phoneNumber =
+    Http.post
+        { url = "/sched/update_employee_phone_number"
+        , body = Http.jsonBody <| jsonPhoneNumberEncoder phoneNumber
+        , expect = Http.expectWhatever ReloadData
+        }
+
+updateEmployeeColor : EmployeeColor -> Cmd Message
+updateEmployeeColor color =
+    Http.post
+        { url = "/sched/update_employee_color"
+        , body = Http.jsonBody <| jsonEmployeeColorEncoder color
+        , expect = Http.expectWhatever ReloadData
+        }
 
 -- VIEW
 
@@ -5307,6 +5409,22 @@ updateShift shift =
         }
 
 
+removeShiftException : ShiftException -> Cmd Message
+removeShiftException exception =
+    Http.post
+        { url = "/sched/remove_shift_exception"
+        , body = Http.jsonBody <| shiftExceptionEncoder exception
+        , expect = Http.expectWhatever ReloadData
+        }
+
+addShiftException : ShiftException -> Cmd Message
+addShiftException exception =
+    Http.post
+        { url = "/sched/add_shift_exception"
+        , body = Http.jsonBody <| shiftExceptionEncoder exception
+        , expect = Http.expectWhatever ReloadData
+        }
+
 updateVacation : Vacation -> Cmd Message
 updateVacation vacation =
     Http.post
@@ -5572,8 +5690,11 @@ vacationWriteAccess currentEmployee vacation =
     else
         False
 
-
-shiftEditElement shift editData settings =
+shiftEditElement : Model -> ShiftData -> Settings -> Element Message
+shiftEditElement model editData settings =
+    let
+        shift = editData.shift
+    in
     column
         [ centerX
         , centerY
@@ -5840,8 +5961,51 @@ shiftEditElement shift editData settings =
                 , icon = Input.defaultCheckbox
                 }
             ]
+            , Input.checkbox
+                ([ BG.color white
+                , padding 10] ++ defaultBorder)
+                { onChange = UpdateShiftException
+                , checked = hasException model shift editData.date
+                , label =
+                    Input.labelRight
+                        [ BG.color lightGrey, fillX, padding 5 ]
+                        (el [ centerX ] (text "Disable for today"))
+                , icon = Input.defaultCheckbox
+                }
         ]
 
+ymdFromException : ShiftException -> YearMonthDay
+ymdFromException exception =
+    YearMonthDay
+        exception.year
+        exception.month
+        exception.day
+
+getException : Model -> Shift -> YearMonthDay -> Maybe ShiftException
+getException model shift ymd =
+    let
+        exceptions = Maybe.withDefault [] model.shiftExceptions
+
+        filtered = exceptions 
+            |> List.filter 
+            (\e -> 
+                let 
+                    eDay = ymdFromException e 
+                    sameDay = case dayCompare ymd eDay of
+                        EQ -> True
+                        _ -> False
+                in
+                e.shiftID == shift.id && sameDay
+            )
+    in List.head filtered
+
+hasException : Model -> Shift -> YearMonthDay -> Bool
+hasException model shift ymd =
+    let
+        maybeException = getException model shift ymd
+    in case maybeException of
+        Just _ -> True
+        _ -> False
 
 tabSelectElement element state =
     case state of
@@ -6375,7 +6539,7 @@ shiftModalElement model modalData =
                     column [ fillX, fillY ]
                         [ case modalData.editEnabled of
                             True ->
-                                shiftEditElement shift modalData settings
+                                shiftEditElement model modalData settings
 
                             False ->
                                 shiftViewElement shift modalData settings
@@ -7158,6 +7322,12 @@ editViewElement model editData maybeSettings employees =
                                     , label = Input.labelHidden "Vacations"
                                     }
                             ]
+                        , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
+                            [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Vacations:"
+                            , el [ fillX ] <|
+                                Input.radio
+                                    ([ centerX ] ++ defaultBorder)
+                                    { onChange =}                            
                         ]
                     , -- employee selection
                       column

@@ -17,6 +17,7 @@ use crate::schema::{
     sessions,
     settings,
     shifts,
+    shift_exceptions,
     vacations,
 };
 use crate::settings::{
@@ -32,8 +33,10 @@ use crate::settings::{
 };
 use crate::shift::{
     NewShift,
-    NewVacation,
     Shift,
+    NewShiftException,
+    ShiftException,
+    NewVacation,
     Vacation,
 };
 use actix::prelude::*;
@@ -74,10 +77,16 @@ pub enum Messages {
     AddEmployee(Token, ClientSideEmployee),
     UpdateEmployee(Token, ClientSideEmployee),
     RemoveEmployee(Token, ClientSideEmployee),
+    UpdateEmployeeColor(Token, EmployeeColor),
+    UpdateEmployeePhoneNumber(Token, String),
     GetShifts(Token),
     AddShift(Token, NewShift),
     UpdateShift(Token, Shift),
     RemoveShift(Token, Shift),
+    GetShiftExceptions(Token),
+    AddShiftException(Token, NewShiftException),
+    UpdateShiftException(Token, ShiftException),
+    RemoveShiftException(Token, ShiftException),
     GetVacations(Token),
     AddVacation(Token, NewVacation),
     UpdateVacation(Token, Vacation),
@@ -108,8 +117,10 @@ pub enum Results {
     GetSettingsID(JsonObject<Option<i32>>),
     GetEmployeesVec(JsonObject<Vec<ClientSideEmployee>>),
     GetShiftsVec(JsonObject<Vec<Shift>>),
+    GetShiftExceptionsVec(JsonObject<Vec<ShiftException>>),
     GetEmployeeShifts(JsonObject<Vec<Shift>>),
     GetShift(Shift),
+    GetShiftException(ShiftException),
     GetVacations(JsonObject<Vec<Vacation>>),
     GetVacation(Vacation),
     Nothing,
@@ -165,6 +176,24 @@ impl Handler<Messages> for DbExecutor {
                     Err(e) => Err(Error::Misc(String::from(e))) 
                 }
                 
+            }
+            Messages::UpdateEmployeeColor(token, color) => {
+                println!("Messages::UpdateEmployeeColor");
+                let user = check_token(&token, conn)?;
+                diesel::update(&user)
+                    .set(employees::default_color.eq(color))
+                    .execute(conn)
+                    .map(|_| Results::Nothing)
+                    .map_err(Error::Dsl)
+            }
+            Messages::UpdateEmployeePhoneNumber(token, phone_number) => {
+                println!("Messages::UpdateEmployeePhoneNumber");
+                let user = check_token(&token, conn)?;
+                diesel::update(&user)
+                    .set(employees::phone_number.eq(phone_number))
+                    .execute(conn)
+                    .map(|_| Results::Nothing)
+                    .map_err(Error::Dsl)
             }
             Messages::CheckToken(token) => {
                 println!("Messages::CheckToken");
@@ -626,6 +655,86 @@ impl Handler<Messages> for DbExecutor {
                     }
                     _ => {
                         diesel::delete(&shift)
+                            .execute(conn)
+                            .map(|_| Results::Nothing)
+                            .map_err(Error::Dsl)
+                    }
+                }
+            }
+
+            Messages::GetShiftExceptions(token) => {
+                println!("Messages::GetShiftExceptions");
+                let _ = check_token(&token, conn)?;
+                shift_exceptions::table
+                    .load::<ShiftException>(conn)
+                    .map(|res| {
+                        println!("Shift exceptions: {:#?}", res);
+                        Results::GetShiftExceptionsVec(
+                            JsonObject::new(res),
+                        )
+                    })
+                    .map_err(Error::Dsl)
+            }
+            Messages::AddShiftException(token, new_shift_exception) => {
+                println!("Messages::AddShiftException");
+                let owner = check_token(&token, conn)?;
+
+                let shift = shifts::table
+                    .filter(shifts::id.eq(new_shift_exception.shift_id))
+                    .first::<Shift>(conn)
+                    .map_err(Error::Dsl)?;
+
+                match_ids(owner.id, shift.supervisor_id)?;
+                
+                match owner.level {
+                    EmployeeLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::insert_into(shift_exceptions::table)
+                            .values(new_shift_exception)
+                            .get_result(conn)
+                            .map(Results::GetShiftException)
+                            .map_err(Error::Dsl)
+                    }
+                }
+            }
+            Messages::UpdateShiftException(token, shift_exception) => {
+                println!("Messages::UpdateShiftException");
+                let owner = check_token(&token, conn)?;
+
+                let shift = shifts::table
+                    .filter(shifts::id.eq(shift_exception.shift_id))
+                    .first::<Shift>(conn)
+                    .map_err(Error::Dsl)?;
+
+                match_ids(owner.id, shift.supervisor_id)?;
+                match owner.level {
+                    EmployeeLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => diesel::update(&shift_exception.clone())
+                        .set(shift_exception.clone())
+                        .get_result(conn)
+                        .map(Results::GetShiftException)
+                        .map_err(Error::Dsl),
+                }
+            }
+            Messages::RemoveShiftException(token, shift_exception) => {
+                println!("Messages::RemoveShiftException");
+                let owner = check_token(&token, conn)?;
+                let shift = shifts::table
+                    .filter(shifts::id.eq(shift_exception.shift_id))
+                    .first::<Shift>(conn)
+                    .map_err(Error::Dsl)?;
+
+                match_ids(owner.id, shift.supervisor_id)?;
+                match owner.level {
+                    EmployeeLevel::Read => {
+                        Err(Error::Unauthorized)
+                    }
+                    _ => {
+                        diesel::delete(&shift_exception)
                             .execute(conn)
                             .map(|_| Results::Nothing)
                             .map_err(Error::Dsl)
