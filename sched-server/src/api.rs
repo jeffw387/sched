@@ -26,6 +26,10 @@ pub const API_GET_CURRENT_EMPLOYEE: &str =
 pub const API_ADD_EMPLOYEE: &str = "/sched/add_employee";
 pub const API_UPDATE_EMPLOYEE: &str =
     "/sched/update_employee";
+
+pub const API_UPDATE_EMPLOYEE_COLOR: &str = "/sched/update_employee_color";
+pub const API_UPDATE_EMPLOYEE_PHONE_NUMBER: &str = "/sched/update_employee_phone_number";
+
 pub const API_REMOVE_EMPLOYEE: &str =
     "/sched/remove_employee";
 pub const API_GET_SHIFTS: &str = "/sched/get_shifts";
@@ -33,10 +37,10 @@ pub const API_ADD_SHIFT: &str = "/sched/add_shift";
 pub const API_UPDATE_SHIFT: &str = "/sched/update_shift";
 pub const API_REMOVE_SHIFT: &str = "/sched/remove_shift";
 
-pub const API_GET_CALL_SHIFTS: &str = "/sched/get_call_shifts";
-pub const API_ADD_CALL_SHIFT: &str = "/sched/add_call_shift";
-pub const API_UPDATE_CALL_SHIFT: &str = "/sched/update_call_shift";
-pub const API_REMOVE_CALL_SHIFT: &str = "/sched/remove_call_shift";
+pub const API_GET_SHIFT_EXCEPTIONS: &str = "/sched/get_shift_exceptions";
+pub const API_ADD_SHIFT_EXCEPTION: &str = "/sched/add_shift_exception";
+pub const API_UPDATE_SHIFT_EXCEPTION: &str = "/sched/update_shift_exception";
+pub const API_REMOVE_SHIFT_EXCEPTION: &str = "/sched/remove_shift_exception";
 
 pub const API_GET_VACATIONS: &str = "/sched/get_vacations";
 pub const API_ADD_VACATION: &str = "/sched/add_vacation";
