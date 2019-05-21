@@ -50,6 +50,7 @@ table! {
         show_shifts -> Bool,
         show_vacations -> Bool,
         show_call_shifts -> Bool,
+        show_disabled -> Bool,
     }
 }
 
