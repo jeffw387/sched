@@ -132,6 +132,7 @@ pub struct Settings {
     pub show_shifts: bool,
     pub show_vacations: bool,
     pub show_call_shifts: bool,
+    pub show_disabled: bool,
 }
 
 impl From<Settings> for NewSettings {
@@ -149,7 +150,8 @@ impl From<Settings> for NewSettings {
             show_minutes: settings.show_minutes,
             show_shifts: settings.show_shifts,
             show_vacations: settings.show_vacations,
-            show_call_shifts: settings.show_call_shifts
+            show_call_shifts: settings.show_call_shifts,
+            show_disabled: settings.show_disabled
         }
     }
 }
@@ -170,6 +172,7 @@ pub struct NewSettings {
     pub show_shifts: bool,
     pub show_vacations: bool,
     pub show_call_shifts: bool,
+    pub show_disabled: bool,
 }
 
 #[derive(

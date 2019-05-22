@@ -1,0 +1,2 @@
+ALTER TABLE vacations ALTER COLUMN duration_days SET DEFAULT 1;
+ALTER TABLE vacations ALTER COLUMN duration_days DROP NOT NULL;

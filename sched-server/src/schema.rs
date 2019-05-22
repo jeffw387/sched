@@ -92,7 +92,7 @@ table! {
         start_year -> Int4,
         start_month -> Int4,
         start_day -> Int4,
-        duration_days -> Nullable<Int4>,
+        duration_days -> Int4,
         request_year -> Int4,
         request_month -> Int4,
         request_day -> Int4,

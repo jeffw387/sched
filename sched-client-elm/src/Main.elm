@@ -76,6 +76,7 @@ type alias Settings =
     , showShifts : Bool
     , showVacations : Bool
     , showCallShifts : Bool
+    , showDisabled : Bool
     }
 
 
@@ -338,7 +339,7 @@ type alias Vacation =
     , startYear : Int
     , startMonth : Int
     , startDay : Int
-    , durationDays : Maybe Int
+    , durationDays : Int
     , requestYear : Int
     , requestMonth : Int
     , requestDay : Int
@@ -654,6 +655,7 @@ settingsEncoder settings =
         , ( "show_shifts", E.bool settings.showShifts )
         , ( "show_vacations", E.bool settings.showVacations )
         , ( "show_call_shifts", E.bool settings.showCallShifts )
+        , ( "show_disabled", E.bool settings.showDisabled )
         ]
 
 stringToColor : String -> EmployeeColor
@@ -840,14 +842,7 @@ vacationEncoder vacation =
         , ( "start_year", E.int vacation.startYear )
         , ( "start_month", E.int vacation.startMonth )
         , ( "start_day", E.int vacation.startDay )
-        , ( "duration_days"
-          , case vacation.durationDays of
-                Just durationDays ->
-                    E.int durationDays
-
-                Nothing ->
-                    E.null
-          )
+        , ( "duration_days", E.int vacation.durationDays )
         , ( "request_year", E.int vacation.requestYear )
         , ( "request_month", E.int vacation.requestMonth )
         , ( "request_day", E.int vacation.requestDay )
@@ -880,6 +875,7 @@ settingsDecoder =
         |> JPipe.required "show_shifts" D.bool
         |> JPipe.required "show_vacations" D.bool
         |> JPipe.required "show_call_shifts" D.bool
+        |> JPipe.required "show_disabled" D.bool
 
 
 employeeColorDecoder : D.Decoder EmployeeColor
@@ -1035,7 +1031,7 @@ vacationDecoder =
         |> JPipe.required "start_year" D.int
         |> JPipe.required "start_month" D.int
         |> JPipe.required "start_day" D.int
-        |> JPipe.required "duration_days" (D.maybe D.int)
+        |> JPipe.required "duration_days" D.int
         |> JPipe.required "request_year" D.int
         |> JPipe.required "request_month" D.int
         |> JPipe.required "request_day" D.int
@@ -1217,7 +1213,7 @@ type
     | RemoveEventAndClose Event
     | EventToggleEdit
     | UpdateVacationSupervisor Employee
-    | UpdateVacationDuration String
+    | UpdateVacationDuration Int
     | CreateVacationRequest YearMonthDay
     | CreateVacationResponse (Result Http.Error Vacation)
     | ShiftEmployeeSearch String
@@ -1247,6 +1243,7 @@ type
     | UpdateShowShifts Bool
     | UpdateShowCallShifts Bool
     | UpdateShowVacations Bool
+    | UpdateShowDisabled Bool
     | EmployeeViewCheckbox Int Bool
     | OpenEmployeeColorSelector Employee
     | ChooseEmployeeColor Employee EmployeeColor
@@ -2084,7 +2081,7 @@ update message model =
                     ( model, Cmd.none )
 
         ( _, ReceiveShiftExceptions exceptionsResult ) ->
-            case Debug.log "received exceptions" exceptionsResult of
+            case exceptionsResult of
                 Ok exceptions ->
                     ( { model
                         | shiftExceptions = Just exceptions }
@@ -2404,6 +2401,21 @@ update message model =
 
                         updatedSettings =
                             { settings | showVacations = show }
+                    in
+                    ( model, updateSettings updatedSettings )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ( CalendarPage page, UpdateShowDisabled show ) ->
+            case ( page.modal, getActiveSettings model ) of
+                ( ViewEditModal data, Just active ) ->
+                    let
+                        settings =
+                            active.settings
+
+                        updatedSettings =
+                            { settings | showDisabled = show }
                     in
                     ( model, updateSettings updatedSettings )
 
@@ -2808,7 +2820,7 @@ update message model =
                                                 day.year
                                                 day.month
                                                 day.day
-                                                (Just 1)
+                                                1
                                                 today.year
                                                 today.month
                                                 today.day
@@ -2900,7 +2912,7 @@ update message model =
                             modalData.vacation
 
                         updatedVacation =
-                            { vacation | durationDays = String.toInt days
+                            { vacation | durationDays = days
                                 , approved = False }
 
                         updatedData =
@@ -4036,7 +4048,7 @@ vacationApprovalCheckbox model vacation =
             vacationStartDate vacation
 
         durationDays =
-            Maybe.withDefault 1 vacation.durationDays
+            vacation.durationDays
 
         end =
             addDaysToDate start durationDays
@@ -4474,7 +4486,7 @@ ymdListFromVacation : Vacation -> List YearMonthDay
 ymdListFromVacation vacation =
     let
         durationDays =
-            Maybe.withDefault 1 vacation.durationDays
+            vacation.durationDays
 
         dayRange =
             List.range
@@ -5004,15 +5016,21 @@ getEmployeeColor model maybeID =
             in
                 defaultColor
 
-shiftColorStyle : Model -> Shift -> List (Attribute Message)
-shiftColorStyle model shift =
+shiftColorStyle : Model -> Shift -> Bool -> Bool -> List (Attribute Message)
+shiftColorStyle model shift showDisabled disabled =
     let
         colorPair =
             employeeColor <| getEmployeeColor model shift.employeeID
     in
-    [ Border.color <| fromRgb colorPair.dark
-    , BG.color <| fromRgb colorPair.light
-    ]
+    (case (showDisabled, disabled) of
+        ( _, False ) ->
+            [ Border.color <| fromRgb colorPair.dark ]
+        ( _, True ) ->
+            [ Border.color <| black
+            , Border.dashed 
+            ]
+    )
+    ++ [ BG.color <| fromRgb colorPair.light ]
 
 shiftQuarterHours : Float -> Int
 shiftQuarterHours f =
@@ -5094,6 +5112,10 @@ shiftHoursElement model viewEmployees combined viewDate shift =
         settings =
             combined.settings
 
+        showDisabled = settings.showDisabled
+
+        disabled = hasException model shift viewDate
+
         matchedVacations =
             filterVacationsForShift model shift
 
@@ -5112,59 +5134,65 @@ shiftHoursElement model viewEmployees combined viewDate shift =
         endQuarters =
             postShiftSpace shift viewDate
     in
-    case ( getEmployee viewEmployees shift.employeeID, matchedVacations, durationQuarters ) of
-        ( _, _, 0 ) ->
-            none
-
-        ( Just employee, [], _ ) ->
-            row
-                [ fillX
-                , Font.size 18
-                ]
-                [ el [ width <| fillPortion startQuarters ] none
-                , Input.button
-                    ([ width <| fillPortion durationQuarters ] ++ defaultBorder ++ shiftColorStyle model shift)
-                    { onPress =
-                        Just <|
-                            OpenShiftModal <|
-                                ShiftData
-                                    False
-                                    shift
-                                    (Just employee)
-                                    ""
-                                    viewEmployees
-                                    viewDate
-                                    (Maybe.withDefault "" shift.note)
-                    , label =
-                        el
-                            [ centerX
-                            , height <| minimum 40 fill
-                            , inFront <|
-                                column
-                                [ centerX, centerY ]
-                                [ row
-                                    []
-                                    [ text
-                                        (nameToString employee.name settings.lastNameStyle
-                                            ++ ": "
-                                        )
-                                    , formatHours settings startFloat durationFloat shift.note
-                                    ]
-                                , case (shift.onCall, employee.phoneNumber) of
-                                        (True, Just phoneNumber) -> 
-                                            case phoneNumber of
-                                                "" -> none
-                                                _ -> el [] <| text <| phoneNumber
-                                        _ -> none
-                                ]
-                            ]
-                            none
-                    }
-                , el [ width <| fillPortion endQuarters ] none
-                ]
-
+    case (showDisabled, disabled) of
+        ( False, True ) -> none
         _ ->
-            none
+            case ( getEmployee viewEmployees shift.employeeID, matchedVacations, durationQuarters ) of
+                ( _, _, 0 ) ->
+                    none
+
+                ( Just employee, [], _ ) ->
+                    row
+                        [ fillX
+                        , Font.size 18
+                        ]
+                        [ el [ width <| fillPortion startQuarters ] none
+                        , Input.button
+                            ([ width <| fillPortion durationQuarters ] 
+                            ++ defaultBorder 
+                            ++ shiftColorStyle model shift showDisabled disabled
+                            )
+                            { onPress =
+                                Just <|
+                                    OpenShiftModal <|
+                                        ShiftData
+                                            False
+                                            shift
+                                            (Just employee)
+                                            ""
+                                            viewEmployees
+                                            viewDate
+                                            (Maybe.withDefault "" shift.note)
+                            , label =
+                                el
+                                    [ centerX
+                                    , height <| minimum 40 fill
+                                    , inFront <|
+                                        column
+                                        [ centerX, centerY ]
+                                        [ row
+                                            []
+                                            [ text
+                                                (nameToString employee.name settings.lastNameStyle
+                                                    ++ ": "
+                                                )
+                                            , formatHours settings startFloat durationFloat shift.note
+                                            ]
+                                        , case (shift.onCall, employee.phoneNumber) of
+                                                (True, Just phoneNumber) -> 
+                                                    case phoneNumber of
+                                                        "" -> none
+                                                        _ -> el [] <| text <| phoneNumber
+                                                _ -> none
+                                        ]
+                                    ]
+                                    none
+                            }
+                        , el [ width <| fillPortion endQuarters ] none
+                        ]
+
+                _ ->
+                    none
 
 
 shiftElement :
@@ -5178,6 +5206,10 @@ shiftElement model viewEmployees combined day shift =
     let
         settings =
             combined.settings
+        
+        showDisabled = settings.showDisabled
+
+        disabled = hasException model shift day
 
         matchedVacations =
             filterVacationsForShift model shift
@@ -5188,54 +5220,60 @@ shiftElement model viewEmployees combined day shift =
         floatDuration =
             hourMinuteToFloat shift.hours shift.minutes
     in
-    case ( getEmployee viewEmployees shift.employeeID, matchedVacations ) of
-        ( Just employee, [] ) ->
-            Input.button
-                [ fillX
-                , clipX
-                ]
-                { onPress =
-                    Just <|
-                        OpenShiftModal <|
-                            ShiftData
-                                False
-                                shift
-                                (Just employee)
-                                ""
-                                viewEmployees
-                                day
-                                (Maybe.withDefault "" shift.note)
-                , label =
-                    column
-                        ([ Font.size 18
-                        , paddingXY 0 2
-                        , Border.width 2
-                        , Border.rounded 3
-                        , fillX
-                        ]
-                            ++ shiftColorStyle model shift
-                        )
-                        [ row
-                          []
-                            [ el [ padding 1 ] <|
-                                text
-                                    (nameToString employee.name settings.lastNameStyle
-                                        ++ ": "
-                                    )
-                            
-                            , formatHours settings floatBegin floatDuration shift.note
-                            ]
-                        , case (shift.onCall, employee.phoneNumber) of
-                            (True, Just phoneNumber) -> 
-                                case phoneNumber of
-                                    "" -> none
-                                    _ -> el [] <| text <| phoneNumber
-                            _ -> none
-                        ]
-                }
-
+    case (showDisabled, disabled) of
+        ( False, True ) -> none
         _ ->
-            none
+            case ( getEmployee viewEmployees shift.employeeID, matchedVacations ) of
+                ( Just employee, [] ) ->
+                    Input.button
+                        [ fillX
+                        , clipX
+                        ]
+                        { onPress =
+                            Just <|
+                                OpenShiftModal <|
+                                    ShiftData
+                                        False
+                                        shift
+                                        (Just employee)
+                                        ""
+                                        viewEmployees
+                                        day
+                                        (Maybe.withDefault "" shift.note)
+                        , label =
+                            column
+                                ([ Font.size 18
+                                , paddingXY 0 2
+                                , Border.width 2
+                                , Border.rounded 3
+                                , fillX
+                                ] ++ shiftColorStyle 
+                                    model 
+                                    shift 
+                                    showDisabled 
+                                    disabled
+                                )
+                                [ row
+                                []
+                                    [ el [ padding 1 ] <|
+                                        text
+                                            (nameToString employee.name settings.lastNameStyle
+                                                ++ ": "
+                                            )
+                                    
+                                    , formatHours settings floatBegin floatDuration shift.note
+                                    ]
+                                , case (shift.onCall, employee.phoneNumber) of
+                                    (True, Just phoneNumber) -> 
+                                        case phoneNumber of
+                                            "" -> none
+                                            _ -> el [] <| text <| phoneNumber
+                                    _ -> none
+                                ]
+                        }
+
+                _ ->
+                    none
 
 
 dayStyle : DayState -> List (Attribute Message)
@@ -6182,11 +6220,15 @@ shiftRepeatElement shift =
                 text "Shift does not repeat."
 
 
-shiftViewElement : Shift -> ShiftData -> Settings -> Element Message
-shiftViewElement shift editData settings =
+shiftViewElement : Model -> ShiftData -> Settings -> Element Message
+shiftViewElement model editData settings =
     let
+        shift = editData.shift
+
         dateFormat =
             Just <| YMDStringSettings LongDate True
+
+        disabled = hasException model shift editData.date
     in
     column
         [ centerX
@@ -6241,6 +6283,19 @@ shiftViewElement shift editData settings =
                     ]
                     <| el [centerX] <| text ("On Call: " ++ phoneNumber)
             _ -> none
+        , -- Disabled display
+          case disabled of
+            True ->
+                el 
+                    [ fillX
+                    , padding 10
+                    , Border.rounded 3
+                    , Border.color red
+                    , Border.width 1
+                    ]
+                    <| el [centerX] 
+                    <| text "Shift disabled for today"
+            False -> none
         , -- Note display
           case shift.note of
             Just note ->
@@ -6289,7 +6344,7 @@ vacationTimeElement vacation settings =
                 ++ ymdToString start dateFormat
 
         durationDays =
-            Maybe.withDefault 1 vacation.durationDays
+            vacation.durationDays
 
         durationString =
             "Lasts "
@@ -6375,9 +6430,9 @@ vacationViewElement model modalData vacation combined =
                     , Border.color red
                     , Border.width 1
                     , Border.rounded 3
+                    , centerX
                     ]
-                <|
-                    text "No supervisor selected"
+                <| text "No supervisor selected"
         , case vacation.approved of
             True ->
                 el
@@ -6469,19 +6524,44 @@ vacationEditElement model vacation modalData combined =
                         , selected = getEmployee supervisors vacation.supervisorID
                         , label = Input.labelAbove [] <| text "Select supervisor:"
                         }
-                , Input.text
-                    []
-                    { onChange = UpdateVacationDuration
-                    , text =
-                        case vacation.durationDays of
-                            Just durationDays ->
-                                String.fromInt durationDays
-
-                            Nothing ->
-                                ""
-                    , placeholder = Nothing
-                    , label = Input.labelLeft [] <| text "Days: "
-                    }
+                , el
+                    ([ fillX
+                    , padding 5
+                    ] ++ defaultBorder)
+                    <| row
+                        [ centerX
+                        , above <| text "Days"
+                        ]
+                        [ Input.button
+                            (defaultBorder ++ 
+                            [ padding 5
+                            , width <| px 40
+                            , defaultShadow
+                            ])
+                            { onPress = case vacation.durationDays > 1 of
+                                True -> Just <| UpdateVacationDuration (vacation.durationDays - 1)
+                                False -> Nothing
+                            , label = el [ centerX ] <| text "-"
+                            }
+                        , el [ padding 5
+                             , BG.color white
+                             , width <| px 40
+                             ]
+                        <| el [ centerX ] 
+                        <| text 
+                        <| String.fromInt vacation.durationDays
+                        , Input.button
+                            (defaultBorder ++ 
+                            [ padding 5
+                            , width <| px 40
+                            , defaultShadow
+                            ])
+                            { onPress = case vacation.durationDays < 99 of
+                                True -> Just <| UpdateVacationDuration (vacation.durationDays + 1)
+                                False -> Nothing
+                            , label = el [ centerX ] <| text "+"
+                            }
+                        ]
                 , row
                     ([ padding 5
                      , fillX
@@ -6542,7 +6622,7 @@ shiftModalElement model modalData =
                                 shiftEditElement model modalData settings
 
                             False ->
-                                shiftViewElement shift modalData settings
+                                shiftViewElement model modalData settings
                         , case shiftWriteAccess currentEmployee shift of
                             True ->
                                 Input.button
@@ -6692,7 +6772,9 @@ addEventButton day =
         ]
         { onPress = Just <| OpenAddEvent day
         , label =
-            el [ moveUp 1 ]
+            el
+                [ moveUp 1
+                ]
                 (text "+")
         }
 
@@ -7323,11 +7405,19 @@ editViewElement model editData maybeSettings employees =
                                     }
                             ]
                         , column ([ alignTop, paddingXY 5 0, fillX ] ++ defaultBorder)
-                            [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Vacations:"
+                            [ el ([ BG.color white, padding 5, centerX ] ++ defaultBorder) <| text "Disabled shifts:"
                             , el [ fillX ] <|
                                 Input.radio
                                     ([ centerX ] ++ defaultBorder)
-                                    { onChange =}                            
+                                    { onChange = UpdateShowDisabled
+                                    , options =
+                                        [ Input.option True <| text "Show"
+                                        , Input.option False <| text "Hide"
+                                        ]
+                                    , selected = Just settings.showDisabled
+                                    , label = Input.labelHidden "Disabled shifts"
+                                    }
+                            ]
                         ]
                     , -- employee selection
                       column
@@ -7508,12 +7598,18 @@ viewDay model today viewDate combined =
                 [ centerX
                 , spaceEvenly
                 ]
-                [ Input.button [ paddingXY 50 0 ]
+                [ Input.button
+                    [ paddingXY 50 0
+                    , defaultShadow
+                    ]
                     { onPress = Just PriorDay
                     , label = text "<<--"
                     }
                 , el [ centerX ] <| text dateStr
-                , Input.button [ paddingXY 50 0 ]
+                , Input.button
+                    [ paddingXY 50 0
+                    , defaultShadow
+                    ]
                     { onPress = Just NextDay
                     , label = text "-->>"
                     }
@@ -7625,12 +7721,18 @@ viewDayAlt model today viewDate combined =
                 [ centerX
                 , spaceEvenly
                 ]
-                [ Input.button [ paddingXY 50 0 ]
+                [ Input.button
+                    [ paddingXY 50 0
+                    , defaultShadow
+                    ]
                     { onPress = Just PriorDay
                     , label = text "<<--"
                     }
                 , el [ centerX ] <| text dateStr
-                , Input.button [ paddingXY 50 0 ]
+                , Input.button
+                    [ paddingXY 50 0
+                    , defaultShadow
+                    ]
                     { onPress = Just NextDay
                     , label = text "-->>"
                     }
@@ -7725,12 +7827,18 @@ viewWeek model today week combined =
             [ centerX
             , spaceEvenly
             ]
-            [ Input.button [ paddingXY 50 0 ]
+            [ Input.button
+                [ paddingXY 50 0
+                , defaultShadow
+                ]
                 { onPress = Just PriorWeek
                 , label = text "<<--"
                 }
             , el [ centerX ] <| text <| startStr ++ " to " ++ endStr
-            , Input.button [ paddingXY 50 0 ]
+            , Input.button
+                [ paddingXY 50 0
+                , defaultShadow
+                ]
                 { onPress = Just NextWeek
                 , label = text "-->>"
                 }
@@ -7761,7 +7869,10 @@ viewMonth model today month combined =
             , spaceEvenly
             ]
             [ -- Prior Month button
-              Input.button [ paddingXY 50 0 ]
+              Input.button
+                [ paddingXY 50 0
+                , defaultShadow
+                ]
                 { onPress = Just PriorMonth
                 , label = text "<<--"
                 }
@@ -7773,7 +7884,10 @@ viewMonth model today month combined =
                         ++ String.fromInt viewDate.year
                     )
             , -- Next Month Button
-              Input.button [ paddingXY 50 0 ]
+              Input.button
+                [ paddingXY 50 0
+                , defaultShadow
+                ]
                 { onPress = Just NextMonth
                 , label = text "-->>"
                 }

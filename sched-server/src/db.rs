@@ -517,7 +517,8 @@ impl Handler<Messages> for DbExecutor {
                             show_minutes: true,
                             show_shifts: true,
                             show_vacations: false,
-                            show_call_shifts: false
+                            show_call_shifts: false,
+                            show_disabled: false
                         };
 
                         let inserted_settings =
