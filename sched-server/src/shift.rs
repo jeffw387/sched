@@ -1,7 +1,7 @@
 use super::employee::Employee;
 use super::schema::{
-    shifts,
     shift_exceptions,
+    shifts,
     vacations,
 };
 use diesel::sql_types::Text;
@@ -66,7 +66,7 @@ pub struct Shift {
     pub on_call: bool,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, Clone)]
 #[table_name = "shifts"]
 pub struct NewShift {
     pub supervisor_id: i32,
@@ -103,7 +103,7 @@ pub struct ShiftException {
     pub day: i32,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, Clone)]
 #[table_name = "shift_exceptions"]
 pub struct NewShiftException {
     pub shift_id: i32,
@@ -112,7 +112,7 @@ pub struct NewShiftException {
     pub day: i32,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, Clone)]
 #[table_name = "vacations"]
 pub struct NewVacation {
     pub supervisor_id: Option<i32>,

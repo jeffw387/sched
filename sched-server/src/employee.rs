@@ -2,9 +2,9 @@ use super::datetime::{
     self,
     DateTime,
 };
-use super::settings::EmployeeColor;
 use super::message::LoginInfo;
 use super::schema::sessions;
+use super::settings::EmployeeColor;
 use crate::schema::employees;
 use crypto::pbkdf2 as crypt;
 use diesel::prelude::*;
@@ -136,7 +136,7 @@ pub struct ClientSideEmployee {
     pub level: EmployeeLevel,
     pub name: Name,
     pub phone_number: Option<String>,
-    pub default_color: EmployeeColor
+    pub default_color: EmployeeColor,
 }
 
 impl From<Employee> for ClientSideEmployee {
@@ -148,7 +148,7 @@ impl From<Employee> for ClientSideEmployee {
             level: employee.level,
             name: employee.name,
             phone_number: employee.phone_number,
-            default_color: employee.default_color
+            default_color: employee.default_color,
         }
     }
 }
@@ -164,7 +164,7 @@ pub struct Employee {
     pub level: EmployeeLevel,
     pub name: Name,
     pub phone_number: Option<String>,
-    pub default_color: EmployeeColor
+    pub default_color: EmployeeColor,
 }
 
 #[derive(Clone, Debug, Insertable, Deserialize)]
@@ -177,7 +177,7 @@ pub struct NewEmployee {
     #[diesel(embed)]
     pub name: Name,
     pub phone_number: Option<String>,
-    pub default_color: EmployeeColor
+    pub default_color: EmployeeColor,
 }
 
 impl NewEmployee {
@@ -187,7 +187,7 @@ impl NewEmployee {
         level: EmployeeLevel,
         name: Name,
         phone_number: Option<String>,
-        default_color: EmployeeColor
+        default_color: EmployeeColor,
     ) -> NewEmployee {
         let password_hash =
             crypt::pbkdf2_simple(&login_info.password, 1)
@@ -199,7 +199,7 @@ impl NewEmployee {
             level,
             name,
             phone_number,
-            default_color
+            default_color,
         }
     }
 }
@@ -218,7 +218,7 @@ impl Queryable<employees::SqlType, diesel::pg::Pg>
         String,
         String,
         Option<String>,
-        EmployeeColor
+        EmployeeColor,
     );
 
     fn build(row: Self::Row) -> Self {
@@ -230,7 +230,7 @@ impl Queryable<employees::SqlType, diesel::pg::Pg>
             level: row.4,
             name: Name { first: row.5, last: row.6 },
             phone_number: row.7,
-            default_color: row.8
+            default_color: row.8,
         }
     }
 }

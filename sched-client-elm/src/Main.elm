@@ -1338,7 +1338,7 @@ getEmployeeSettings model maybeID =
 loginRequest : LoginInfo -> Cmd Message
 loginRequest loginInfo =
     Http.post
-        { url = UB.absolute [ "sched", "login_request" ] []
+        { url = UB.absolute [ "sched", "login" ] []
         , body = Http.jsonBody (encodeLoginInfo loginInfo)
         , expect = Http.expectWhatever LoginResponse
         }
@@ -1798,7 +1798,7 @@ update message model =
         ( _, Logout ) ->
             ( model
             , Http.post
-                { url = UB.absolute [ "sched", "logout_request" ] []
+                { url = UB.absolute [ "sched", "logout" ] []
                 , body = Http.emptyBody
                 , expect = Http.expectWhatever LogoutResponse
                 }

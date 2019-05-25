@@ -92,7 +92,7 @@ pub enum EmployeeColor {
     LightGrey,
     Black,
     Brown,
-    Purple
+    Purple,
 }
 
 enum_to_sql!(HourFormat);
@@ -151,12 +151,12 @@ impl From<Settings> for NewSettings {
             show_shifts: settings.show_shifts,
             show_vacations: settings.show_vacations,
             show_call_shifts: settings.show_call_shifts,
-            show_disabled: settings.show_disabled
+            show_disabled: settings.show_disabled,
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Insertable)]
+#[derive(Serialize, Deserialize, Debug, Insertable, Clone)]
 #[table_name = "settings"]
 pub struct NewSettings {
     pub employee_id: i32,

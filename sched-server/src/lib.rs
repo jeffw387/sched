@@ -1,3 +1,4 @@
+#![feature(trait_alias)]
 #[macro_use]
 extern crate diesel;
 #[macro_use]
