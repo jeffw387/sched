@@ -35,6 +35,7 @@ fn index(_: HttpRequest) -> actix_web::Result<NamedFile> {
 
 fn main() -> std::io::Result<()> {
     let db_url = env::get_env(ENV_DB_URL);
+    env_logger::init();
 
     println!("database url: {}", db_url);
     let manager =
@@ -53,6 +54,7 @@ fn main() -> std::io::Result<()> {
         .unwrap();
 
     builder.set_certificate_chain_file("/etc/letsencrypt/live/www.jw387.com/fullchain.pem").unwrap();
+
 
     HttpServer::new(move || {
         App::new()
@@ -312,6 +314,5 @@ fn main() -> std::io::Result<()> {
             // .default_service(web::get().to(index))
     })
     .bind_ssl("0.0.0.0:443", builder)?
-    .bind("0.0.0.0:80")?
     .run()
 }
