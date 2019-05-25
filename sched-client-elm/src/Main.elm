@@ -2272,13 +2272,17 @@ update message model =
 
         ( CalendarPage page, UpdateViewName name ) ->
             case ( page.modal, getActiveSettings model ) of
-                ( ViewEditModal _, Just active ) ->
+                ( ViewEditModal modalData, Just active ) ->
                     let
                         settings =
-                            active.settings
+                            modalData.settings
 
                         updatedSettings =
                             { settings | name = name }
+
+                        updatedModal = { modalData | settings = updatedSettings }
+
+                        updatedPage = { page | modal = ViewEditModal updatedModal }
 
                         updatedCombined =
                             { active | settings = updatedSettings }
@@ -2287,7 +2291,8 @@ update message model =
 
                         updatedSettingsList = updateSettingsList settingsList updatedCombined
 
-                        updatedModel = { model | settingsList = Just updatedSettingsList }
+                        updatedModel = { model | settingsList = Just updatedSettingsList
+                            , page = CalendarPage updatedPage }
                     in
                     ( updatedModel, Cmd.none )
 
@@ -7274,9 +7279,12 @@ editViewElement model editData maybeSettings employees =
                         el [ centerX ] <|
                             text "Edit view"
                     , el [ fillX ] <|
-                        Input.text [ centerX ]
+                        Input.text 
+                            [ centerX
+                            , Events.onLoseFocus ViewEditUnfocusName
+                            ]
                             { onChange = UpdateViewName
-                            , text = settings.name
+                            , text = editData.settings.name
                             , placeholder = Nothing
                             , label = Input.labelAbove [] <| text "View Name:"
                             }
