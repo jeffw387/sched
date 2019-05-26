@@ -4317,7 +4317,7 @@ viewLogin model =
                         , paddingXY 0 15
                         ]
                         [ Input.button
-                            [ alignLeft
+                            [ centerX
                             , BG.color (rgb 0.25 0.8 0.25)
                             , defaultShadow
                             , padding 10
