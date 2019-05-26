@@ -6486,7 +6486,7 @@ vacationTimeElement vacation settings =
                    )
 
         end =
-            addDaysToDate start durationDays
+            addDaysToDate start (durationDays - 1)
 
         endString =
             "Ends " ++ ymdToString end dateFormat
