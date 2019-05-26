@@ -3649,10 +3649,26 @@ update message model =
                 updatedVacationList =
                     updateVacationList vacations updatedVacation
 
-                updatedModel =
-                    { model | vacations = Just updatedVacationList }
             in
-            ( updatedModel, updateVacationApproval updatedVacation )
+            case page.modal of
+                VacationModal modalData ->
+                    let
+                        updatedModal =  { modalData | vacation = updatedVacation }
+
+                        updatedPage = { page | modal = VacationModal updatedModal }
+
+                        updatedModel =
+                            { model | vacations = Just updatedVacationList
+                            , page = CalendarPage updatedPage }
+                    in
+                    ( updatedModel, updateVacationApproval updatedVacation )
+                    
+                _ ->
+                    let
+                        updatedModel =
+                            { model | vacations = Just updatedVacationList }
+                    in
+                    ( updatedModel, updateVacationApproval updatedVacation )
 
         ( CalendarPage page, CloseVacationApprovalModal ) ->
             case page.modal of
@@ -4291,7 +4307,7 @@ viewCalendarFooter maybeEmployee =
         [ selectViewButton
         , editViewButton
         , editEmployeesButton maybeEmployee
-        , openVacationsButton maybeEmployee
+        -- , openVacationsButton maybeEmployee
         , openAccountModal empName
         , viewLogoutButton
         ]
@@ -6524,6 +6540,8 @@ vacationViewElement model modalData vacation combined =
         supervisors =
             getSupervisors employees
 
+        maybeCurrent = model.currentEmployee
+
         maybeSupervisor =
             getEmployee supervisors vacation.supervisorID
 
@@ -6552,6 +6570,7 @@ vacationViewElement model modalData vacation combined =
             Just supervisor ->
                 row ([ padding 5, centerX ] ++ defaultBorder) [ text "Supervisor: ", employeeNameElement supervisor ]
 
+
             Nothing ->
                 el
                     [ padding 5
@@ -6561,28 +6580,46 @@ vacationViewElement model modalData vacation combined =
                     , centerX
                     ]
                 <| text "No supervisor selected"
-        , case vacation.approved of
-            True ->
-                el
-                    [ padding 5
-                    , Border.color green
-                    , Border.width 1
-                    , Border.rounded 3
-                    , centerX
-                    ]
-                <|
-                    text "Approved"
+        , row
+            [ spacing 10
+            , centerX
+            ]
+            [ case (maybeCurrent, maybeSupervisor) of
+                (Just currentEmployee, Just supervisor) ->
+                    if currentEmployee.id == supervisor.id
+                    then 
+                        Input.checkbox
+                        []
+                        { onChange = UpdateVacationApproval vacation
+                        , icon = Input.defaultCheckbox
+                        , checked = vacation.approved
+                        , label = Input.labelHidden "Approve vacation"
+                        }
+                    else none
+                _ -> none
+            , case vacation.approved of
+                True ->
+                    el
+                        [ padding 5
+                        , Border.color green
+                        , Border.width 1
+                        , Border.rounded 3
+                        , centerX
+                        ]
+                    <|
+                        text "Approved"
 
-            False ->
-                el
-                    [ padding 5
-                    , Border.color red
-                    , Border.width 1
-                    , Border.rounded 3
-                    , centerX
-                    ]
-                <|
-                    text "Not yet approved"
+                False ->
+                    el
+                        [ padding 5
+                        , Border.color red
+                        , Border.width 1
+                        , Border.rounded 3
+                        , centerX
+                        ]
+                    <|
+                        text "Not yet approved"
+            ]
         , el ([ padding 5 ] ++ defaultBorder) <|
             text <|
                 "Requested "
