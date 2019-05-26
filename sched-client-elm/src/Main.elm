@@ -3668,10 +3668,43 @@ update message model =
 
                 _ ->
                     ( model, Cmd.none )
+        ( LoginPage page, KeyDown maybeKey ) ->
+            case maybeKey of
+                Just key ->
+                    case key of
+                        Enter ->
+                            ( model, loginRequest page.loginInfo )
+                        _ -> ( model, Cmd.none )
+                _ -> ( model, Cmd.none )
 
         -- Calendar messages
         ( CalendarPage page, KeyDown maybeKey ) ->
-            ( model, Cmd.none )
+            case maybeKey of
+                Just key ->
+                    case key of
+                        Escape ->
+                            case page.modal of
+                                NoModal -> ( model, Cmd.none )
+                                ViewSelectModal -> 
+                                    update CloseViewSelect model
+                                ViewEditModal _ ->
+                                    update CloseViewEdit model
+                                AccountModal _ -> 
+                                    update CloseAccountModal model
+                                EmployeeEditor _ ->
+                                    update CloseEmployeeEditor model
+                                AddEventModal _ ->
+                                    update CancelAddEvent model
+                                ShiftModal _ -> 
+                                    update CloseEventModal model
+                                VacationModal _ ->
+                                    update CloseEventModal model
+                                VacationApprovalModal ->
+                                    update CloseVacationApprovalModal model
+
+                        _ -> ( model, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
         ( CalendarPage page, PriorMonth ) ->
             case getActiveSettings model of
