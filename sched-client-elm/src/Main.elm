@@ -3152,7 +3152,7 @@ update message model =
 
                         updatedShift =
                             { shift
-                                | hours = floatToHour f
+                                | hours = floor f
                                 , minutes = floatToQuarterHour f
                             }
 
