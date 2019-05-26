@@ -6602,6 +6602,8 @@ vacationRequestDate vacation =
 vacationEditElement : Model -> Vacation -> VacationData -> CombinedSettings -> Element Message
 vacationEditElement model vacation modalData combined =
     let
+        settings = combined.settings
+
         employees =
             Maybe.withDefault [] model.employees
 
@@ -6656,40 +6658,7 @@ vacationEditElement model vacation modalData combined =
                     ([ fillX
                     , padding 5
                     ] ++ defaultBorder)
-                    <| row
-                        [ centerX
-                        , above <| text "Days"
-                        ]
-                        [ Input.button
-                            (defaultBorder ++ 
-                            [ padding 5
-                            , width <| px 40
-                            , defaultShadow
-                            ])
-                            { onPress = case vacation.durationDays > 1 of
-                                True -> Just <| UpdateVacationDuration (vacation.durationDays - 1)
-                                False -> Nothing
-                            , label = el [ centerX ] <| text "-"
-                            }
-                        , el [ padding 5
-                             , BG.color white
-                             , width <| px 40
-                             ]
-                        <| el [ centerX ] 
-                        <| text 
-                        <| String.fromInt vacation.durationDays
-                        , Input.button
-                            (defaultBorder ++ 
-                            [ padding 5
-                            , width <| px 40
-                            , defaultShadow
-                            ])
-                            { onPress = case vacation.durationDays < 99 of
-                                True -> Just <| UpdateVacationDuration (vacation.durationDays + 1)
-                                False -> Nothing
-                            , label = el [ centerX ] <| text "+"
-                            }
-                        ]
+                    <| vacationEditTimeElement vacation settings
                 , row
                     ([ padding 5
                      , fillX
