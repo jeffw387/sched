@@ -6369,6 +6369,95 @@ getSupervisors employees =
     List.filter (\e -> e.level == Supervisor) employees
 
 
+vacationEditTimeElement : Vacation -> Settings -> Element Message
+vacationEditTimeElement vacation settings =
+    let
+        dateFormat =
+            Just <| YMDStringSettings LongDate True
+
+        start =
+            vacationStartDate vacation
+
+        startString =
+            "Starts "
+                ++ ymdToString start dateFormat
+
+        durationDays =
+            vacation.durationDays
+
+        durationString =
+            "Lasts "
+                ++ String.fromInt durationDays
+                ++ (case durationDays of
+                        1 ->
+                            " day"
+
+                        _ ->
+                            " days"
+                   )
+
+        end =
+            addDaysToDate start (durationDays - 1)
+
+        endString =
+            "Ends " ++ ymdToString end dateFormat
+    in
+    column
+        ([ padding 5
+         , spacing 5
+         , centerX
+         ]
+            ++ defaultBorder
+        )
+        [ el [ centerX ] <| text startString
+        , el
+            [ centerX
+            , Border.widthEach
+                { top = 1
+                , bottom = 1
+                , right = 0
+                , left = 0
+                }
+            , padding 3
+            ]
+          <|
+            row
+                [ centerX
+                ]
+                [ Input.button
+                    (defaultBorder ++ 
+                    [ padding 5
+                    , width <| px 40
+                    , defaultShadow
+                    ])
+                    { onPress = case vacation.durationDays > 1 of
+                        True -> Just <| UpdateVacationDuration (vacation.durationDays - 1)
+                        False -> Nothing
+                    , label = el [ centerX ] <| text "-"
+                    }
+                , el [ padding 5
+                        , BG.color white
+                        , width <| px 40
+                        ]
+                <| el [ centerX ] 
+                <| text 
+                <| String.fromInt vacation.durationDays
+                , Input.button
+                    (defaultBorder ++ 
+                    [ padding 5
+                    , width <| px 40
+                    , defaultShadow
+                    ])
+                    { onPress = case vacation.durationDays < 99 of
+                        True -> Just <| UpdateVacationDuration (vacation.durationDays + 1)
+                        False -> Nothing
+                    , label = el [ centerX ] <| text "+"
+                    }
+                ]
+        , el [ centerX ] <| text endString
+        ]
+
+
 vacationTimeElement : Vacation -> Settings -> Element Message
 vacationTimeElement vacation settings =
     let
