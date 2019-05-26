@@ -4301,6 +4301,7 @@ viewLogin : Model -> Element Message
 viewLogin model =
     case model.page of
         LoginPage page ->
+            let loginWidth = 500 in
             column
                 [ padding 100
                 , width fill
@@ -4312,7 +4313,7 @@ viewLogin model =
                     ]
                     [ el
                         [ alignRight
-                        , width (px 300)
+                        , width (px loginWidth)
                         , padding 15
                         ]
                         (el [ centerX ] (text "Login to Scheduler"))
@@ -4322,7 +4323,7 @@ viewLogin model =
                         [ Input.username
                             [ Input.focusedOnLoad
                             , alignRight
-                            , width (px 300)
+                            , width (px loginWidth)
                             , padding 15
                             , spacing 15
                             ]
@@ -4333,7 +4334,7 @@ viewLogin model =
                             }
                         , Input.currentPassword
                             [ alignRight
-                            , width (px 300)
+                            , width (px loginWidth)
                             , padding 15
                             , spacing 15
                             ]
@@ -4346,7 +4347,7 @@ viewLogin model =
                         ]
                     , row
                         [ alignRight
-                        , width (px 300)
+                        , width (px loginWidth)
                         , paddingXY 0 15
                         ]
                         [ Input.button
