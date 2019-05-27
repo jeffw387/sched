@@ -2187,7 +2187,10 @@ update message model =
                 ViewSelectModal ->
                     case getSettings model activeID of
                         Just active ->
-                            ( model
+                            let
+                                updatedModel = { model | updateViewDate = True }
+                            in
+                            ( updatedModel
                             , Http.post
                                 { url = "/sched/set_default_settings"
                                 , body =
