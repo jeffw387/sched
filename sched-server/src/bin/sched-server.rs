@@ -83,18 +83,18 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/default_settings")
+                web::resource("/sched/default_config")
                     .route(
                         web::post()
-                            .to_async(api::default_settings),
+                            .to_async(api::default_config),
                     ),
             )
             .service(
-                web::resource("/sched/set_default_settings")
+                web::resource("/sched/set_default_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::set_default_settings),
+                            .to_async(api::set_default_config),
                     ),
             )
             .service(
@@ -105,58 +105,58 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/get_settings")
+                web::resource("/sched/get_config")
                     .route(
                         web::post()
-                            .to_async(api::get_settings),
+                            .to_async(api::get_config),
                     ),
             )
             .service(
-                web::resource("/sched/add_settings")
+                web::resource("/sched/add_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::add_settings),
+                            .to_async(api::add_config),
                     ),
             )
             .service(
-                web::resource("/sched/update_settings")
+                web::resource("/sched/update_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::update_settings),
+                            .to_async(api::update_config),
                     ),
             )
             .service(
-                web::resource("/sched/copy_settings")
+                web::resource("/sched/copy_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::copy_settings),
+                            .to_async(api::copy_config),
                     ),
             )
             .service(
-                web::resource("/sched/remove_settings")
+                web::resource("/sched/remove_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::remove_settings),
+                            .to_async(api::remove_config),
                     ),
             )
             .service(
-                web::resource("/sched/add_employee_settings")
+                web::resource("/sched/add_employee_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::add_employee_settings),
+                            .to_async(api::add_employee_config),
                     ),
             )
             .service(
-                web::resource("/sched/update_employee_settings")
+                web::resource("/sched/update_employee_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
-                            .to_async(api::update_employee_settings),
+                            .to_async(api::update_employee_config),
                     ),
             )
             .service(

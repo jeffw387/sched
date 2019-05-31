@@ -15,6 +15,10 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use chrono::{
+    DateTime,
+    Utc
+};
 
 #[derive(
     Clone,
@@ -53,14 +57,9 @@ pub struct Shift {
     pub id: i32,
     pub supervisor_id: i32,
     pub employee_id: Option<i32>,
-    pub year: i32,
-    pub month: i32,
-    pub day: i32,
-    pub hour: i32,
-    pub minute: i32,
-    pub hours: i32,
-    pub minutes: i32,
-    pub shift_repeat: ShiftRepeat,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub repeat: ShiftRepeat,
     pub every_x: Option<i32>,
     pub note: Option<String>,
     pub on_call: bool,
@@ -71,14 +70,9 @@ pub struct Shift {
 pub struct NewShift {
     pub supervisor_id: i32,
     pub employee_id: Option<i32>,
-    pub year: i32,
-    pub month: i32,
-    pub day: i32,
-    pub hour: i32,
-    pub minute: i32,
-    pub hours: i32,
-    pub minutes: i32,
-    pub shift_repeat: ShiftRepeat,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub repeat: ShiftRepeat,
     pub every_x: Option<i32>,
     pub note: Option<String>,
     pub on_call: bool,
@@ -98,18 +92,14 @@ pub struct NewShift {
 pub struct ShiftException {
     pub id: i32,
     pub shift_id: i32,
-    pub year: i32,
-    pub month: i32,
-    pub day: i32,
+    pub date: DateTime<Utc>,
 }
 
 #[derive(Debug, Insertable, Deserialize, Clone)]
 #[table_name = "shift_exceptions"]
 pub struct NewShiftException {
     pub shift_id: i32,
-    pub year: i32,
-    pub month: i32,
-    pub day: i32,
+    pub date: DateTime<Utc>,
 }
 
 #[derive(Debug, Insertable, Deserialize, Clone)]
@@ -118,13 +108,9 @@ pub struct NewVacation {
     pub supervisor_id: Option<i32>,
     pub employee_id: i32,
     pub approved: bool,
-    pub start_year: i32,
-    pub start_month: i32,
-    pub start_day: i32,
-    pub duration_days: i32,
-    pub request_year: i32,
-    pub request_month: i32,
-    pub request_day: i32,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub requested: DateTime<Utc>,
 }
 
 #[derive(
@@ -144,11 +130,7 @@ pub struct Vacation {
     pub supervisor_id: Option<i32>,
     pub employee_id: i32,
     pub approved: bool,
-    pub start_year: i32,
-    pub start_month: i32,
-    pub start_day: i32,
-    pub duration_days: i32,
-    pub request_year: i32,
-    pub request_month: i32,
-    pub request_day: i32,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub requested: DateTime<Utc>,
 }

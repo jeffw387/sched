@@ -1,2 +1,0 @@
-ALTER TABLE vacations ALTER COLUMN duration_days SET NOT NULL;
-ALTER TABLE vacations ALTER COLUMN duration_days DROP DEFAULT;

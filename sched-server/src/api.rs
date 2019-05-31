@@ -7,12 +7,12 @@ use crate::message::{
     ChangePasswordInfo,
     LoginInfo,
 };
-use crate::settings::{
-    NewPerEmployeeSettings,
-    NewSettings,
-    PerEmployeeSettings,
-    Settings,
-    CombinedSettings,
+use crate::config::{
+    NewPerEmployeeConfig,
+    NewConfig,
+    PerEmployeeConfig,
+    Config,
+    CombinedConfig,
     EmployeeColor,
 };
 use crate::employee::{
@@ -120,26 +120,26 @@ pub fn change_password(
     .then(no_return)
 }
 
-pub fn default_settings(
+pub fn default_config(
     req: HttpRequest,
     pool: Data<PgPool>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
-    web::block(move || db::default_settings(pool, token))
+    web::block(move || db::default_config(pool, token))
         .then(return_json)
 }
 
-pub fn set_default_settings(
+pub fn set_default_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    settings: Json<Settings>,
+    config: Json<Config>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::set_default_settings(
+        db::set_default_config(
             pool,
             token,
-            (*settings).clone(),
+            (*config).clone(),
         )
     })
     .then(return_json)
@@ -156,85 +156,85 @@ pub fn logout(
     .then(no_return)
 }
 
-pub fn get_settings(
+pub fn get_config(
     req: HttpRequest,
     pool: Data<PgPool>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::get_settings(pool, token)
+        db::get_config(pool, token)
     })
     .then(return_json)
 }
 
-pub fn add_settings(
+pub fn add_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    new_settings: Json<NewSettings>,
+    new_config: Json<NewConfig>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::add_settings(pool, token, (*new_settings).clone())
+        db::add_config(pool, token, (*new_config).clone())
     })
     .then(return_json)
 }
 
-pub fn update_settings(
+pub fn update_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    settings: Json<Settings>,
+    config: Json<Config>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::update_settings(pool, token, (*settings).clone())
+        db::update_config(pool, token, (*config).clone())
     })
     .then(return_json)
 }
 
-pub fn copy_settings(
+pub fn copy_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    combined_settings: Json<CombinedSettings>,
+    combined_config: Json<CombinedConfig>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::copy_settings(pool, token, (*combined_settings).clone())
+        db::copy_config(pool, token, (*combined_config).clone())
     })
     .then(no_return)
 }
 
-pub fn remove_settings(
+pub fn remove_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    settings: Json<Settings>,
+    config: Json<Config>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::remove_settings(pool, token, (*settings).clone())
+        db::remove_config(pool, token, (*config).clone())
     })
     .then(no_return)
 }
 
-pub fn add_employee_settings(
+pub fn add_employee_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    new_settings: Json<NewPerEmployeeSettings>,
+    new_config: Json<NewPerEmployeeConfig>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::add_employee_settings(pool, token, (*new_settings).clone())
+        db::add_employee_config(pool, token, (*new_config).clone())
     })
     .then(no_return)
 }
 
-pub fn update_employee_settings(
+pub fn update_employee_config(
     req: HttpRequest,
     pool: Data<PgPool>,
-    settings: Json<PerEmployeeSettings>,
+    config: Json<PerEmployeeConfig>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
-        db::update_employee_settings(pool, token, (*settings).clone())
+        db::update_employee_config(pool, token, (*config).clone())
     })
     .then(no_return)
 }

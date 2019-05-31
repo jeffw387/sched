@@ -1,1 +1,0 @@
-ALTER TABLE settings ADD COLUMN show_disabled BOOL NOT NULL DEFAULT false;

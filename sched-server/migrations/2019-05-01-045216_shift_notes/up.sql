@@ -1,1 +1,0 @@
-ALTER TABLE shifts ADD COLUMN note TEXT;

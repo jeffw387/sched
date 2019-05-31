@@ -1,0 +1,15 @@
+[package]
+name = "test-client"
+version = "0.1.0"
+authors = ["Jeff Wright <jeffw387@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+seed = ""
+wasm-bindgen = "0.2.38"
+web-sys = ""
+chrono = ""
+futures = ""

@@ -1,1 +1,0 @@
-ALTER TABLE settings ADD COLUMN show_minutes BOOLEAN NOT NULL DEFAULT true;

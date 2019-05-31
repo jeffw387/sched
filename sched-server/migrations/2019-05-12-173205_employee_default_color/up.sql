@@ -1,1 +1,0 @@
-ALTER TABLE employees ADD COLUMN default_color TEXT NOT NULL DEFAULT 'Green';

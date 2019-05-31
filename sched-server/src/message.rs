@@ -14,5 +14,3 @@ pub struct ChangePasswordInfo {
     pub old_password: String,
     pub new_password: String,
 }
-
-pub struct Settings {}

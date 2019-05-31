@@ -1,1 +1,0 @@
-ALTER TABLE shifts ALTER COLUMN employee_id SET NOT NULL;

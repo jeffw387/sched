@@ -1,6 +1,6 @@
-use super::schema::per_employee_settings;
-use super::schema::settings;
-
+use super::schema::per_employee_configs;
+use super::schema::configs;
+use chrono::{DateTime, Utc};
 use diesel::sql_types::Text;
 use serde::{
     Deserialize,
@@ -26,8 +26,8 @@ use strum_macros::{
 )]
 #[sql_type = "Text"]
 pub enum HourFormat {
-    Hour12,
-    Hour24,
+    H12,
+    H24,
 }
 
 #[derive(
@@ -43,8 +43,8 @@ pub enum HourFormat {
 )]
 #[sql_type = "Text"]
 pub enum LastNameStyle {
-    FullName,
-    FirstInitial,
+    Full,
+    Initial,
     Hidden,
 }
 
@@ -60,11 +60,11 @@ pub enum LastNameStyle {
     Clone,
 )]
 #[sql_type = "Text"]
-pub enum ViewType {
+pub enum CalendarView {
     Month,
     Week,
     Day,
-    AltDay,
+    DayAlt,
 }
 
 #[derive(
@@ -101,8 +101,8 @@ enum_from_sql!(HourFormat);
 enum_to_sql!(LastNameStyle);
 enum_from_sql!(LastNameStyle);
 
-enum_to_sql!(ViewType);
-enum_from_sql!(ViewType);
+enum_to_sql!(CalendarView);
+enum_from_sql!(CalendarView);
 
 enum_to_sql!(EmployeeColor);
 enum_from_sql!(EmployeeColor);
@@ -116,17 +116,14 @@ enum_from_sql!(EmployeeColor);
     AsChangeset,
     Clone,
 )]
-#[table_name = "settings"]
-pub struct Settings {
+#[table_name = "configs"]
+pub struct Config {
     pub id: i32,
     pub employee_id: i32,
-    pub name: String,
-    pub view_type: ViewType,
+    pub config_name: String,
     pub hour_format: HourFormat,
     pub last_name_style: LastNameStyle,
-    pub view_year: i32,
-    pub view_month: i32,
-    pub view_day: i32,
+    pub view_date: DateTime<Utc>,
     pub view_employees: Vec<i32>,
     pub show_minutes: bool,
     pub show_shifts: bool,
@@ -135,38 +132,14 @@ pub struct Settings {
     pub show_disabled: bool,
 }
 
-impl From<Settings> for NewSettings {
-    fn from(settings: Settings) -> Self {
-        NewSettings {
-            employee_id: settings.employee_id,
-            name: settings.name,
-            view_type: settings.view_type,
-            hour_format: settings.hour_format,
-            last_name_style: settings.last_name_style,
-            view_year: settings.view_year,
-            view_month: settings.view_month,
-            view_day: settings.view_day,
-            view_employees: settings.view_employees,
-            show_minutes: settings.show_minutes,
-            show_shifts: settings.show_shifts,
-            show_vacations: settings.show_vacations,
-            show_call_shifts: settings.show_call_shifts,
-            show_disabled: settings.show_disabled,
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug, Insertable, Clone)]
-#[table_name = "settings"]
-pub struct NewSettings {
+#[table_name = "configs"]
+pub struct NewConfig {
     pub employee_id: i32,
-    pub name: String,
-    pub view_type: ViewType,
+    pub config_name: String,
     pub hour_format: HourFormat,
     pub last_name_style: LastNameStyle,
-    pub view_year: i32,
-    pub view_month: i32,
-    pub view_day: i32,
+    pub view_date: DateTime<Utc>,
     pub view_employees: Vec<i32>,
     pub show_minutes: bool,
     pub show_shifts: bool,
@@ -184,34 +157,23 @@ pub struct NewSettings {
     AsChangeset,
     Clone,
 )]
-#[table_name = "per_employee_settings"]
-pub struct PerEmployeeSettings {
+pub struct PerEmployeeConfig {
     pub id: i32,
-    pub settings_id: i32,
+    pub config_id: i32,
     pub employee_id: i32,
     pub color: EmployeeColor,
 }
 
 #[derive(Deserialize, Debug, Insertable, Clone)]
-#[table_name = "per_employee_settings"]
-pub struct NewPerEmployeeSettings {
-    pub settings_id: i32,
+#[table_name = "per_employee_configs"]
+pub struct NewPerEmployeeConfig {
+    pub config_id: i32,
     pub employee_id: i32,
     pub color: EmployeeColor,
 }
 
-impl From<PerEmployeeSettings> for NewPerEmployeeSettings {
-    fn from(per_employee: PerEmployeeSettings) -> Self {
-        NewPerEmployeeSettings {
-            settings_id: per_employee.settings_id,
-            employee_id: per_employee.employee_id,
-            color: per_employee.color,
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CombinedSettings {
-    pub settings: Settings,
-    pub per_employee: Vec<PerEmployeeSettings>,
+pub struct CombinedConfig {
+    pub config: Config,
+    pub per_employee: Vec<PerEmployeeConfig>,
 }

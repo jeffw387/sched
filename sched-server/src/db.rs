@@ -1,4 +1,3 @@
-use super::datetime;
 use super::message::{
     ChangePasswordInfo,
     LoginInfo,
@@ -13,23 +12,22 @@ use crate::employee::{
 };
 use crate::schema::{
     employees,
-    per_employee_settings,
+    per_employee_configs,
     sessions,
-    settings,
+    configs,
     shift_exceptions,
     shifts,
     vacations,
 };
-use crate::settings::{
-    CombinedSettings,
+use crate::config::{
+    CombinedConfig,
     EmployeeColor,
     HourFormat,
     LastNameStyle,
-    NewPerEmployeeSettings,
-    NewSettings,
-    PerEmployeeSettings,
-    Settings,
-    ViewType,
+    NewPerEmployeeConfig,
+    NewConfig,
+    PerEmployeeConfig,
+    Config,
 };
 use crate::shift::{
     NewShift,
@@ -56,6 +54,9 @@ use std::fmt::{
 };
 use std::ops::Deref;
 use std::result::Result;
+use chrono::{
+    Utc,
+};
 
 type Token = String;
 
@@ -91,9 +92,7 @@ pub fn login(
                 diesel::insert_into(sessions::table)
                     .values(NewSession::new(
                         owner.id,
-                        datetime::now_plus_hours(
-                            session_length,
-                        ),
+                        Utc::now() + chrono::Duration::hours(session_length),
                     ))
                     .get_result::<Session>(conn)
                     .map(|session| session.token)
@@ -208,87 +207,99 @@ pub fn change_password(
     }
 }
 
-pub fn get_settings(
+pub fn get_config(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Vec<CombinedSettings>>, Error> {
-    println!("Messages::GetSettings");
+) -> Result<JsonObject<Vec<CombinedConfig>>, Error> {
+    println!("Messages::GetConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = check_token(&token, pool)?;
-    let employee_settings = settings::table
-        .filter(settings::employee_id.eq(owner.id))
-        .load::<Settings>(conn)
+    let employee_config = configs::table
+        .filter(configs::employee_id.eq(owner.id))
+        .load::<Config>(conn)
         .map_err(Error::Dsl)?;
-    let per_employee = per_employee_settings::table
-        .load::<PerEmployeeSettings>(conn)
+    let per_employee = per_employee_configs::table
+        .load::<PerEmployeeConfig>(conn)
         .map_err(Error::Dsl)?;
-    let combined_settings =
-        employee_settings.iter().map(|u_s| {
-            let mut combined = CombinedSettings {
-                settings: u_s.clone(),
+    let combined_config =
+        employee_config.iter().map(|config| {
+            let mut combined = CombinedConfig {
+                config: config.clone(),
                 per_employee: vec![],
             };
             for p_e in per_employee.clone() {
-                if u_s.id == p_e.settings_id {
+                if config.id == p_e.config_id {
                     combined.per_employee.push(p_e);
                 }
             }
             combined
         });
-    Ok(JsonObject::new(combined_settings.collect()))
+    Ok(JsonObject::new(combined_config.collect()))
 }
 
-pub fn add_settings(
+pub fn add_config(
     pool: web::Data<PgPool>,
     token: Token,
-    new_settings: NewSettings,
-) -> Result<Settings, Error> {
-    println!("Messages::AddSettings");
+    new_config: NewConfig,
+) -> Result<Config, Error> {
+    println!("Messages::AddConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = check_token(&token, pool)?;
-    let new_settings = NewSettings {
+    let new_config = NewConfig {
         employee_id: owner.id,
-        ..new_settings
+        ..new_config
     };
-    diesel::insert_into(settings::table)
-        .values(new_settings)
+    diesel::insert_into(configs::table)
+        .values(new_config)
         .get_result(conn)
         .map_err(Error::Dsl)
 }
 
-pub fn copy_settings(
+pub fn copy_config(
     pool: web::Data<PgPool>,
     token: Token,
-    combined_settings: CombinedSettings,
+    combined_config: CombinedConfig,
 ) -> Result<(), Error> {
-    println!("Messages::CopySettings");
+    println!("Messages::CopyConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
-    let new_settings: NewSettings =
-        combined_settings.settings.clone().into();
-    diesel::insert_into(settings::table)
-        .values(new_settings)
+    let config = combined_config.config.clone();
+    let new_config = NewConfig {
+        employee_id: config.employee_id,
+        config_name: config.config_name,
+        hour_format: config.hour_format,
+        last_name_style: config.last_name_style,
+        view_date: config.view_date,
+        view_employees: config.view_employees,
+        show_minutes: config.show_minutes,
+        show_shifts: config.show_shifts,
+        show_vacations: config.show_vacations,
+        show_call_shifts: config.show_call_shifts,
+        show_disabled: config.show_disabled,
+    };
+    diesel::insert_into(configs::table)
+        .values(new_config)
         .get_result(conn)
         .map_err(Error::Dsl)
-        .map(|inserted_settings: Settings| {
+        .map(move |inserted_config: Config| {
             let new_per_employees: Vec<
-                NewPerEmployeeSettings,
-            > = combined_settings
+                NewPerEmployeeConfig,
+            > = combined_config
                 .per_employee
                 .iter()
-                .map(|p_e| {
-                    let updated_p_e = PerEmployeeSettings {
-                        settings_id: inserted_settings.id,
-                        ..p_e.clone()
-                    };
-                    updated_p_e.into()
+                .map(move |p_e| {
+                    NewPerEmployeeConfig {
+                        config_id: inserted_config.id,
+                        employee_id: p_e.employee_id.clone(),
+                        color: p_e.color.clone(),
+                    }
                 })
                 .collect();
             let _ = diesel::insert_into(
-                per_employee_settings::table,
+                per_employee_configs::table,
             )
             .values(new_per_employees)
             .execute(conn)
@@ -297,17 +308,17 @@ pub fn copy_settings(
     Ok(())
 }
 
-pub fn set_default_settings(
+pub fn set_default_config(
     pool: web::Data<PgPool>,
     token: Token,
-    settings: Settings,
+    config: Config,
 ) -> Result<(), Error> {
-    println!("SetDefaultSettings: start");
+    println!("SetDefaultConfig: start");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = check_token(&token, pool)?;
     let _ = diesel::update(&owner)
-        .set(employees::startup_settings.eq(settings.id))
+        .set(employees::active_config.eq(config.id))
         .execute(conn)
         .map_err(|err| {
             eprintln!("Error: {:?}", err);
@@ -316,21 +327,21 @@ pub fn set_default_settings(
     Ok(())
 }
 
-pub fn default_settings(
+pub fn default_config(
     pool: web::Data<PgPool>,
     token: Token,
 ) -> Result<JsonObject<Option<i32>>, Error> {
-    println!("Messages::DefaultSettings");
+    println!("Messages::DefaultConfig");
     let owner = check_token(&token, pool)?;
-    Ok(JsonObject::new(owner.startup_settings))
+    Ok(JsonObject::new(owner.active_config))
 }
 
-pub fn update_settings(
+pub fn update_config(
     pool: web::Data<PgPool>,
     token: Token,
-    updated: Settings,
-) -> Result<Settings, Error> {
-    println!("Messages::UpdateSettings");
+    updated: Config,
+) -> Result<Config, Error> {
+    println!("Messages::UpdateConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
@@ -340,29 +351,29 @@ pub fn update_settings(
         .map_err(Error::Dsl)
 }
 
-pub fn remove_settings(
+pub fn remove_config(
     pool: web::Data<PgPool>,
     token: Token,
-    settings: Settings,
+    Config: Config,
 ) -> Result<(), Error> {
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = check_token(&token, pool)?;
-    let employee_settings = settings::table
-        .filter(settings::employee_id.eq(owner.id))
-        .load::<Settings>(conn)
+    let employee_config = configs::table
+        .filter(configs::employee_id.eq(owner.id))
+        .load::<Config>(conn)
         .map_err(Error::Dsl)?;
-    if employee_settings.len() > 1 {
-        let _ = diesel::delete(&settings)
+    if employee_config.len() > 1 {
+        let _ = diesel::delete(&Config)
             .execute(conn)
             .map_err(Error::Dsl)?;
-        let new_default = settings::table
-            .filter(settings::employee_id.eq(owner.id))
-            .first::<Settings>(conn)
+        let new_default = configs::table
+            .filter(configs::employee_id.eq(owner.id))
+            .first::<Config>(conn)
             .map_err(Error::Dsl)?;
         let _ = diesel::update(&owner.clone())
             .set(
-                employees::startup_settings
+                employees::active_config
                     .eq(new_default.id),
             )
             .execute(conn)
@@ -371,33 +382,33 @@ pub fn remove_settings(
     Ok(())
 }
 
-pub fn add_employee_settings(
+pub fn add_employee_config(
     pool: web::Data<PgPool>,
     token: Token,
-    new_settings: NewPerEmployeeSettings,
+    new_config: NewPerEmployeeConfig,
 ) -> Result<(), Error> {
-    println!("Messages::AddEmployeeSettings");
+    println!("Messages::AddEmployeeConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
-    diesel::insert_into(per_employee_settings::table)
-        .values(new_settings)
+    diesel::insert_into(per_employee_configs::table)
+        .values(new_config)
         .execute(conn)
         .map_err(Error::Dsl)
         .map(|_| ())
 }
 
-pub fn update_employee_settings(
+pub fn update_employee_config(
     pool: web::Data<PgPool>,
     token: Token,
-    settings: PerEmployeeSettings,
+    Config: PerEmployeeConfig,
 ) -> Result<(), Error> {
-    println!("Messages::UpdateEmployeeSettings");
+    println!("Messages::UpdateEmployeeConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
-    diesel::update(&settings.clone())
-        .set(settings)
+    diesel::update(&Config.clone())
+        .set(Config)
         .execute(conn)
         .map(|_| ())
         .map_err(Error::Dsl)
@@ -449,7 +460,8 @@ pub fn add_employee(
         login_info,
         None,
         EmployeeLevel::Read,
-        new_client_employee.name,
+        new_client_employee.first,
+        new_client_employee.last,
         new_client_employee.phone_number,
         EmployeeColor::Green,
     );
@@ -462,16 +474,13 @@ pub fn add_employee(
                     .get_result::<Employee>(conn)
                     .map_err(Error::Dsl)?;
 
-            let new_settings = NewSettings {
+            let new_config = NewConfig {
                 employee_id: inserted_employee.id,
-                name: String::from("Default"),
-                view_type: ViewType::Month,
-                hour_format: HourFormat::Hour12,
+                config_name: String::from("Default"),
+                hour_format: HourFormat::H12,
                 last_name_style:
-                    LastNameStyle::FirstInitial,
-                view_year: 2019,
-                view_month: 4,
-                view_day: 29,
+                    LastNameStyle::Initial,
+                view_date: Utc::now(),
                 view_employees: vec![],
                 show_minutes: true,
                 show_shifts: true,
@@ -480,16 +489,16 @@ pub fn add_employee(
                 show_disabled: false,
             };
 
-            let inserted_settings =
-                diesel::insert_into(settings::table)
-                    .values(new_settings)
-                    .get_result::<Settings>(conn)
+            let inserted_config =
+                diesel::insert_into(configs::table)
+                    .values(new_config)
+                    .get_result::<Config>(conn)
                     .map_err(Error::Dsl)?;
 
             diesel::update(&inserted_employee)
                 .set(
-                    employees::startup_settings
-                        .eq(inserted_settings.id),
+                    employees::active_config
+                        .eq(inserted_config.id),
                 )
                 .get_result::<Employee>(conn)
                 .map(|e| e.into())
@@ -517,9 +526,9 @@ pub fn update_employee(
                     employees::email
                         .eq(updated_employee.email),
                     employees::first
-                        .eq(updated_employee.name.first),
+                        .eq(updated_employee.first),
                     employees::last
-                        .eq(updated_employee.name.last),
+                        .eq(updated_employee.last),
                     employees::phone_number
                         .eq(updated_employee.phone_number),
                     employees::default_color
@@ -839,8 +848,8 @@ pub fn check_token(
         .first::<Session>(conn)
     {
         Ok(session) => {
-            let now = datetime::now();
-            let expires_at = session.expires();
+            let now = Utc::now();
+            let expires_at = session.expiration;
             match expires_at.cmp(&now) {
                 std::cmp::Ordering::Greater => {
                     employees::table

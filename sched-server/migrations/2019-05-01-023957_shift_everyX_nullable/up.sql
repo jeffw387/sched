@@ -1,1 +1,0 @@
-ALTER TABLE shifts ALTER COLUMN every_x DROP NOT NULL;
