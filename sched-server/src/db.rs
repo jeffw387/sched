@@ -2,6 +2,16 @@ use super::message::{
     ChangePasswordInfo,
     LoginInfo,
 };
+use crate::config::{
+    CombinedConfig,
+    Config,
+    EmployeeColor,
+    HourFormat,
+    LastNameStyle,
+    NewConfig,
+    NewPerEmployeeConfig,
+    PerEmployeeConfig,
+};
 use crate::employee::{
     ClientSideEmployee,
     Employee,
@@ -11,23 +21,13 @@ use crate::employee::{
     Session,
 };
 use crate::schema::{
+    configs,
     employees,
     per_employee_configs,
     sessions,
-    configs,
     shift_exceptions,
     shifts,
     vacations,
-};
-use crate::config::{
-    CombinedConfig,
-    EmployeeColor,
-    HourFormat,
-    LastNameStyle,
-    NewPerEmployeeConfig,
-    NewConfig,
-    PerEmployeeConfig,
-    Config,
 };
 use crate::shift::{
     NewShift,
@@ -38,6 +38,7 @@ use crate::shift::{
     Vacation,
 };
 use actix_web::web;
+use chrono::Utc;
 use crypto::pbkdf2 as crypt;
 use diesel::prelude::*;
 use diesel::r2d2::{
@@ -54,9 +55,6 @@ use std::fmt::{
 };
 use std::ops::Deref;
 use std::result::Result;
-use chrono::{
-    Utc,
-};
 
 type Token = String;
 
@@ -76,7 +74,7 @@ pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 pub fn login(
     pool: web::Data<PgPool>,
     login_info: LoginInfo,
-) -> Result<String, Error> {
+) -> Result<(ClientSideEmployee, String), Error> {
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = employee_by_email(pool, &login_info.email)?;
@@ -92,10 +90,15 @@ pub fn login(
                 diesel::insert_into(sessions::table)
                     .values(NewSession::new(
                         owner.id,
-                        Utc::now() + chrono::Duration::hours(session_length),
+                        Utc::now()
+                            + chrono::Duration::hours(
+                                session_length,
+                            ),
                     ))
                     .get_result::<Session>(conn)
-                    .map(|session| session.token)
+                    .map(|session| {
+                        (owner.into(), session.token)
+                    })
                     .map_err(|dsl_err| Error::Dsl(dsl_err))
             } else {
                 println!("Password does not match!");
@@ -207,11 +210,11 @@ pub fn change_password(
     }
 }
 
-pub fn get_config(
+pub fn get_configs(
     pool: web::Data<PgPool>,
     token: Token,
 ) -> Result<JsonObject<Vec<CombinedConfig>>, Error> {
-    println!("Messages::GetConfig");
+    println!("Messages::GetConfigs");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = check_token(&token, pool)?;
@@ -247,10 +250,8 @@ pub fn add_config(
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let owner = check_token(&token, pool)?;
-    let new_config = NewConfig {
-        employee_id: owner.id,
-        ..new_config
-    };
+    let new_config =
+        NewConfig { employee_id: owner.id, ..new_config };
     diesel::insert_into(configs::table)
         .values(new_config)
         .get_result(conn)
@@ -293,7 +294,9 @@ pub fn copy_config(
                 .map(move |p_e| {
                     NewPerEmployeeConfig {
                         config_id: inserted_config.id,
-                        employee_id: p_e.employee_id.clone(),
+                        employee_id: p_e
+                            .employee_id
+                            .clone(),
                         color: p_e.color.clone(),
                     }
                 })
@@ -308,7 +311,7 @@ pub fn copy_config(
     Ok(())
 }
 
-pub fn set_default_config(
+pub fn set_active_config(
     pool: web::Data<PgPool>,
     token: Token,
     config: Config,
@@ -327,7 +330,7 @@ pub fn set_default_config(
     Ok(())
 }
 
-pub fn default_config(
+pub fn get_active_config(
     pool: web::Data<PgPool>,
     token: Token,
 ) -> Result<JsonObject<Option<i32>>, Error> {
@@ -354,7 +357,7 @@ pub fn update_config(
 pub fn remove_config(
     pool: web::Data<PgPool>,
     token: Token,
-    Config: Config,
+    config: Config,
 ) -> Result<(), Error> {
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
@@ -364,7 +367,7 @@ pub fn remove_config(
         .load::<Config>(conn)
         .map_err(Error::Dsl)?;
     if employee_config.len() > 1 {
-        let _ = diesel::delete(&Config)
+        let _ = diesel::delete(&config)
             .execute(conn)
             .map_err(Error::Dsl)?;
         let new_default = configs::table
@@ -373,8 +376,7 @@ pub fn remove_config(
             .map_err(Error::Dsl)?;
         let _ = diesel::update(&owner.clone())
             .set(
-                employees::active_config
-                    .eq(new_default.id),
+                employees::active_config.eq(new_default.id),
             )
             .execute(conn)
             .map_err(Error::Dsl)?;
@@ -401,14 +403,14 @@ pub fn add_employee_config(
 pub fn update_employee_config(
     pool: web::Data<PgPool>,
     token: Token,
-    Config: PerEmployeeConfig,
+    config: PerEmployeeConfig,
 ) -> Result<(), Error> {
     println!("Messages::UpdateEmployeeConfig");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
-    diesel::update(&Config.clone())
-        .set(Config)
+    diesel::update(&config.clone())
+        .set(config)
         .execute(conn)
         .map(|_| ())
         .map_err(Error::Dsl)
@@ -478,8 +480,7 @@ pub fn add_employee(
                 employee_id: inserted_employee.id,
                 config_name: String::from("Default"),
                 hour_format: HourFormat::H12,
-                last_name_style:
-                    LastNameStyle::Initial,
+                last_name_style: LastNameStyle::Initial,
                 view_date: Utc::now(),
                 view_employees: vec![],
                 show_minutes: true,

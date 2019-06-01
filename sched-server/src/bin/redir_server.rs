@@ -1,14 +1,10 @@
-use actix_files::{
-    NamedFile,
-};
+use actix_files::NamedFile;
 use actix_web::{
-    web::{
-        self,
-    },
+    web,
     App,
-    HttpServer,
     HttpRequest,
-    HttpResponse
+    HttpResponse,
+    HttpServer,
 };
 
 fn redir_response(_: HttpRequest) -> HttpResponse {

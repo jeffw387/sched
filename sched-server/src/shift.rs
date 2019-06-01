@@ -11,13 +11,13 @@ use strum_macros::{
     EnumString,
 };
 
+use chrono::{
+    DateTime,
+    Utc,
+};
 use serde::{
     Deserialize,
     Serialize,
-};
-use chrono::{
-    DateTime,
-    Utc
 };
 
 #[derive(

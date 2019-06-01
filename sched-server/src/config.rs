@@ -1,6 +1,9 @@
-use super::schema::per_employee_configs;
 use super::schema::configs;
-use chrono::{DateTime, Utc};
+use super::schema::per_employee_configs;
+use chrono::{
+    DateTime,
+    Utc,
+};
 use diesel::sql_types::Text;
 use serde::{
     Deserialize,
@@ -132,7 +135,9 @@ pub struct Config {
     pub show_disabled: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Insertable, Clone)]
+#[derive(
+    Serialize, Deserialize, Debug, Insertable, Clone,
+)]
 #[table_name = "configs"]
 pub struct NewConfig {
     pub employee_id: i32,

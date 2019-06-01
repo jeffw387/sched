@@ -1,9 +1,20 @@
+use chrono::{
+    DateTime,
+    Utc,
+};
 use crypto::pbkdf2 as crypt;
 use diesel::connection::Connection;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use getopts::Options;
 use sched_server::api::*;
+use sched_server::config::{
+    Config,
+    EmployeeColor,
+    HourFormat,
+    LastNameStyle,
+    NewConfig,
+};
 use sched_server::db;
 use sched_server::employee::{
     Employee,
@@ -13,15 +24,8 @@ use sched_server::employee::{
 };
 use sched_server::env;
 use sched_server::message::LoginInfo;
+use sched_server::schema::configs;
 use sched_server::schema::employees;
-use sched_server::schema::settings;
-use sched_server::settings::{
-    HourFormat,
-    LastNameStyle,
-    NewSettings,
-    Settings,
-    ViewType,
-};
 use std::result::Result;
 
 enum Error {
@@ -36,7 +40,7 @@ fn add_employee(
     name: Name,
     phone_number: Option<String>,
 ) {
-    let db_url = env::get_env(ENV_DB_URL);
+    let db_url = env::get_env("DATABASE_URL");
     let conn = PgConnection::establish(&db_url)
         .unwrap_or_else(|_| {
             println!("Connection failure!");
@@ -48,8 +52,10 @@ fn add_employee(
         login_info,
         None,
         level,
-        name,
+        name.first,
+        name.last,
         phone_number,
+        EmployeeColor::Blue,
     );
     let inserted_employee =
         diesel::insert_into(employees::table)
@@ -59,28 +65,29 @@ fn add_employee(
                 println!("Employee insert error!");
             })
             .unwrap();
-    let new_settings = NewSettings {
+    let new_config = NewConfig {
         employee_id: inserted_employee.id,
-        name: String::from("Default"),
-        view_type: ViewType::Month,
-        hour_format: HourFormat::Hour12,
-        last_name_style: LastNameStyle::FirstInitial,
-        view_year: 2019,
-        view_month: 4,
-        view_day: 27,
+        config_name: String::from("Default"),
+        hour_format: HourFormat::H12,
+        last_name_style: LastNameStyle::Hidden,
+        view_date: Utc::now(),
         view_employees: vec![],
         show_minutes: true,
+        show_shifts: true,
+        show_vacations: false,
+        show_call_shifts: false,
+        show_disabled: false,
     };
-    let inserted_settings =
-        diesel::insert_into(settings::table)
-            .values(new_settings)
-            .get_result::<Settings>(&conn)
+    let inserted_config =
+        diesel::insert_into(configs::table)
+            .values(new_config)
+            .get_result::<Config>(&conn)
             .map_err(|_| {
                 println!("Error inserting new settings!")
             })
             .unwrap();
     let _ = diesel::update(&inserted_employee.clone())
-        .set(employees::startup_settings.eq(inserted_settings.id))
+        .set(employees::active_config.eq(inserted_config.id))
         .execute(&conn)
         .expect("Error updating employee with new default settings!");
 }

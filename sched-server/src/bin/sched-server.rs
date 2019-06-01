@@ -7,6 +7,7 @@ use actix_web::{
     middleware,
     web::{
         self,
+        HttpResponse,
         JsonConfig,
     },
     App,
@@ -30,7 +31,14 @@ pub const ENV_DB_URL: &str = "DATABASE_URL";
 pub const ENV_INDEX_BASE: &str = "INDEX_BASE";
 
 fn index(_: HttpRequest) -> actix_web::Result<NamedFile> {
-    Ok(NamedFile::open("static/index.html")?)
+    Ok(NamedFile::open("../test-client/static/index.html")?)
+}
+
+fn print_request(
+    req: HttpRequest,
+) -> actix_web::Result<HttpResponse> {
+    dbg!(req);
+    Ok(HttpResponse::Ok().finish())
 }
 
 fn main() -> std::io::Result<()> {
@@ -45,16 +53,15 @@ fn main() -> std::io::Result<()> {
         .build(manager)
         .expect("Failed to create connection pool!");
 
-    let mut builder =
-        SslAcceptor::mozilla_intermediate(SslMethod::tls())
-            .unwrap();
+    // let mut builder =
+    //     SslAcceptor::mozilla_intermediate(SslMethod::tls())
+    //         .unwrap();
 
-    builder
-        .set_private_key_file("/etc/letsencrypt/live/www.jw387.com/privkey.pem", SslFiletype::PEM)
-        .unwrap();
+    // builder
+    //     .set_private_key_file("/etc/letsencrypt/live/www.jw387.com/privkey.pem", SslFiletype::PEM)
+    //     .unwrap();
 
-    builder.set_certificate_chain_file("/etc/letsencrypt/live/www.jw387.com/fullchain.pem").unwrap();
-
+    // builder.set_certificate_chain_file("/etc/letsencrypt/live/www.jw387.com/fullchain.pem").unwrap();
 
     HttpServer::new(move || {
         App::new()
@@ -68,11 +75,9 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/check_token")
-                    .route(
-                        web::post()
-                            .to_async(api::check_token),
-                    ),
+                web::resource("/sched/check_token").route(
+                    web::post().to_async(api::check_token),
+                ),
             )
             .service(
                 web::resource("/sched/change_password")
@@ -83,33 +88,30 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/default_config")
+                web::resource("/sched/get_active_config")
                     .route(
                         web::post()
-                            .to_async(api::default_config),
+                            .to_async(api::get_active_config),
                     ),
             )
             .service(
-                web::resource("/sched/set_default_config")
+                web::resource("/sched/set_active_config")
                     .data(JsonConfig::default())
                     .route(
-                        web::post()
-                            .to_async(api::set_default_config),
+                        web::post().to_async(
+                            api::set_active_config,
+                        ),
                     ),
             )
             .service(
-                web::resource("/sched/logout")
-                    .route(
-                        web::post()
-                            .to_async(api::logout),
-                    ),
+                web::resource("/sched/logout").route(
+                    web::post().to_async(api::logout),
+                ),
             )
             .service(
-                web::resource("/sched/get_config")
-                    .route(
-                        web::post()
-                            .to_async(api::get_config),
-                    ),
+                web::resource("/sched/get_configs").route(
+                    web::post().to_async(api::get_configs),
+                ),
             )
             .service(
                 web::resource("/sched/add_config")
@@ -146,18 +148,20 @@ fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/sched/add_employee_config")
                     .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::add_employee_config),
-                    ),
+                    .route(web::post().to_async(
+                        api::add_employee_config,
+                    )),
             )
             .service(
-                web::resource("/sched/update_employee_config")
-                    .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::update_employee_config),
+                web::resource(
+                    "/sched/update_employee_config",
+                )
+                .data(JsonConfig::default())
+                .route(
+                    web::post().to_async(
+                        api::update_employee_config,
                     ),
+                ),
             )
             .service(
                 web::resource("/sched/get_employees")
@@ -167,11 +171,14 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/get_current_employee")
-                    .route(
-                        web::post()
-                            .to_async(api::get_current_employee),
+                web::resource(
+                    "/sched/get_current_employee",
+                )
+                .route(
+                    web::post().to_async(
+                        api::get_current_employee,
                     ),
+                ),
             )
             .service(
                 web::resource("/sched/add_employee")
@@ -190,20 +197,26 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/update_employee_color")
-                    .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::update_employee_color),
+                web::resource(
+                    "/sched/update_employee_color",
+                )
+                .data(JsonConfig::default())
+                .route(
+                    web::post().to_async(
+                        api::update_employee_color,
                     ),
+                ),
             )
             .service(
-                web::resource("/sched/update_employee_phone_number")
-                    .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::update_employee_phone_number),
+                web::resource(
+                    "/sched/update_employee_phone_number",
+                )
+                .data(JsonConfig::default())
+                .route(
+                    web::post().to_async(
+                        api::update_employee_phone_number,
                     ),
+                ),
             )
             .service(
                 web::resource("/sched/remove_employee")
@@ -214,11 +227,9 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/get_shifts")
-                    .route(
-                        web::post()
-                            .to_async(api::get_shifts),
-                    ),
+                web::resource("/sched/get_shifts").route(
+                    web::post().to_async(api::get_shifts),
+                ),
             )
             .service(
                 web::resource("/sched/add_shift")
@@ -245,27 +256,32 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/get_shift_exceptions")
-                    .route(
-                        web::post()
-                            .to_async(api::get_shift_exceptions),
+                web::resource(
+                    "/sched/get_shift_exceptions",
+                )
+                .route(
+                    web::post().to_async(
+                        api::get_shift_exceptions,
                     ),
+                ),
             )
             .service(
                 web::resource("/sched/add_shift_exception")
                     .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::add_shift_exception),
-                    ),
+                    .route(web::post().to_async(
+                        api::add_shift_exception,
+                    )),
             )
             .service(
-                web::resource("/sched/remove_shift_exception")
-                    .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::remove_shift_exception),
+                web::resource(
+                    "/sched/remove_shift_exception",
+                )
+                .data(JsonConfig::default())
+                .route(
+                    web::post().to_async(
+                        api::remove_shift_exception,
                     ),
+                ),
             )
             .service(
                 web::resource("/sched/get_vacations")
@@ -299,20 +315,31 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/update_vacation_approval")
-                    .data(JsonConfig::default())
-                    .route(
-                        web::post()
-                            .to_async(api::update_vacation_approval),
+                web::resource(
+                    "/sched/update_vacation_approval",
+                )
+                .data(JsonConfig::default())
+                .route(
+                    web::post().to_async(
+                        api::update_vacation_approval,
                     ),
+                ),
             )
-            .service(Files::new("/static/", "./static"))
+            .service(Files::new(
+                "/static/",
+                "../test-client/static",
+            ))
+            .service(Files::new(
+                "/pkg/",
+                "../test-client/pkg",
+            ))
             .service(
                 web::resource("/sched")
-                    .route(web::get().to(index))
+                    .route(web::get().to(index)),
             )
-            // .default_service(web::get().to(index))
+            .default_service(web::get().to(print_request))
     })
-    .bind_ssl("0.0.0.0:443", builder)?
+    // .bind_ssl("0.0.0.0:443", builder)?
+    .bind("0.0.0.0:8000")?
     .run()
 }

@@ -11,5 +11,8 @@ crate-type = ["cdylib"]
 seed = ""
 wasm-bindgen = "0.2.38"
 web-sys = ""
-chrono = ""
+chrono = { version = "", features = ["serde"] }
 futures = ""
+serde = { version = "", features = ["derive"] }
+serde_json = ""
+js-sys = ""

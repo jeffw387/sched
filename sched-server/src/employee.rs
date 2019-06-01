@@ -1,7 +1,11 @@
+use super::config::EmployeeColor;
 use super::message::LoginInfo;
 use super::schema::sessions;
-use super::config::EmployeeColor;
 use crate::schema::employees;
+use chrono::{
+    DateTime,
+    Utc,
+};
 use crypto::pbkdf2 as crypt;
 use diesel::prelude::*;
 use diesel::sql_types::Text;
@@ -14,17 +18,8 @@ use strum_macros::{
     Display,
     EnumString,
 };
-use chrono::{
-    DateTime,
-    Utc
-};
 
-#[derive(
-    Clone,
-    Debug,
-    Serialize,
-    Deserialize,
-)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Name {
     pub first: String,
     pub last: String,
@@ -70,18 +65,15 @@ impl NewSession {
         employee_id: i32,
         expiration: DateTime<Utc>,
     ) -> NewSession {
-        let token_data = TokenData { employee_id, expiration };
+        let token_data =
+            TokenData { employee_id, expiration };
         let token = crypt::pbkdf2_simple(
             &serde_json::to_string(&token_data)
                 .expect("Error serializing token data!"),
             1,
         )
         .expect("Error hashing token data!");
-        NewSession {
-            employee_id,
-            expiration,
-            token,
-        }
+        NewSession { employee_id, expiration, token }
     }
 }
 
@@ -128,7 +120,12 @@ impl From<Employee> for ClientSideEmployee {
 }
 
 #[derive(
-    Debug, Clone, Identifiable, Serialize, Deserialize, Queryable
+    Debug,
+    Clone,
+    Identifiable,
+    Serialize,
+    Deserialize,
+    Queryable,
 )]
 pub struct Employee {
     pub id: i32,
