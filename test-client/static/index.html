@@ -1,25 +1,18 @@
-<!doctype html>
+<!DOCTYPE html>
 
 <html lang="Eng">
     <head>
         <title>Scheduler</title>
         <link rel="stylesheet" href="https://unpkg.com/picnic">
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
     </head>
 
     <body style="overflow: hidden">
-        <section id="app"></section>
-
         <script src="/pkg/package.js">
         </script>
 
         <script>
-            const { render } = wasm_bindgen;
-            function run() {
-                render();
-            }
-            wasm_bindgen("/pkg/package_bg.wasm")
-                .then(run)
-                .catch(console.error);
+            wasm_bindgen("/pkg/package_bg.wasm");
         </script>
     </body>
 </html>
