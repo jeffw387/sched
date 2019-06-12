@@ -53,7 +53,7 @@ struct LoginResult {
 pub fn login(
     pool: Data<PgPool>,
     login_info: Json<LoginInfo>,
-) -> impl Future<Item = HttpResponse, Error = actix_web::Error>
+) -> impl ApiFuture
 {
     println!("api--login");
     web::block(move || {
@@ -71,9 +71,11 @@ pub fn login(
                 .same_site(cookie::SameSite::Strict)
                 .http_only(true)
                 .finish();
-                Ok(HttpResponse::Ok().cookie(ck).json(
+                let response = Ok(HttpResponse::Ok().cookie(ck).json(
                     LoginResult { employee: Some(emp) },
-                ))
+                ));
+                dbg!(&response);
+                response
             }
             Err(_) => {
                 Ok(HttpResponse::InternalServerError()

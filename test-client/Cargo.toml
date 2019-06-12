@@ -4,40 +4,15 @@ version = "0.1.0"
 authors = ["Jeff Wright <jeffw387@gmail.com>"]
 edition = "2018"
 
-[lib]
-crate-type = ["cdylib"]
-
 [dependencies]
 console_error_panic_hook = "0.1.6"
 console_log = "0.1.2"
-dodrio = "0.1.0"
 log = "0.4.6"
-wasm-bindgen = { version = "0.2.45", features = ["serde-serialize"] }
-wasm-bindgen-futures = "0.3.22"
-typed-html = { version = "", features = ["dodrio_macro"] }
 chrono = { version = "", features = ["serde"] }
 futures = ""
 serde = { version = "", features = ["derive"] }
 serde_json = ""
-js-sys = "0.3.22"
-
-[dependencies.web-sys]
-version = "0.3.15"
-features = [
-    "Headers",
-    "Request",
-    "RequestInit",
-    "RequestMode",
-    "Response",
-    "console",
-    "Document",
-    "Event",
-    "EventTarget",
-    "HtmlElement",
-    "HtmlInputElement",
-    "MouseEvent",
-    "MouseEvent",
-    "InputEvent",
-    "Node",
-    "Window",
-]
+yew = ""
+http = ""
+failure = ""
+stdweb = ""

@@ -28,10 +28,21 @@ use sched_server::api;
 use sched_server::env;
 
 pub const ENV_DB_URL: &str = "DATABASE_URL";
-pub const ENV_INDEX_BASE: &str = "INDEX_BASE";
+pub const STATIC_DIR: &str = "STATIC_DIR";
 
-fn index(_: HttpRequest) -> actix_web::Result<NamedFile> {
-    Ok(NamedFile::open("../test-client/static/index.html")?)
+fn index_html(_: HttpRequest) -> actix_web::Result<NamedFile> {
+    let static_dir = env::get_env(STATIC_DIR);
+    Ok(NamedFile::open(static_dir + "/index.html")?)
+}
+
+fn test_client_js(_: HttpRequest) -> actix_web::Result<NamedFile> {
+    let static_dir = env::get_env(STATIC_DIR);
+    Ok(NamedFile::open(static_dir + "/test-client.js")?)
+}
+
+fn test_client_wasm(_: HttpRequest) -> actix_web::Result<NamedFile> {
+    let static_dir = env::get_env(STATIC_DIR);
+    Ok(NamedFile::open(static_dir + "/test-client.wasm")?)
 }
 
 fn print_request(
@@ -43,6 +54,7 @@ fn print_request(
 
 fn main() -> std::io::Result<()> {
     let db_url = env::get_env(ENV_DB_URL);
+    // let static_dir = env::get_env(STATIC_DIR);
     env_logger::init();
 
     println!("database url: {}", db_url);
@@ -325,18 +337,30 @@ fn main() -> std::io::Result<()> {
                     ),
                 ),
             )
-            .service(Files::new(
-                "/static/",
-                "../test-client/static",
-            ))
-            .service(Files::new(
-                "/pkg/",
-                "../test-client/pkg",
-            ))
+            .service(
+                web::resource("test-client.js")
+                    .route(web::get().to(test_client_js))
+            )
+            .service(
+                web::resource("test-client.wasm")
+                    .route(web::get().to(test_client_wasm))
+            )
             .service(
                 web::resource("/sched")
-                    .route(web::get().to(index)),
+                    .route(web::get().to(index_html)),
             )
+            // .service(Files::new(
+            //     "/sched/",
+            //     &static_dir,
+            // ))
+            // .service(Files::new(
+            //     "/",
+            //     &static_dir,
+            // ))
+            // .service(Files::new(
+            //     "/static/",
+            //     &static_dir,
+            // ))
             .default_service(web::get().to(print_request))
     })
     // .bind_ssl("0.0.0.0:443", builder)?
