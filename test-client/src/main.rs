@@ -1,45 +1,59 @@
+#![feature(proc_macro_hygiene)]
 #![recursion_limit = "256"]
 
 #[macro_use]
 extern crate stdweb;
-use stdweb::js;
 use chrono::prelude::*;
 use chrono::{
     DateTime,
-    NaiveDateTime,
     Datelike,
+    NaiveDateTime,
     Timelike,
 };
-use http::{
-    header,
-    Request,
-    Response,
-};
-use log::*;
+use stdweb::js;
+// use http::{
+//     header,
+//     Request,
+//     Response,
+// };
+use enclose::enclose;
+use futures::future::Future;
+use js_sys::Promise;
 use serde::{
     de::DeserializeOwned,
     Deserialize,
     Serialize,
 };
-use std::fmt::{Display, Debug, Formatter};
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::fmt::{
+    Debug,
+    Display,
+    Formatter,
+};
+use std::rc::Rc;
 use std::result::Result;
-use yew::{
-    format::{
-        Json,
-        Text,
-    },
-    html,
-    html::InputData,
-    services::{
-        fetch::FetchTask,
-        FetchService,
-        ConsoleService,
-    },
-    Component,
-    ComponentLink,
-    Html,
-    Renderable,
-    ShouldRender,
+use std::sync::{
+    Arc,
+    Mutex,
+};
+use virtual_dom_rs::html;
+use virtual_dom_rs::prelude::*;
+use virtual_dom_rs::VirtualNode;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::{
+    future_to_promise,
+    JsFuture,
+};
+use web_sys::{
+    Document,
+    HtmlElement,
+    Request,
+    RequestInit,
+    RequestMode,
+    Response,
+    Window,
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -223,7 +237,7 @@ impl Default for CalendarModel {
     fn default() -> Self {
         Self {
             mode: CalendarMode::NoModal,
-            view_mode: CalendarView::Day
+            view_mode: CalendarView::Day,
         }
     }
 }
@@ -241,97 +255,161 @@ impl Default for Page {
     }
 }
 
+type CellOpt<T> = Rc<RefCell<Option<T>>>;
+
 struct Model {
-    console: ConsoleService,
-    fetch_service: FetchService,
-    link: ComponentLink<Self>,
-    configs_fetch: Option<FetchTask>,
-    configs: Option<Vec<CombinedConfig>>,
-    active_config_fetch: Option<FetchTask>,
-    active_config: Option<i32>,
-    login_fetch: Option<FetchTask>,
-    current_employee: Option<Employee>,
-    employees_fetch: Option<FetchTask>,
-    employees: Option<Vec<Employee>>,
-    shifts_fetch: Option<FetchTask>,
-    shifts: Option<Vec<Shift>>,
-    shift_exceptions_fetch: Option<FetchTask>,
-    shift_exceptions: Option<Vec<ShiftException>>,
-    vacations_fetch: Option<FetchTask>,
-    vacations: Option<Vec<Vacation>>,
-    current_date_time: Option<DateTime<Utc>>,
-    view_date: Option<DateTime<Utc>>,
-    page: Page,
-    device_class: DeviceClass,
+    messages: VecDeque<Message>,
+    tasks: RefCell<
+        Vec<
+            Rc<dyn Future<Item = Message, Error = Message>>,
+        >,
+    >,
+    dom: Rc<RefCell<DomUpdater>>,
+    configs: CellOpt<Vec<CombinedConfig>>,
+    active_config: CellOpt<i32>,
+    current_employee: CellOpt<Employee>,
+    employees: CellOpt<Vec<Employee>>,
+    shifts: CellOpt<Vec<Shift>>,
+    shift_exceptions: CellOpt<Vec<ShiftException>>,
+    vacations: CellOpt<Vec<Vacation>>,
+    view_date: CellOpt<DateTime<Utc>>,
+    page: RefCell<Page>,
+    device_class: RefCell<DeviceClass>,
+}
+
+fn update_dom(
+    model: Arc<Mutex<Model>>,
+    vnode: VirtualNode,
+) {
+    model.lock().unwrap().dom.borrow_mut().update(vnode);
+}
+
+fn process_messages(model: Arc<Mutex<Model>>) -> bool {
+    let mut should_render = false;
+    loop {
+        match model.get_mut().unwrap().messages.pop_front()
+        {
+            Some(msg) => {
+                let (render, msgs) =
+                    update(model.clone(), msg);
+                for update_msg in msgs {
+                    queue_message(
+                        Arc::clone(&model),
+                        update_msg,
+                    );
+                }
+                if render {
+                    should_render = true;
+                }
+            }
+            None => return should_render,
+        }
+    }
 }
 
 impl Debug for Model {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match self.configs_fetch {
-            Some(_) => writeln!(f, "configs_fetch active")?,
-            None => ()
+        // match self.configs_fetch {
+        //     Some(_) => writeln!(f, "configs_fetch active")?,
+        //     None => ()
+        // };
+        // match self.active_config_fetch {
+        //     Some(_) => writeln!(f, "active_config_fetch active")?,
+        //     None => ()
+        // };
+        // match self.login_fetch {
+        //     Some(_) => writeln!(f, "login_fetch active")?,
+        //     None => ()
+        // };
+        // match self.employees_fetch {
+        //     Some(_) => writeln!(f, "employees_fetch active")?,
+        //     None => ()
+        // };
+        // match self.shifts_fetch {
+        //     Some(_) => writeln!(f, "shifts_fetch active")?,
+        //     None => ()
+        // };
+        // match self.shift_exceptions_fetch {
+        //     Some(_) => writeln!(f, "shift_exceptions_fetch active")?,
+        //     None => ()
+        // };
+        // match self.vacations_fetch {
+        //     Some(_) => writeln!(f, "vacations_fetch active")?,
+        //     None => ()
+        // };
+        match &*self.configs.borrow() {
+            Some(c) => {
+                writeln!(f, "configs loaded: {}", c.len())?
+            }
+            None => (),
         };
-        match self.active_config_fetch {
-            Some(_) => writeln!(f, "active_config_fetch active")?,
-            None => ()
-        };
-        match self.login_fetch {
-            Some(_) => writeln!(f, "login_fetch active")?,
-            None => ()
-        };
-        match self.employees_fetch {
-            Some(_) => writeln!(f, "employees_fetch active")?,
-            None => ()
-        };
-        match self.shifts_fetch {
-            Some(_) => writeln!(f, "shifts_fetch active")?,
-            None => ()
-        };
-        match self.shift_exceptions_fetch {
-            Some(_) => writeln!(f, "shift_exceptions_fetch active")?,
-            None => ()
-        };
-        match self.vacations_fetch {
-            Some(_) => writeln!(f, "vacations_fetch active")?,
-            None => ()
-        };
-        match &self.configs {
-            Some(c) => writeln!(f, "configs loaded: {}", c.len())?,
-            None => ()
-        };
-        match self.active_config {
+        match &*self.active_config.borrow() {
             Some(_) => writeln!(f, "active config loaded")?,
-            None => ()
+            None => (),
         };
-        match self.current_employee {
-            Some(_) => writeln!(f, "current employee loaded")?,
-            None => ()
+        match &*self.current_employee.borrow() {
+            Some(_) => {
+                writeln!(f, "current employee loaded")?
+            }
+            None => (),
         };
-        match &self.employees {
-            Some(e) => writeln!(f, "employees loaded: {}", e.len())?,
-            None => ()
+        match &*self.employees.borrow() {
+            Some(e) => {
+                writeln!(
+                    f,
+                    "employees loaded: {}",
+                    e.len()
+                )?
+            }
+            None => (),
         };
-        match &self.shifts {
-            Some(e) => writeln!(f, "shifts loaded: {}", e.len())?,
-            None => ()
+        match &*self.shifts.borrow() {
+            Some(e) => {
+                writeln!(f, "shifts loaded: {}", e.len())?
+            }
+            None => (),
         };
-        match &self.shift_exceptions {
-            Some(e) => writeln!(f, "shift exceptions loaded: {}", e.len())?,
-            None => ()
+        match &*self.shift_exceptions.borrow() {
+            Some(e) => {
+                writeln!(
+                    f,
+                    "shift exceptions loaded: {}",
+                    e.len()
+                )?
+            }
+            None => (),
         };
-        match &self.vacations {
-            Some(e) => writeln!(f, "vacations loaded: {}", e.len())?,
-            None => ()
+        match &*self.vacations.borrow() {
+            Some(e) => {
+                writeln!(
+                    f,
+                    "vacations loaded: {}",
+                    e.len()
+                )?
+            }
+            None => (),
         };
-        match &self.view_date {
-            Some(dt) => writeln!(f, "view date is {}", dt.to_rfc2822())?,
-            None => ()
+        match &*self.view_date.borrow() {
+            Some(dt) => {
+                writeln!(
+                    f,
+                    "view date is {}",
+                    dt.to_rfc2822()
+                )?
+            }
+            None => (),
         };
 
-        writeln!(f, "current_employee: {:#?}", self.current_employee)?;
+        writeln!(
+            f,
+            "current_employee: {:#?}",
+            self.current_employee
+        )?;
 
-        match &self.page {
-            Page::CheckToken => writeln!(f, "Page::CheckToken")?,
+        match &*self.page.borrow() {
+            Page::CheckToken => {
+                writeln!(f, "Page::CheckToken")?
+            }
             Page::Login(page) => {
                 writeln!(f, "Page::Login")?;
                 write!(f, "{:#?}", page)?;
@@ -344,7 +422,11 @@ impl Debug for Model {
             }
         };
 
-        writeln!(f, "DeviceClass: {:?}", &self.device_class)?;
+        writeln!(
+            f,
+            "DeviceClass: {:?}",
+            &self.device_class
+        )?;
         Ok(())
     }
 }
@@ -457,11 +539,6 @@ impl<T: Clone> JsonObject<T> {
     }
 }
 
-fn info(s: &str) {
-    let mut console = ConsoleService::new();
-    console.info(s);
-}
-
 enum Message {
     NoOp,
     TokenSuccess(Option<Employee>),
@@ -519,286 +596,346 @@ impl Display for DeviceClass {
     }
 }
 
-fn http_post_with<I, O, SF, FF>(
-    fetch_service: &mut FetchService,
-    link: &mut ComponentLink<Model>,
-    path: &str,
-    input: &I,
-    sf: SF,
-    ff: FF,
-) -> Option<FetchTask>
-where
-    I: Serialize,
-    O: DeserializeOwned,
-    SF: (Fn(Option<O>) -> Message) + 'static,
-    FF: (Fn() -> Message) + 'static,
-{
-    let req = Request::post(path)
-        .header("Content-Type", "text/json")
-        .body(Json(input))
-        .ok()?;
-
-
-    Some(fetch_service.fetch(
-        req,
-        link.send_back(move |response: Response<Text>| {
-            let (meta, text) = response.into_parts();
-            match meta.status.is_success() {
-                true => {
-                    info("http_post_with: success");
-                    match text {
-                        Ok(s) => {
-                            info(&format!("text success: {:?}", s));
-                            let j: Option<O> =
-                                match serde_json::from_str(&s) {
-                                    Ok(j) => Some(j),
-                                    Err(e) => {
-                                        info(&format!("serde error: {:?}", e));
-                                        None
-                                    }
-                                };
-                            sf(j)
-                        }
-                        Err(e) => {
-                            info(&format!("text error: {:?}", e));
-                            ff()
-                        }
-                    }
-                }
-                false => {
-                    info("http_post_with: failure");
-                    ff()
-                }
-            }
-        }),
-    ))
-}
-
-fn http_post<O, SF, FF>(
-    fetch_service: &mut FetchService,
-    link: &mut ComponentLink<Model>,
-    path: &str,
-    sf: SF,
-    ff: FF,
-) -> Option<FetchTask>
-where
-    O: DeserializeOwned,
-    SF: (Fn(Option<O>) -> Message) + 'static,
-    FF: (Fn() -> Message) + 'static,
-{
-    let req = Request::post(path)
-        .header("Content-Type", "text/plain")
-        .body(Ok(String::default()))
-        .ok()?;
-
-    Some(fetch_service.fetch(
-        req,
-        link.send_back(move |response: Response<Text>| {
-            let (meta, text) = response.into_parts();
-            match meta.status.is_success() {
-                true => {
-                    match text.ok() {
-                        Some(s) => {
-                            let j: Option<O> =
-                                serde_json::from_str(&s)
-                                    .ok();
-                            sf(j)
-                        }
-                        None => ff(),
-                    }
-                }
-                false => ff(),
-            }
-        }),
-    ))
+enum HttpError {
+    Js(JsValue),
+    Serde(serde_json::Error),
 }
 
 fn dt_in_range(
-    dt: DateTime<Utc>, 
-    start: DateTime<Utc>, 
-    end: DateTime<Utc>) -> bool {
-        let a = dt >= start;
-        let b = dt <= end;
-        a && b
+    dt: DateTime<Utc>,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> bool {
+    let a = dt >= start;
+    let b = dt <= end;
+    a && b
 }
 
 impl Shift {
-    fn overlaps_with_day(&self, day: DateTime<Utc>) -> bool {
-        let old_dur = match chrono::Duration::from_std(self.duration) {
-            Ok(d) => d,
-            Err(_) => return false
-        };
+    fn overlaps_with_day(
+        &self,
+        day: DateTime<Utc>,
+    ) -> bool {
+        let old_dur =
+            match chrono::Duration::from_std(self.duration)
+            {
+                Ok(d) => d,
+                Err(_) => return false,
+            };
         let start = self.start;
         let end = start + old_dur;
-        let day_plus_one = day + chrono::Duration::hours(24);
-        let start_within = dt_in_range(start, day, day_plus_one);
-        let end_within = dt_in_range(end, day, day_plus_one);
+        let day_plus_one =
+            day + chrono::Duration::hours(24);
+        let start_within =
+            dt_in_range(start, day, day_plus_one);
+        let end_within =
+            dt_in_range(end, day, day_plus_one);
         start_within || end_within
     }
 }
 
-impl Model {
-    fn view_login_page(
-        &self,
-        login_model: &LoginModel,
-    ) -> Html<Model> {
-        html! {
-            <fieldset style="width: 95%; margin: auto; background-color: #AAAAAA; padding: 3%;",>
-                <h1 style="text-align: center",>
-                    {"Log into scheduler"}
-                </h1>
-                <input
-                    type="text",
-                    style="margin: inherit",
-                    value={login_model.login_info.email.clone()},
-                    placeholder="Email",
-                    oninput=|e| Message::Login(LoginMessage::UpdateEmail(e.value)), />
-                <input
-                    type="password",
-                    style="margin: inherit",
-                    value={login_model.login_info.password.clone()},
-                    placeholder="Password",
-                    oninput=|e| Message::Login(LoginMessage::UpdatePassword(e.value)), />
-                <button
-                    class="submit",
-                    onclick=|_| Message::Login(LoginMessage::Login),>{"Submit"}</button>
-            </fieldset>
-        }
-    }
+struct Callback<T: 'static>(Rc<dyn Fn(T) -> Message>);
 
-    fn view_calendar_modal(
-        &self,
-        calendar_model: &CalendarModel,
-    ) -> Html<Model> {
-        html! {
-            <div>
-                <nav>
-                    <input
-                        type="checkbox",
-                        class="show",
-                        id="navtoggle",
-                        checked={match calendar_model.mode {
-                            CalendarMode::Nav => true,
-                            _ => false,
-                        }},
-                        onclick=|_| Message::Calendar(CalendarMessage::OpenModal(CalendarMode::Nav)),
-                    />
-                    <label
-                        for="navtoggle",
-                        class="burger pseudo button",
-                    >{"Menu"}
-                    </label>
-                    <div class="menu",>
-                        <input class="button", value="Account",
-                            onclick=|_| Message::Calendar(CalendarMessage::OpenModal(CalendarMode::Account)),/>
-                        <input class="button", value="Views",
-                            onclick=|_| Message::Calendar(CalendarMessage::OpenModal(CalendarMode::ViewSelect)),/>
-                        <input class="button", value="Configuration",
-                            onclick=|_| Message::Calendar(CalendarMessage::OpenModal(CalendarMode::ViewEdit)),/>
-                        <input class="button", value="Log out",
-                            onclick=|_| Message::Logout,/>
-                    </div>
-                </nav>
-                <div class="modal",>
-                    <input
-                        type="checkbox",
-                        id="account_modal",
-                        checked={match calendar_model.mode {
-                            CalendarMode::Account => true,
-                            _ => false,
-                        }},/>
-                    <label
-                        for="account_modal",
-                        class="overlay",
-                        onclick=|_| Message::Calendar(CalendarMessage::CloseModal),/>
-                    <article>
-                        <section class="content",>
-                            {"Account Modal"}
-                        </section>
-                    </article>
-                </div>
-            </div>
-        }
-    }
-
-
-
-    fn view_calendar_day(
-        &self,
-        calendar_model: &CalendarModel,
-    ) -> Html<Model> {
-        // self.console.info("view_calendar_day");
-        let empty = vec![];
-        let shifts = self.shifts.as_ref().unwrap_or(&empty);
-        let view_date = match self.view_date {
-            Some(dt) => dt,
-            None => return html!{
-                <div>{"An error occurred..."}</div>
-            }
-        };
-        let shifts_today = shifts.into_iter().filter(|s| s.overlaps_with_day(view_date));
-        html!{
-            <div>{"Day View"}</div>
-        }
-    }
-
-    fn view_calendar_day_alt(
-        &self,
-        calendar_model: &CalendarModel,
-    ) -> Html<Model> {
-        unimplemented!()
-    }
-
-    fn view_calendar_week(
-        &self,
-        calendar_model: &CalendarModel,
-    ) -> Html<Model> {
-        unimplemented!()
-    }
-
-    fn view_calendar_month(
-        &self,
-        calendar_model: &CalendarModel,
-    ) -> Html<Model> {
-        unimplemented!()
-    }
-
-    fn view_calendar_page(
-        &self,
-        calendar_model: &CalendarModel,
-    ) -> Html<Model> {
-        html! {
-            <div>
-                {self.view_calendar_modal(calendar_model)}
-                {match calendar_model.view_mode {
-                    CalendarView::Day => {
-                        self.view_calendar_day(calendar_model)
-                    }
-                    CalendarView::DayAlt => {
-                        self.view_calendar_day_alt(calendar_model)
-                    }
-                    CalendarView::Week => {
-                        self.view_calendar_week(calendar_model)
-                    }
-                    CalendarView::Month => {
-                        self.view_calendar_month(calendar_model)
-                    }
-                }}
-            </div>
-        }
+impl<T, F: (Fn(T) -> Message) + 'static> From<F>
+    for Callback<T>
+{
+    fn from(func: F) -> Self {
+        Callback(Rc::new(func))
     }
 }
 
-impl Component for Model {
-    type Message = Message;
-    type Properties = ();
+impl<T> Callback<T> {
+    pub fn invoke(&self, value: T) -> Message {
+        (self.0)(value)
+    }
+}
 
-    fn create(
-        _: Self::Properties,
-        link: ComponentLink<Self>,
-    ) -> Self {
-        // let login_model = LoginModel::default();
-        let now = js!{
+fn http_post_with<I, O>(
+    // model: Arc<Mutex<Model>>,
+    path: &str,
+    input: &I,
+    success: Callback<Option<O>>,
+    failure: Callback<()>,
+) -> Result<
+    Rc<dyn Future<Item = Message, Error = Message>>,
+    HttpError,
+>
+where
+    I: Serialize,
+    O: DeserializeOwned,
+{
+    let body = serde_json::to_string(&input)
+        .map(|s| {
+            let j: JsValue = s.into();
+            j
+        })
+        .map_err(HttpError::Serde)?;
+
+    let mut req_init = RequestInit::new();
+    req_init.method("POST").body(Some(&body));
+
+    let req =
+        Request::new_with_str_and_init(path, &req_init)
+            .map_err(HttpError::Js)?;
+    req.headers()
+        .set("Content-Type", "text/json")
+        .map_err(HttpError::Js)?;
+
+    let req_promise =
+        JsFuture::from(window().fetch_with_request(&req))
+            .and_then(move |resolve: JsValue| {
+                let response: Response =
+                    resolve.dyn_into().unwrap();
+                let f = JsFuture::from(
+                    response.text().unwrap(),
+                );
+                f
+            })
+            .map(move |text| {
+                let o: Option<O> = serde_json::from_str(
+                    &text.as_string().unwrap(),
+                )
+                .ok();
+                success.invoke(o)
+            })
+            .map_err(move |_| failure.invoke(()));
+    Ok(Rc::new(req_promise))
+}
+
+fn view_check_token_page(
+    model: Arc<Mutex<Model>>,
+) -> VirtualNode {
+    html! {<p>{"Authenticating..."}</p>}
+}
+
+fn target_string(e: web_sys::Event) -> Option<String> {
+    let target = e.target()?;
+    let target_value: JsValue = target.dyn_into().ok()?;
+    target_value.as_string()
+}
+
+fn view_login_page(
+    model: Arc<Mutex<Model>>,
+    login_model: &LoginModel,
+) -> VirtualNode {
+    let update_email_closure = enclose!((model) move|e: web_sys::Event| {
+        queue_message(model,
+            Message::Login(
+                LoginMessage::UpdateEmail(
+                    target_string(e).unwrap())));
+    });
+
+    let update_password_closure = enclose!((model) move|e| {
+        queue_message(model,
+            Message::Login(
+                LoginMessage::UpdatePassword(
+                    target_string(e).unwrap())));
+    });
+
+    let submit_closure = enclose!((model) move|_: web_sys::Event| {
+        queue_message(model,
+            Message::Login(LoginMessage::Login));
+    });
+
+    html! {
+        <fieldset style="width: 95%; margin: auto; background-color: #AAAAAA; padding: 3%;">
+            <h1 style="text-align: center">
+                {"Log into scheduler"}
+            </h1>
+            <input
+                type="text"
+                style="margin: inherit"
+                value={login_model.login_info.email.clone()}
+                placeholder="Email"
+                oninput=|e| update_email_closure(e) />
+            <input
+                type="password"
+                style="margin: inherit"
+                value={login_model.login_info.password.clone()}
+                placeholder="Password"
+                oninput=|e| update_password_closure(e) />
+            <button
+                class="submit"
+                onclick=|e| submit_closure(e)>{"Submit"}</button>
+        </fieldset>
+    }
+}
+
+fn queue_message(model: Arc<Mutex<Model>>, msg: Message) {
+    model.lock().unwrap().messages.push_back(msg);
+}
+
+fn view_calendar_modal(
+    model: Arc<Mutex<Model>>,
+    calendar_model: &CalendarModel,
+) -> VirtualNode {
+    let open_nav_closure = enclose!((model) move|_: web_sys::Event| {
+        let msg = Message::Calendar(
+            CalendarMessage::OpenModal(CalendarMode::Nav));
+        queue_message(model, msg);
+    });
+
+    let open_account_closure = enclose!((model) move|_: web_sys::Event| {
+        queue_message(model,
+            Message::Calendar(
+                CalendarMessage::OpenModal(
+                    CalendarMode::Account)));
+    });
+
+    let open_views_closure = enclose!((model) move|_: web_sys::Event| {
+        queue_message(model,
+            Message::Calendar(
+                CalendarMessage::OpenModal(
+                    CalendarMode::ViewSelect)));
+    });
+
+    let open_config_closure = enclose!((model) move|_: web_sys::Event| {
+        queue_message(model,
+            Message::Calendar(
+                CalendarMessage::OpenModal(
+                    CalendarMode::ViewEdit)));
+    });
+
+    let logout_closure = enclose!((model) move|_: web_sys::Event| {
+                            queue_message(model, Message::Logout);});
+
+    let close_modal_closure = enclose!((model) move|_: web_sys::Event| {
+        let msg = Message::Calendar(CalendarMessage::CloseModal);
+        queue_message(model, msg);
+    });
+
+    html! {
+        <div>
+            <nav>
+                <input
+                    type="checkbox"
+                    class="show"
+                    id="navtoggle"
+                    checked={match calendar_model.mode {
+                        CalendarMode::Nav => true,
+                        _ => false
+                    }}
+                    onclick=|e| open_nav_closure(e)
+                />
+                <label r#for="navtoggle" class="burger pseudo button">
+                {"Menu"}
+                </label>
+                <div class="menu">
+                    <input class="button" value="Account"
+                        onclick=|e| open_account_closure(e)/>
+                    <input class="button" value="Views"
+                        onclick=|e| open_views_closure(e)/>
+                    <input class="button" value="Configuration"
+                        onclick=|e| open_config_closure(e)/>
+                    <input class="button" value="Log out"
+                        onclick=|e| logout_closure(e)/>
+                </div>
+            </nav>
+            <div class="modal">
+                <input
+                    type="checkbox"
+                    id="account_modal"
+                    checked={match calendar_model.mode {
+                        CalendarMode::Account => true,
+                        _ => false
+                    }}/>
+                <label
+                    r#for="account_modal"
+                    class="overlay"
+                    onclick=|e| close_modal_closure(e)>
+                </label>
+                <article>
+                    <section class="content">
+                        {"Account Modal"}
+                    </section>
+                </article>
+            </div>
+        </div>
+    }
+}
+
+fn view_calendar_day(
+    // model: Arc<Mutex<Model>>,
+    shifts_opt: Option<Vec<Shift>>,
+    view_date_opt: Option<DateTime<Utc>>,
+    calendar_model: &CalendarModel,
+) -> VirtualNode {
+    // self.console.info("view_calendar_day");
+    let empty = vec![];
+    // let inner_model: &Model = &*model.lock().unwrap();
+    // let shifts_opt: &Option<Vec<Shift>> = &*inner_model.shifts.borrow();
+    let shifts: &Vec<Shift> =
+        shifts_opt.as_ref().unwrap_or(&empty);
+
+    // let view_date_opt: &Option<DateTime<Utc>> = &*inner_model.view_date.borrow();
+    let view_date: DateTime<Utc> = match view_date_opt {
+        Some(dt) => dt,
+        None => {
+            return html! {
+                <div>{"An error occurred..."}</div>
+            };
+        }
+    };
+    let shifts_today = shifts
+        .into_iter()
+        .filter(|s| s.overlaps_with_day(view_date));
+    html! {
+        <div>{"Day View"}</div>
+    }
+}
+
+fn view_calendar_day_alt(
+    // model: Arc<Mutex<Model>>,
+    calendar_model: &CalendarModel,
+) -> VirtualNode {
+    unimplemented!()
+}
+
+fn view_calendar_week(
+    // model: Arc<Mutex<Model>>,
+    calendar_model: &CalendarModel,
+) -> VirtualNode {
+    unimplemented!()
+}
+
+fn view_calendar_month(
+    // model: Arc<Mutex<Model>>,
+    calendar_model: &CalendarModel,
+) -> VirtualNode {
+    unimplemented!()
+}
+
+fn view_calendar_page(
+    model: Arc<Mutex<Model>>,
+    calendar_model: &CalendarModel,
+) -> VirtualNode {
+    html! {
+        <div>
+            {view_calendar_modal(Arc::clone(&model), calendar_model)}
+            {match calendar_model.view_mode {
+                CalendarView::Day => {
+                    view_calendar_day(
+                        model.lock().unwrap().shifts.borrow().clone(),
+                        model.lock().unwrap().view_date.borrow().clone(),
+                        calendar_model)
+                }
+                CalendarView::DayAlt => {
+                    view_calendar_day_alt(calendar_model)
+                }
+                CalendarView::Week => {
+                    view_calendar_week(calendar_model)
+                }
+                CalendarView::Month => {
+                    view_calendar_month(calendar_model)
+                }
+            }}
+        </div>
+    }
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        let now = js! {
             var now = Date.now();
             return now;
         };
@@ -807,254 +944,258 @@ impl Component for Model {
                 let dbl: f64 = n.into();
                 dbl
             }
-            _ => panic!("Error getting date from JS!")
+            _ => panic!("Error getting date from JS!"),
         };
-        let naive_dt = NaiveDateTime::from_timestamp((now / 1000.0) as i64, 0);
-        let utc_dt = DateTime::<Utc>::from_utc(naive_dt, Utc);
+        let naive_dt = NaiveDateTime::from_timestamp(
+            (now / 1000.0) as i64,
+            0,
+        );
+        let utc_dt =
+            DateTime::<Utc>::from_utc(naive_dt, Utc);
 
-        let mut fetch_service = FetchService::new();
-        let mut link = link;
-
-        let token_check = http_post(
-            &mut fetch_service, 
-            &mut link, "/sched/check_token",
-            |e| Message::TokenSuccess(e),
-            || Message::TokenFailure);
+        let initial_dom = html! {<p>Initial Dom</p>};
 
         Model {
-            console: ConsoleService::new(),
-            fetch_service: fetch_service,
-            link,
-            configs_fetch: None,
-            configs: None,
-            active_config_fetch: None,
-            active_config: None,
-            login_fetch: token_check,
-            current_employee: None,
-            employees_fetch: None,
-            employees: None,
-            shifts_fetch: None,
-            shifts: None,
-            shift_exceptions_fetch: None,
-            shift_exceptions: None,
-            vacations_fetch: None,
-            vacations: None,
-            current_date_time: Some(utc_dt),
-            view_date: Some(utc_dt),
-            page: Page::CheckToken,
-            device_class: DeviceClass::default(),
+            messages: VecDeque::default(),
+            tasks: RefCell::new(Vec::new()),
+            dom: Rc::new(RefCell::new(
+                DomUpdater::new_append_to_mount(
+                    initial_dom,
+                    &body(),
+                ),
+            )),
+            configs: Rc::new(RefCell::new(None)),
+            active_config: Rc::new(RefCell::new(None)),
+            current_employee: Rc::new(RefCell::new(None)),
+            employees: Rc::new(RefCell::new(None)),
+            shifts: Rc::new(RefCell::new(None)),
+            shift_exceptions: Rc::new(RefCell::new(None)),
+            vacations: Rc::new(RefCell::new(None)),
+            view_date: Rc::new(RefCell::new(Some(utc_dt))),
+            page: RefCell::new(Page::CheckToken),
+            device_class: RefCell::new(
+                DeviceClass::default(),
+            ),
         }
-    }
-
-    fn update(
-        &mut self,
-        msg: Self::Message,
-    ) -> ShouldRender {
-        match (&mut self.page, &msg) {
-            (_, Message::Resize(w, _)) => {
-                self.console.info(&format!("Resize message: width {:?}", w));
-                self.device_class = classify_device(w);
-                self.console.info(&format!("Device class: {}", self.device_class));
-            }
-            (Page::CheckToken, Message::TokenSuccess(employee_opt)) => {
-                self.current_employee = employee_opt.clone();
-                self.link.send_self(Message::SwitchPage(Page::Calendar(CalendarModel::default())));
-            }
-            (_, Message::TokenFailure) => {
-                self.current_employee = None;
-                self.link.send_self(Message::SwitchPage(Page::Login(LoginModel::default())))
-            }
-            (
-                Page::Login(page),
-                Message::Login(login_message),
-            ) => {
-                match login_message {
-                    LoginMessage::UpdateEmail(email) => {
-                        self.console.info("Update login email");
-                        page.login_info.email =
-                            email.clone();
-                    }
-                    LoginMessage::UpdatePassword(
-                        password,
-                    ) => {
-                        self.console.info("Update login password");
-                        page.login_info.password =
-                            password.clone();
-                    }
-                    LoginMessage::Login => {
-                        self.console.info("Login");
-                        page.input_enabled = false;
-                        self.login_fetch = http_post_with(
-                            &mut self.fetch_service,
-                            &mut self.link,
-                            "/sched/login",
-                            &page.login_info,
-                            |e| {
-                                Message::Login(LoginMessage::LoginSuccess(e))
-                            },
-                            || {
-                                Message::Login(
-                                    LoginMessage::LoginFail,
-                                )
-                            },
-                        );
-                    }
-                    LoginMessage::LoginSuccess(
-                        result,
-                    ) => {
-                        self.console.info(&format!("LoginSuccess, employee: {:?}", result));
-                        self.login_fetch = None;
-                        self.current_employee =
-                            match result {
-                                Some(result) => result.employee.clone(),
-                                None => None
-                            };
-                        let calendar_model =
-                            CalendarModel {
-                                mode: CalendarMode::NoModal,
-                                view_mode:
-                                    CalendarView::Day,
-                            };
-                        self.link.send_self(Message::FetchData);
-                        self.link.send_self(
-                            Message::SwitchPage(
-                                Page::Calendar(
-                                    calendar_model,
-                                ),
-                            ),
-                        );
-                    }
-                    LoginMessage::LoginFail => {
-                        self.console.info("LoginFail");
-                        self.login_fetch = None;
-                        self.page = Page::Login(
-                            LoginModel::default(),
-                        );
-                    }
-                }
-            }
-            (
-                Page::Calendar(page),
-                Message::Calendar(
-                    CalendarMessage::OpenModal(mode),
-                ),
-            ) => {
-                self.console.info(&format!("Open modal {:?}", mode));
-                page.mode = mode.clone();
-            }
-            (
-                Page::Calendar(page),
-                Message::Calendar(
-                    CalendarMessage::CloseModal,
-                ),
-            ) => {
-                self.console.info("Close modal");
-                page.mode = CalendarMode::NoModal;
-            }
-            (
-                _, Message::FetchData
-            ) => {
-                self.console.info("Fetch data from server");
-                self.employees_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_employees",
-                    |res| {
-                        Message::ReceiveEmployees(res)
-                    },
-                    || Message::NoOp,
-                );
-                self.configs_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_configs",
-                    |res| {
-                        Message::ReceiveConfigs(res)
-                    },
-                    || Message::NoOp,
-                );
-                self.active_config_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_active_config",
-                    |res| {
-                        Message::ReceiveActiveConfig(res)
-                    },
-                    || Message::NoOp,
-                );
-                self.shifts_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_shifts",
-                    |res| {
-                        Message::ReceiveShifts(res)
-                    },
-                    || Message::NoOp,
-                );
-                self.shifts_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_shifts",
-                    |res| {
-                        Message::ReceiveShifts(res)
-                    },
-                    || Message::NoOp,
-                );
-                self.shift_exceptions_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_shift_exceptions",
-                    |res| {
-                        Message::ReceiveShiftExceptions(res)
-                    },
-                    || Message::NoOp,
-                );
-                self.vacations_fetch = http_post(
-                    &mut self.fetch_service,
-                    &mut self.link,
-                    "/sched/get_vacations",
-                    |res| {
-                        Message::ReceiveVacations(res)
-                    },
-                    || Message::NoOp,
-                );
-            }
-            (_, Message::SwitchPage(page)) => {
-                self.console.info(&format!("Switch page to {:?}", page));
-                self.page = page.clone();
-            }
-            
-            
-            _ => (),
-        };
-        info(&format!("post-update model: {:?}", self));
-        true
     }
 }
 
-impl Renderable<Model> for Model {
-    fn view(&self) -> Html<Self> {
-        info("model.view()");
-        html! {
-            <div>
-            {
-                match &self.page {
-                    Page::CheckToken => {
-                        html!{
-                            <h1>{"Authenticating..."}</h1>
-                        }
-                    }
-                    Page::Login(page) => {
-                        self.view_login_page(page)
-                    }
-                    Page::Calendar(page) => {
-                        self.view_calendar_page(page)
-                    }
+fn update(
+    model: Arc<Mutex<Model>>,
+    msg: Message,
+) -> (bool, Vec<Message>) {
+    let model_inner = &mut model.get_mut().unwrap();
+    let mut_page: &mut Page =
+        &mut model_inner.page.borrow_mut();
+    let mut replies = vec![];
+    match (mut_page, &msg) {
+        (_, Message::Resize(w, _)) => {
+            // model.console.info(&format!("Resize message: width {:?}", w));
+            let _ = model_inner
+                .device_class
+                .replace(classify_device(w));
+            // model.console.info(&format!("Device class: {}", model.device_class));
+        }
+        (
+            Page::CheckToken,
+            Message::TokenSuccess(employee_opt),
+        ) => {
+            model_inner
+                .current_employee
+                .replace(employee_opt.clone());
+            replies.push(Message::SwitchPage(
+                Page::Calendar(CalendarModel::default()),
+            ));
+        }
+        (_, Message::TokenFailure) => {
+            model_inner.current_employee.replace(None);
+            replies.push(Message::SwitchPage(Page::Login(
+                LoginModel::default(),
+            )));
+        }
+        (
+            Page::Login(page),
+            Message::Login(login_message),
+        ) => {
+            match login_message {
+                LoginMessage::UpdateEmail(email) => {
+                    // model.console.info("Update login email");
+                    page.login_info.email = email.clone();
+                }
+                LoginMessage::UpdatePassword(password) => {
+                    // model.console.info("Update login password");
+                    page.login_info.password =
+                        password.clone();
+                }
+                LoginMessage::Login => {
+                    // model.console.info("Login");
+                    page.input_enabled = false;
+                    let _ = http_post_with(
+                        // model.clone(),
+                        "/sched/login",
+                        &page.login_info,
+                        Callback::from(|e| {
+                            Message::Login(
+                                LoginMessage::LoginSuccess(
+                                    e,
+                                ),
+                            )
+                        }),
+                        Callback::from(|_| {
+                            Message::Login(
+                                LoginMessage::LoginFail,
+                            )
+                        }),
+                    );
+                }
+                LoginMessage::LoginSuccess(result) => {
+                    // model.console.info(&format!("LoginSuccess, employee: {:?}", result));
+                    // model.login_fetch = None;
+                    model_inner.current_employee.replace(
+                        match result {
+                            Some(result) => {
+                                result.employee.clone()
+                            }
+                            None => None,
+                        },
+                    );
+                    let calendar_model = CalendarModel {
+                        mode: CalendarMode::NoModal,
+                        view_mode: CalendarView::Day,
+                    };
+                    model_inner
+                        .messages
+                        .push_back(Message::FetchData);
+                    model_inner.messages.push_back(
+                        Message::SwitchPage(
+                            Page::Calendar(calendar_model),
+                        ),
+                    );
+                }
+                LoginMessage::LoginFail => {
+                    // model.console.info("LoginFail");
+                    // model.login_fetch = None;
+                    model_inner.page.replace(Page::Login(
+                        LoginModel::default(),
+                    ));
                 }
             }
-            </div>
         }
-    }
+        (
+            Page::Calendar(page),
+            Message::Calendar(CalendarMessage::OpenModal(
+                mode,
+            )),
+        ) => {
+            // model.console.info(&format!("Open modal {:?}", mode));
+            page.mode = mode.clone();
+        }
+        (
+            Page::Calendar(page),
+            Message::Calendar(CalendarMessage::CloseModal),
+        ) => {
+            // model.console.info("Close modal");
+            page.mode = CalendarMode::NoModal;
+        }
+        (_, Message::FetchData) => {
+            // model.console.info("Fetch data from server");
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_employees",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveEmployees(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_configs",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveConfigs(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_active_config",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveActiveConfig(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_shifts",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveShifts(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_shifts",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveShifts(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_shift_exceptions",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveShiftExceptions(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+            let _ = http_post_with(
+                // model.clone(),
+                "/sched/get_vacations",
+                &(),
+                Callback::from(|res| {
+                    Message::ReceiveVacations(res)
+                }),
+                Callback::from(|_| Message::NoOp),
+            );
+        }
+        (_, Message::SwitchPage(page)) => {
+            // model.console.info(&format!("Switch page to {:?}", page));
+            model_inner.page.replace(page.clone());
+        }
+
+        _ => (),
+    };
+    // info(&format!("post-update model: {:?}", self));
+    (true, replies)
+}
+
+fn view(model: Arc<Mutex<Model>>) -> VirtualNode {
+    // let model_inner = &*model.lock().unwrap();
+    // let borrowed_page: &Page = &model.lock().unwrap().page.borrow();
+    use std::ops::Deref;
+    let body = html! {
+        <div>
+        {
+            match model.lock().unwrap().page.borrow().deref() {
+                Page::CheckToken => {
+                    view_check_token_page(model.clone())
+                }
+                Page::Login(page) => {
+                    view_login_page(model.clone(), &page)
+                }
+                Page::Calendar(page) => {
+                    view_calendar_page(model.clone(), &page)
+                }
+            }
+        }
+        </div>
+    };
+    body
 }
 
 fn classify_device(w: &f64) -> DeviceClass {
@@ -1070,6 +1211,73 @@ struct LoginResult {
     employee: Option<Employee>,
 }
 
+fn window() -> Window {
+    web_sys::window().expect("Unable to get window!")
+}
+
+fn document() -> Document {
+    window().document().expect("Unable to get document!")
+}
+
+fn body() -> HtmlElement {
+    document()
+        .body()
+        .expect("Unable to get document body element!")
+}
+
 pub fn main() {
-    yew::start_app::<Model>();
+    let model: Arc<Mutex<Model>> =
+        Arc::new(Mutex::new(Model::default()));
+    loop {
+        {
+            let filtered = model
+                .lock()
+                .unwrap()
+                .tasks
+                .borrow_mut()
+                .iter_mut()
+                .filter_map(|task| {
+                    match Rc::get_mut(task).poll() {
+                        Ok(ready) => match ready {
+                            futures::Async::NotReady => {
+                                None
+                            }
+                            futures::Async::Ready(
+                                msg_opt,
+                            ) => {
+                                match msg_opt {
+                                    Some(msg) => {
+                                        queue_message(
+                                            Arc::clone(
+                                                &model,
+                                            ),
+                                            msg,
+                                        );
+                                        None
+                                    }
+                                    None => None,
+                                }
+                            }
+                        },
+                        Err(_) => Some(task),
+                    }
+                })
+                .map(|task| {
+                    let task: Rc<
+                        dyn Future<
+                            Item = Message,
+                            Error = Message,
+                        >,
+                    > = task.clone();
+                    task
+                })
+                .collect();
+            model.lock().unwrap().tasks.replace(filtered);
+        }
+        let should_render = process_messages(model.clone());
+        if should_render {
+            let vnode = view(model.clone());
+            update_dom(model.clone(), vnode);
+        }
+    }
 }

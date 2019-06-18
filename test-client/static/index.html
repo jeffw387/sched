@@ -10,5 +10,12 @@
     <body style="overflow: hidden">
         <script src="test-client.js">
         </script>
+        <script>
+            window.wasm_bindgen(`test-client.wasm`)
+                .then(() => {
+                    const { App } = window.wasm_bindgen
+                    new App()
+                })
+        </script>
     </body>
 </html>
