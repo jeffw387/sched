@@ -35,15 +35,15 @@ fn index_html(_: HttpRequest) -> actix_web::Result<NamedFile> {
     Ok(NamedFile::open(static_dir + "/index.html")?)
 }
 
-fn test_client_js(_: HttpRequest) -> actix_web::Result<NamedFile> {
-    let static_dir = env::get_env(STATIC_DIR);
-    Ok(NamedFile::open(static_dir + "/test-client.js")?)
-}
+// fn test_client_js(_: HttpRequest) -> actix_web::Result<NamedFile> {
+//     let static_dir = env::get_env(STATIC_DIR);
+//     Ok(NamedFile::open(static_dir + "/test-client.js")?)
+// }
 
-fn test_client_wasm(_: HttpRequest) -> actix_web::Result<NamedFile> {
-    let static_dir = env::get_env(STATIC_DIR);
-    Ok(NamedFile::open(static_dir + "/test-client.wasm")?)
-}
+// fn test_client_wasm(_: HttpRequest) -> actix_web::Result<NamedFile> {
+//     let static_dir = env::get_env(STATIC_DIR);
+//     Ok(NamedFile::open(static_dir + "/test-client.wasm")?)
+// }
 
 fn print_request(
     req: HttpRequest,
@@ -80,19 +80,19 @@ fn main() -> std::io::Result<()> {
             .data(pool.clone())
             .wrap(middleware::Logger::default())
             .service(
-                web::resource("/sched/login")
+                web::resource("/sched/api/login")
                     .data(JsonConfig::default())
                     .route(
                         web::post().to_async(api::login),
                     ),
             )
             .service(
-                web::resource("/sched/check_token").route(
+                web::resource("/sched/api/check_token").route(
                     web::post().to_async(api::check_token),
                 ),
             )
             .service(
-                web::resource("/sched/change_password")
+                web::resource("/sched/api/change_password")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -100,14 +100,14 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/get_active_config")
+                web::resource("/sched/api/get_active_config")
                     .route(
                         web::post()
                             .to_async(api::get_active_config),
                     ),
             )
             .service(
-                web::resource("/sched/set_active_config")
+                web::resource("/sched/api/set_active_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post().to_async(
@@ -116,17 +116,17 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/logout").route(
+                web::resource("/sched/api/logout").route(
                     web::post().to_async(api::logout),
                 ),
             )
             .service(
-                web::resource("/sched/get_configs").route(
+                web::resource("/sched/api/get_configs").route(
                     web::post().to_async(api::get_configs),
                 ),
             )
             .service(
-                web::resource("/sched/add_config")
+                web::resource("/sched/api/add_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -134,7 +134,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/update_config")
+                web::resource("/sched/api/update_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -142,7 +142,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/copy_config")
+                web::resource("/sched/api/copy_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -150,7 +150,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/remove_config")
+                web::resource("/sched/api/remove_config")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -158,7 +158,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/add_employee_config")
+                web::resource("/sched/api/add_employee_config")
                     .data(JsonConfig::default())
                     .route(web::post().to_async(
                         api::add_employee_config,
@@ -166,7 +166,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/update_employee_config",
+                    "/sched/api/update_employee_config",
                 )
                 .data(JsonConfig::default())
                 .route(
@@ -176,7 +176,7 @@ fn main() -> std::io::Result<()> {
                 ),
             )
             .service(
-                web::resource("/sched/get_employees")
+                web::resource("/sched/api/get_employees")
                     .route(
                         web::post()
                             .to_async(api::get_employees),
@@ -184,7 +184,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/get_current_employee",
+                    "/sched/api/get_current_employee",
                 )
                 .route(
                     web::post().to_async(
@@ -193,7 +193,7 @@ fn main() -> std::io::Result<()> {
                 ),
             )
             .service(
-                web::resource("/sched/add_employee")
+                web::resource("/sched/api/add_employee")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -201,7 +201,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/update_employee")
+                web::resource("/sched/api/update_employee")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -210,7 +210,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/update_employee_color",
+                    "/sched/api/update_employee_color",
                 )
                 .data(JsonConfig::default())
                 .route(
@@ -221,7 +221,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/update_employee_phone_number",
+                    "/sched/api/update_employee_phone_number",
                 )
                 .data(JsonConfig::default())
                 .route(
@@ -231,7 +231,7 @@ fn main() -> std::io::Result<()> {
                 ),
             )
             .service(
-                web::resource("/sched/remove_employee")
+                web::resource("/sched/api/remove_employee")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -239,12 +239,12 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/get_shifts").route(
+                web::resource("/sched/api/get_shifts").route(
                     web::post().to_async(api::get_shifts),
                 ),
             )
             .service(
-                web::resource("/sched/add_shift")
+                web::resource("/sched/api/add_shift")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -252,7 +252,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/update_shift")
+                web::resource("/sched/api/update_shift")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -260,7 +260,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/remove_shift")
+                web::resource("/sched/api/remove_shift")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -269,7 +269,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/get_shift_exceptions",
+                    "/sched/api/get_shift_exceptions",
                 )
                 .route(
                     web::post().to_async(
@@ -278,7 +278,7 @@ fn main() -> std::io::Result<()> {
                 ),
             )
             .service(
-                web::resource("/sched/add_shift_exception")
+                web::resource("/sched/api/add_shift_exception")
                     .data(JsonConfig::default())
                     .route(web::post().to_async(
                         api::add_shift_exception,
@@ -286,7 +286,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/remove_shift_exception",
+                    "/sched/api/remove_shift_exception",
                 )
                 .data(JsonConfig::default())
                 .route(
@@ -296,14 +296,14 @@ fn main() -> std::io::Result<()> {
                 ),
             )
             .service(
-                web::resource("/sched/get_vacations")
+                web::resource("/sched/api/get_vacations")
                     .route(
                         web::post()
                             .to_async(api::get_vacations),
                     ),
             )
             .service(
-                web::resource("/sched/add_vacation")
+                web::resource("/sched/api/add_vacation")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -311,7 +311,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/update_vacation")
+                web::resource("/sched/api/update_vacation")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -319,7 +319,7 @@ fn main() -> std::io::Result<()> {
                     ),
             )
             .service(
-                web::resource("/sched/remove_vacation")
+                web::resource("/sched/api/remove_vacation")
                     .data(JsonConfig::default())
                     .route(
                         web::post()
@@ -328,7 +328,7 @@ fn main() -> std::io::Result<()> {
             )
             .service(
                 web::resource(
-                    "/sched/update_vacation_approval",
+                    "/sched/api/update_vacation_approval",
                 )
                 .data(JsonConfig::default())
                 .route(
@@ -338,19 +338,11 @@ fn main() -> std::io::Result<()> {
                 ),
             )
             .service(
-                web::resource("test-client.js")
-                    .route(web::get().to(test_client_js))
-            )
-            .service(
-                web::resource("test-client.wasm")
-                    .route(web::get().to(test_client_wasm))
-            )
-            .service(
                 web::resource("/sched")
                     .route(web::get().to(index_html)),
             )
             // .service(Files::new(
-            //     "/sched/",
+            //     "/sched/api/",
             //     &static_dir,
             // ))
             // .service(Files::new(
