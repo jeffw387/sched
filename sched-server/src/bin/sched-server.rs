@@ -30,7 +30,9 @@ use sched_server::env;
 pub const ENV_DB_URL: &str = "DATABASE_URL";
 pub const STATIC_DIR: &str = "STATIC_DIR";
 
-fn index_html(_: HttpRequest) -> actix_web::Result<NamedFile> {
+fn index_html(
+    _: HttpRequest,
+) -> actix_web::Result<NamedFile> {
     let static_dir = env::get_env(STATIC_DIR);
     Ok(NamedFile::open(static_dir + "/index.html")?)
 }
