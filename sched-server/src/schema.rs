@@ -5,7 +5,6 @@ table! {
         config_name -> Text,
         hour_format -> Text,
         last_name_style -> Text,
-        view_date -> Timestamptz,
         view_employees -> Array<Int4>,
         show_minutes -> Bool,
         show_shifts -> Bool,

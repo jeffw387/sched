@@ -70,7 +70,6 @@ fn add_employee(
         config_name: String::from("Default"),
         hour_format: HourFormat::H12,
         last_name_style: LastNameStyle::Hidden,
-        view_date: Utc::now(),
         view_employees: vec![],
         show_minutes: true,
         show_shifts: true,
@@ -90,6 +89,8 @@ fn add_employee(
         .set(employees::active_config.eq(inserted_config.id))
         .execute(&conn)
         .expect("Error updating employee with new default settings!");
+
+    dbg!(inserted_employee);
 }
 
 fn main() {

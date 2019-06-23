@@ -58,17 +58,6 @@ use std::result::Result;
 
 type Token = String;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct JsonObject<T: Clone> {
-    pub contents: T,
-}
-
-impl<T: Clone> JsonObject<T> {
-    pub fn new(t: T) -> Self {
-        Self { contents: t }
-    }
-}
-
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
 
 pub fn login(
@@ -213,7 +202,7 @@ pub fn change_password(
 pub fn get_configs(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Vec<CombinedConfig>>, Error> {
+) -> Result<Vec<CombinedConfig>, Error> {
     println!("Messages::GetConfigs");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
@@ -238,7 +227,7 @@ pub fn get_configs(
             }
             combined
         });
-    Ok(JsonObject::new(combined_config.collect()))
+    Ok(combined_config.collect())
 }
 
 pub fn add_config(
@@ -273,7 +262,6 @@ pub fn copy_config(
         config_name: config.config_name,
         hour_format: config.hour_format,
         last_name_style: config.last_name_style,
-        view_date: config.view_date,
         view_employees: config.view_employees,
         show_minutes: config.show_minutes,
         show_shifts: config.show_shifts,
@@ -333,10 +321,10 @@ pub fn set_active_config(
 pub fn get_active_config(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Option<i32>>, Error> {
+) -> Result<Option<i32>, Error> {
     println!("Messages::DefaultConfig");
     let owner = check_token(&token, pool)?;
-    Ok(JsonObject::new(owner.active_config))
+    Ok(owner.active_config)
 }
 
 pub fn update_config(
@@ -419,7 +407,7 @@ pub fn update_employee_config(
 pub fn get_employees(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Vec<ClientSideEmployee>>, Error> {
+) -> Result<Vec<ClientSideEmployee>, Error> {
     println!("Messages::GetEmployees");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
@@ -431,7 +419,7 @@ pub fn get_employees(
                 .iter()
                 .map(|emp| emp.clone().into())
                 .collect();
-            JsonObject::new(cs_emps)
+            cs_emps
         })
         .map_err(Error::Dsl)
 }
@@ -481,7 +469,6 @@ pub fn add_employee(
                 config_name: String::from("Default"),
                 hour_format: HourFormat::H12,
                 last_name_style: LastNameStyle::Initial,
-                view_date: Utc::now(),
                 view_employees: vec![],
                 show_minutes: true,
                 show_shifts: true,
@@ -565,14 +552,21 @@ pub fn remove_employee(
 pub fn get_shifts(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Vec<Shift>>, Error> {
+) -> Result<Vec<Shift>, Error> {
     println!("Messages::GetShifts");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
     shifts::table
         .load::<Shift>(conn)
-        .map(|res| JsonObject::new(res))
+        .map(|shifts| {
+            dbg!(&shifts);
+            shifts
+        })
+        .map_err(|err| {
+            dbg!(&err);
+            err
+        })
         .map_err(Error::Dsl)
 }
 
@@ -643,14 +637,13 @@ pub fn remove_shift(
 pub fn get_shift_exceptions(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Vec<ShiftException>>, Error> {
+) -> Result<Vec<ShiftException>, Error> {
     println!("Messages::GetShiftExceptions");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
     shift_exceptions::table
         .load::<ShiftException>(conn)
-        .map(|res| JsonObject::new(res))
         .map_err(Error::Dsl)
 }
 
@@ -738,14 +731,13 @@ pub fn remove_shift_exception(
 pub fn get_vacations(
     pool: web::Data<PgPool>,
     token: Token,
-) -> Result<JsonObject<Vec<Vacation>>, Error> {
+) -> Result<Vec<Vacation>, Error> {
     println!("Messages::GetVacations");
     let manager = pool.clone().get().unwrap();
     let conn = manager.deref();
     let _ = check_token(&token, pool)?;
     vacations::table
         .load::<Vacation>(conn)
-        .map(|res| JsonObject::new(res))
         .map_err(|err| Error::Dsl(err))
 }
 

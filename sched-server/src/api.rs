@@ -8,7 +8,6 @@ use crate::config::{
 };
 use crate::db::{
     self,
-    JsonObject,
     PgPool,
 };
 use crate::employee::ClientSideEmployee;
@@ -45,11 +44,6 @@ fn get_token(request: &HttpRequest) -> String {
     }
 }
 
-#[derive(Serialize)]
-struct LoginResult {
-    employee: Option<ClientSideEmployee>,
-}
-
 pub fn login(
     pool: Data<PgPool>,
     login_info: Json<LoginInfo>,
@@ -72,14 +66,14 @@ pub fn login(
                 .http_only(true)
                 .finish();
                 let response = Ok(HttpResponse::Ok().cookie(ck).json(
-                    LoginResult { employee: Some(emp) },
+                    Some(emp)
                 ));
                 dbg!(&response);
                 response
             }
             Err(_) => {
                 Ok(HttpResponse::InternalServerError()
-                    .json(LoginResult { employee: None }))
+                    .json::<Option<ClientSideEmployee>>(None))
             }
         }
     })
@@ -318,14 +312,14 @@ pub fn update_employee(
 pub fn update_employee_color(
     req: HttpRequest,
     pool: Data<PgPool>,
-    color: Json<JsonObject<EmployeeColor>>,
+    color: Json<EmployeeColor>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
         db::update_employee_color(
             pool,
             token,
-            (*color).clone().contents,
+            (*color).clone(),
         )
     })
     .then(no_return)
@@ -334,14 +328,14 @@ pub fn update_employee_color(
 pub fn update_employee_phone_number(
     req: HttpRequest,
     pool: Data<PgPool>,
-    phone_number: Json<JsonObject<String>>,
+    phone_number: Json<String>,
 ) -> impl ApiFuture {
     let token = get_token(&req);
     web::block(move || {
         db::update_employee_phone_number(
             pool,
             token,
-            (*phone_number).clone().contents,
+            (*phone_number).clone(),
         )
     })
     .then(no_return)

@@ -44,7 +44,6 @@ CREATE TABLE configs(
     config_name TEXT NOT NULL,
     hour_format TEXT NOT NULL,
     last_name_style TEXT NOT NULL,
-    view_date TIMESTAMP (0) WITH TIME ZONE NOT NULL,
     view_employees INTEGER[] NOT NULL,
     show_minutes BOOLEAN NOT NULL,
     show_shifts BOOLEAN NOT NULL,

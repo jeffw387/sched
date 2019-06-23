@@ -54,7 +54,7 @@ fn print_request(
 
 fn main() -> std::io::Result<()> {
     let db_url = env::get_env(ENV_DB_URL);
-    // let static_dir = env::get_env(STATIC_DIR);
+    let static_dir = env::get_env(STATIC_DIR);
     env_logger::init();
 
     println!("database url: {}", db_url);
@@ -341,19 +341,23 @@ fn main() -> std::io::Result<()> {
                 web::resource("/sched")
                     .route(web::get().to(index_html)),
             )
-            // .service(Files::new(
-            //     "/sched/api/",
-            //     &static_dir,
-            // ))
-            // .service(Files::new(
-            //     "/",
-            //     &static_dir,
-            // ))
+            // .service(
+            //     web::resource("/sched/login")
+            //         .route(web::get().to(index_html)),
+            // )
+            // .service(
+            //     web::resource("/sched/calendar")
+            //         .route(web::get().to(index_html)),
+            // )
+            .service(Files::new(
+                "/",
+                &static_dir,
+            ).default_handler(web::get().to(index_html)))
             // .service(Files::new(
             //     "/static/",
             //     &static_dir,
             // ))
-            .default_service(web::get().to(print_request))
+            .default_service(web::get().to(index_html))
     })
     // .bind_ssl("0.0.0.0:443", builder)?
     .bind("0.0.0.0:8000")?
