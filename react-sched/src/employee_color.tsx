@@ -1,0 +1,15 @@
+export enum EmployeeColor {
+    Red,
+    LightRed,
+    Green,
+    LightGreen,
+    Blue,
+    LightBlue,
+    Yellow,
+    LightYellow,
+    Grey,
+    LightGrey,
+    Black,
+    Brown,
+    Purple,
+}
