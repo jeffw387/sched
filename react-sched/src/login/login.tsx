@@ -5,18 +5,11 @@ export interface ILoginProps {
 }
 
 export default class Login extends React.Component<ILoginProps, any> {
-  constructor(
-    props: Readonly<ILoginProps>,
-  ) {
-    super(props)
-  }
-
   handleLogin = (e: React.SyntheticEvent) => {
-    // alert("submit");
     this.props.onLogin();
     e.preventDefault();
   }
-    
+
   public render() {
     return (
       <div>
@@ -24,11 +17,12 @@ export default class Login extends React.Component<ILoginProps, any> {
             <h2>Log into Scheduler</h2>
         </header>
         <form onSubmit={this.handleLogin}>
-          <input type="email" placeholder="Email"/>
-          <input type="password" placeholder="Password"/>
+          <input type="email" placeholder="Email" className="stack"/>
+          <input type="password" placeholder="Password" className="stack"/>
           <input 
             type="submit" 
             value="Submit" 
+            className="stack"
           />
         </form>
       </div>

@@ -82,18 +82,18 @@ export class CalendarNav extends React.Component<
         </label>
 
         <div className="menu">
-          <a onClick={this.openViews} className="button">
+          <button onClick={this.openViews} className="button">
             Views
-          </a>
-          <a onClick={this.openOptions} className="button">
+          </button>
+          <button onClick={this.openOptions} className="button">
             Options
-          </a>
-          <a onClick={this.openAccount} className="button">
+          </button>
+          <button onClick={this.openAccount} className="button">
             Account
-          </a>
-          <a onClick={this.logOut} className="button">
+          </button>
+          <button onClick={this.logOut} className="button">
             Log out
-          </a>
+          </button>
         </div>
       </nav>
     );

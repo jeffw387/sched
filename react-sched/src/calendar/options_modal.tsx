@@ -1,17 +1,17 @@
 import * as React from "react";
 
-export interface IViewsModalProps {
+export interface IOptionsModalProps {
   isOpen: boolean;
   close(): void;
 }
 
-export interface IViewsModalState {}
+export interface IOptionsModalState {}
 
-export default class ViewsModal extends React.Component<
-  IViewsModalProps,
-  IViewsModalState
+export default class OptionsModal extends React.Component<
+  IOptionsModalProps,
+  IOptionsModalState
 > {
-  constructor(props: IViewsModalProps) {
+  constructor(props: IOptionsModalProps) {
     super(props);
 
     this.state = {};
@@ -26,17 +26,17 @@ export default class ViewsModal extends React.Component<
       <div className="modal">
         <input
           type="checkbox"
-          id="views-modal"
+          id="options-modal"
           checked={this.props.isOpen}
           onChange={this.close}
         />
         <label
-          htmlFor="views-modal"
+          htmlFor="options-modal"
           className="overlay"
           onClick={this.close}
         />
         <article>
-          <header>Select View</header>
+          <header>Options</header>
         </article>
       </div>
     );
