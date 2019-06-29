@@ -42,7 +42,6 @@ export default class DayShift extends React.Component<
     if (this.props.showMinutes) {
       baseFormat += ":mm";
     }
-    console.log("baseFormat: " + baseFormat);
     let prefix = dt.toFormat(baseFormat);
     let suffix = "";
     if (this.props.hourFormat === HourFormat.H12) {
@@ -58,7 +57,7 @@ export default class DayShift extends React.Component<
 
   public render() {
     return (
-      <div className="card">
+      <div className="stack pseudo button">
         {this.printName()}
         {" "}
         {this.printDate(this.props.shift.start)}
