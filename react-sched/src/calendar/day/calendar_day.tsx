@@ -35,17 +35,19 @@ export default class CalendarDay extends React.Component<
 
   filterShifts(): Shift[] {
     return this.props.shifts.filter((shift: Shift) => {
-      return sameYMD(this.props.view_date, shift.start);
-      // &&
+      let a = sameYMD(this.props.view_date, shift.start);
+      if (shift.employee_id !== undefined) {
+        let b = this.props.active_config.view_employees.includes(
+          shift.employee_id
+        );
+        return a && b;
+      }
+      return false;
     });
   }
 
   mapShifts() {
-    let shifts_today = this.props.shifts.filter(
-      (shift: Shift) => {
-        return sameYMD(this.props.view_date, shift.start);
-      }
-    );
+    let shifts_today = this.filterShifts();
     let sorted_shifts = shifts_today.sort((a, b) => {
       return a.start.diff(b.start).as("minutes");
     });
@@ -59,7 +61,11 @@ export default class CalendarDay extends React.Component<
             <DayShift
               key={shift.id}
               employee={emp}
-              lastNameStyle={this.props.active_config.last_name_style}
+              lastNameStyle={
+                this.props.active_config.last_name_style
+              }
+              showMinutes={this.props.active_config.show_minutes}
+              hourFormat={this.props.active_config.hour_format}
               shift={shift}
             />
           );
