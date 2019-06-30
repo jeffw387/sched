@@ -28,7 +28,7 @@ export class MockShifts implements ICRUD<Shift> {
   get(): Shift[] {
     return this.shifts;
   }
-  update(shift: Shift): void {
+  update(shift: Shift): MockShifts {
     this.shifts = this.shifts.map((s: Shift) => {
       if (s.id === shift.id) {
         return s;
@@ -36,14 +36,17 @@ export class MockShifts implements ICRUD<Shift> {
         return shift;
       }
     });
+    return this;
   }
-  add(shift: Shift): void {
+  add(shift: Shift): MockShifts {
     this.shifts.push(shift);
+    return this;
   }
-  remove(shift: Shift): void {
+  remove(shift: Shift): MockShifts {
     this.shifts = this.shifts.filter((s: Shift) => {
       return (s.id !== shift.id);
     });
+    return this;
   }
 }
 

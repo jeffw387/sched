@@ -6,13 +6,17 @@ import DayShift from "../day_shift";
 import { LastNameStyle } from "../../last_name_style";
 import { DateTime } from "luxon";
 import { Config } from "../../config";
+import ShiftEditor from "../shift_editor";
 
 export interface ICalendarDayProps {
   view_date: DateTime;
   addToDate(days: number): void;
   shifts: Shift[];
   employees: Employee[];
+  current_employee: Employee;
   active_config: Config;
+  updateShift(shift: Shift): void;
+  removeShift(shift: Shift): void;
 }
 
 function sameYMD(day: DateTime, dateTime: DateTime): boolean {
@@ -21,7 +25,10 @@ function sameYMD(day: DateTime, dateTime: DateTime): boolean {
   return dateTime >= dayStart && dateTime < dayEnd;
 }
 
-export interface ICalendarDayState {}
+export interface ICalendarDayState {
+  shiftEditorOpen: boolean,
+  activeShift?: Shift
+}
 
 export default class CalendarDay extends React.Component<
   ICalendarDayProps,
@@ -30,7 +37,9 @@ export default class CalendarDay extends React.Component<
   constructor(props: ICalendarDayProps) {
     super(props);
 
-    this.state = {};
+    this.state = {
+      shiftEditorOpen: false,
+    };
   }
 
   filterShifts(): Shift[] {
@@ -45,6 +54,28 @@ export default class CalendarDay extends React.Component<
       return false;
     });
   }
+
+  openShiftEditor = (shift: Shift) => {
+    this.setState({
+        shiftEditorOpen: true,
+        activeShift: shift
+    });
+  };
+
+  closeShiftEditor = () => {
+    this.setState({
+      shiftEditorOpen: false,
+      activeShift: undefined
+    })
+  };
+
+  updateShift = (shift: Shift) => {
+    this.props.updateShift(shift);
+  };
+
+  removeShift = (shift: Shift) => {
+    this.props.removeShift(shift);
+  };
 
   mapShifts() {
     let shifts_today = this.filterShifts();
@@ -67,6 +98,8 @@ export default class CalendarDay extends React.Component<
               showMinutes={this.props.active_config.show_minutes}
               hourFormat={this.props.active_config.hour_format}
               shift={shift}
+              openShiftEditor={this.openShiftEditor}
+              closeShiftEditor={this.closeShiftEditor}
             />
           );
         }
@@ -78,7 +111,22 @@ export default class CalendarDay extends React.Component<
   public render() {
     return (
       <>
-        {this.props.view_date.toString()}
+        {this.state.activeShift ? 
+          <ShiftEditor
+            shift={this.state.activeShift}
+            current_employee={this.props.current_employee}
+            close={this.closeShiftEditor}
+            isOpen={this.state.shiftEditorOpen}
+            updateShift={this.updateShift}
+            removeShift={this.removeShift}
+          />
+          : <div></div>
+        }
+        {this.props.view_date.toLocaleString({
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        })}
         <div>
           <SpacedButton
             click={() => {

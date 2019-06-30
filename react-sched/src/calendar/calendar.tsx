@@ -101,6 +101,19 @@ export default class Calendar extends React.Component<
   };
   logOut = () => {};
 
+  updateShift = (shift: Shift) => {
+    this.setState((state, props) => {
+      return {shifts: state.shifts.update(shift)}
+    });
+  };
+
+  removeShift = (shift: Shift) => {
+    this.setState((state, props) => {
+      return {shifts: state.shifts.remove(shift)}
+    });
+    this.state.shifts.remove(shift);
+  }
+
   chooseView(viewType: ViewType) {
     let configs = this.state.configs.get();
     let current_employee = this.state.credentials.get();
@@ -121,7 +134,10 @@ export default class Calendar extends React.Component<
                 addToDate={this.addToViewDate}
                 shifts={this.state.shifts.get()}
                 employees={this.state.employees.get()}
+                current_employee={curr}
                 active_config={active_cfg}
+                updateShift={this.updateShift}
+                removeShift={this.removeShift}
               />
             );
           case ViewType.Week:

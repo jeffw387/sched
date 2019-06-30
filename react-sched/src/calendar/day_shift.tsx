@@ -11,6 +11,8 @@ export interface IDayShiftProps {
   showMinutes: boolean;
   hourFormat: HourFormat;
   shift: Shift;
+  openShiftEditor(shift: Shift): void;
+  closeShiftEditor(): void;
 }
 
 export interface IDayShiftState {}
@@ -26,7 +28,9 @@ export default class DayShift extends React.Component<
   }
 
   printName = () => {
-    return this.props.employee.printName(this.props.lastNameStyle);
+    return this.props.employee.printName(
+      this.props.lastNameStyle
+    );
   };
 
   printDate = (dt: DateTime) => {
@@ -47,23 +51,28 @@ export default class DayShift extends React.Component<
     if (this.props.hourFormat === HourFormat.H12) {
       if (dt.hour >= 12) {
         suffix += "p";
-      }
-      else {
+      } else {
         suffix += "a";
       }
     }
     return prefix + suffix;
   };
 
+  openShiftEditor = () => {
+    this.props.openShiftEditor(this.props.shift);
+  };
+
   public render() {
     return (
-      <div className="stack pseudo button">
-        {this.printName()}
-        {" "}
-        {this.printDate(this.props.shift.start)}
-        -
+      <label
+        className="stack pseudo button"
+        htmlFor="shiftEditor"
+        onClick={this.openShiftEditor}
+      >
+        {this.printName()}{" "}
+        {this.printDate(this.props.shift.start)}-
         {this.printDate(this.props.shift.end)}
-      </div>
+      </label>
     );
   }
 }

@@ -19,17 +19,17 @@ export class Configs {
 }
 
 export class MockConfigs implements ICRUD<Config> {
+  add(t: Config): ICRUD<Config> {
+    throw new Error("Method not implemented.");
+  }
+  update(t: Config): ICRUD<Config> {
+    throw new Error("Method not implemented.");
+  }
+  remove(t: Config): ICRUD<Config> {
+    throw new Error("Method not implemented.");
+  }
   get(): Config[] {
     return this.configs;
-  }
-  add(t: Config): void {
-    throw new Error("Method not implemented.");
-  }
-  update(t: Config): void {
-    throw new Error("Method not implemented.");
-  }
-  remove(t: Config): void {
-    throw new Error("Method not implemented.");
   }
   configs: Config[] = test_data;
 }

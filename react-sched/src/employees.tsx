@@ -30,10 +30,11 @@ export class MockEmployees implements ICRUD<Employee> {
   get(): Employee[] {
     return this.employees;
   }
-  add(t: Employee): void {
+  add(t: Employee): MockEmployees {
     this.employees.push(t);
+    return this;
   }
-  update(t: Employee): void {
+  update(t: Employee): MockEmployees {
     this.employees = this.employees.map((e: Employee) => {
       if (e.id === t.id) {
         return t;
@@ -41,11 +42,13 @@ export class MockEmployees implements ICRUD<Employee> {
         return e;
       }
     });
+    return this;
   }
-  remove(t: Employee): void {
+  remove(t: Employee): MockEmployees {
     this.employees = this.employees.filter((e: Employee) => {
       return e.id !== t.id;
     });
+    return this;
   }
 }
 

@@ -1,6 +1,6 @@
 export interface ICRUD<T> {
   get(): T[];
-  add(t: T): void;
-  update(t: T): void;
-  remove(t: T): void;
+  add(t: T): ICRUD<T>;
+  update(t: T): ICRUD<T>;
+  remove(t: T): ICRUD<T>;
 }
