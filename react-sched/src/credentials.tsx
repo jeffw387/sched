@@ -1,4 +1,4 @@
-import Employee from "./employee";
+import { Employee } from "./employee";
 import { EmployeeLevel } from "./employee_level";
 import { EmployeeColor } from "./employee_color";
 

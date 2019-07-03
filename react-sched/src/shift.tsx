@@ -23,8 +23,8 @@ export class Shift {
   id: number = 0;
   supervisor_id: number = 0;
   employee_id?: number;
-  start: DateTime = new DateTime();
-  end: DateTime = new DateTime();
+  start: DateTime = DateTime.local();
+  end: DateTime = DateTime.local();
   repeat: ShiftRepeat = ShiftRepeat.NeverRepeat;
   every_x?: number;
   note?: string;

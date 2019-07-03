@@ -1,12 +1,12 @@
 import * as React from "react";
 import { Shift } from "../shift";
-import Employee from "../employee";
+import { Employee, printEmployeeName } from "../employee";
 import { LastNameStyle } from "../last_name_style";
 import { DateTime } from "luxon";
 import { HourFormat } from "../hour_format";
 
 export interface IDayShiftProps {
-  employee: Employee;
+  employee?: Employee;
   lastNameStyle: LastNameStyle;
   showMinutes: boolean;
   hourFormat: HourFormat;
@@ -28,9 +28,12 @@ export default class DayShift extends React.Component<
   }
 
   printName = () => {
-    return this.props.employee.printName(
-      this.props.lastNameStyle
-    );
+    return this.props.employee
+      ? printEmployeeName(
+          this.props.employee,
+          this.props.lastNameStyle
+        )
+      : "No employee";
   };
 
   printDate = (dt: DateTime) => {

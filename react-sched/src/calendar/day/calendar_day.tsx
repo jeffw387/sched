@@ -1,7 +1,7 @@
 import * as React from "react";
 import SpacedButton from "./spaced_button";
 import { Shift } from "../../shift";
-import Employee from "../../employee";
+import { Employee } from "../../employee";
 import DayShift from "../day_shift";
 import { LastNameStyle } from "../../last_name_style";
 import { DateTime } from "luxon";
@@ -13,8 +13,10 @@ export interface ICalendarDayProps {
   addToDate(days: number): void;
   shifts: Shift[];
   employees: Employee[];
+  visible_employees: (Employee | undefined)[];
   current_employee: Employee;
   active_config: Config;
+  addShift(date: DateTime): Shift;
   updateShift(shift: Shift): void;
   removeShift(shift: Shift): void;
 }
@@ -51,7 +53,7 @@ export default class CalendarDay extends React.Component<
         );
         return a && b;
       }
-      return false;
+      return true;
     });
   }
 
@@ -77,6 +79,11 @@ export default class CalendarDay extends React.Component<
     this.props.removeShift(shift);
   };
 
+  addShift = () => {
+    let newShift = this.props.addShift(this.props.view_date);
+    this.openShiftEditor(newShift);
+  };
+
   mapShifts() {
     let shifts_today = this.filterShifts();
     let sorted_shifts = shifts_today.sort((a, b) => {
@@ -87,24 +94,19 @@ export default class CalendarDay extends React.Component<
         let emp = this.props.employees.find(e => {
           return e.id === shift.employee_id;
         });
-        if (emp) {
-          return (
-            <DayShift
-              key={shift.id}
-              employee={emp}
-              lastNameStyle={
-                this.props.active_config.last_name_style
-              }
-              showMinutes={this.props.active_config.show_minutes}
-              hourFormat={this.props.active_config.hour_format}
-              shift={shift}
-              openShiftEditor={this.openShiftEditor}
-              closeShiftEditor={this.closeShiftEditor}
-            />
-          );
-        }
+        return (<DayShift
+          key={shift.id}
+          employee={emp}
+          lastNameStyle={
+            this.props.active_config.last_name_style
+          }
+          showMinutes={this.props.active_config.show_minutes}
+          hourFormat={this.props.active_config.hour_format}
+          shift={shift}
+          openShiftEditor={this.openShiftEditor}
+          closeShiftEditor={this.closeShiftEditor}
+        />);
       }
-      return <div key={shift.id}>Employee Not Found</div>;
     });
   }
 
@@ -115,6 +117,7 @@ export default class CalendarDay extends React.Component<
           <ShiftEditor
             shift={this.state.activeShift}
             current_employee={this.props.current_employee}
+            visible_employees={this.props.visible_employees}
             close={this.closeShiftEditor}
             isOpen={this.state.shiftEditorOpen}
             updateShift={this.updateShift}
@@ -133,7 +136,11 @@ export default class CalendarDay extends React.Component<
               this.props.addToDate(-1);
             }}
             text="Previous Day"
-          />
+            />
+          <SpacedButton
+            click={this.addShift}
+            text={"Add Shift"}
+          />  
           <SpacedButton
             click={() => {
               this.props.addToDate(1);

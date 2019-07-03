@@ -39,12 +39,34 @@ export class MockShifts implements ICRUD<Shift> {
     return this;
   }
   add(shift: Shift): MockShifts {
-    this.shifts.push(shift);
+    let maxShift =
+      this.shifts.length === 0
+        ? shift
+        : this.shifts.reduce(
+            (
+              prev: Shift,
+              current: Shift,
+              index: number,
+              arr: Shift[]
+            ) => {
+              return {
+                ...prev,
+                ...{
+                  id: current.id > prev.id ? current.id : prev.id
+                }
+              };
+            }
+          );
+
+    this.shifts.push({
+      ...shift,
+      ...{ id: maxShift.id + 1 }
+    });
     return this;
   }
   remove(shift: Shift): MockShifts {
     this.shifts = this.shifts.filter((s: Shift) => {
-      return (s.id !== shift.id);
+      return s.id !== shift.id;
     });
     return this;
   }
@@ -60,13 +82,11 @@ function fromShift(shift: Shift): ShiftMessage {
     repeat: shift.repeat,
     every_x: shift.every_x,
     note: shift.note,
-    on_call: shift.on_call,
+    on_call: shift.on_call
   };
 }
 
-function fromMsg(
-  msg: ShiftMessage
-): Shift {
+function fromMsg(msg: ShiftMessage): Shift {
   return {
     id: msg.id,
     supervisor_id: msg.supervisor_id,
@@ -76,6 +96,6 @@ function fromMsg(
     repeat: msg.repeat,
     every_x: msg.every_x,
     note: msg.note,
-    on_call: msg.on_call,
-  }
+    on_call: msg.on_call
+  };
 }

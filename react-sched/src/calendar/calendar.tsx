@@ -8,11 +8,12 @@ import { ViewDate } from "../view_date";
 import CalendarDay from "./day/calendar_day";
 import { MockShifts } from "../shifts";
 import { ICRUD } from "../icrud";
-import Employee from "../employee";
+import { Employee } from "../employee";
 import { Shift } from "../shift";
 import { MockEmployees } from "../employees";
 import { Config } from "../config";
 import { ICredentials, MockCredentials } from "../credentials";
+import { DateTime } from "luxon";
 
 enum ViewType {
   Month,
@@ -60,7 +61,7 @@ export default class Calendar extends React.Component<
   }
 
   addToViewDate = (days: number) => {
-    this.setState((state, props) => {
+    this.setState((state, _props) => {
       let vd = state.viewDate;
       vd.addDays(days);
       return {
@@ -72,28 +73,28 @@ export default class Calendar extends React.Component<
   fetchEmployees = () => {};
 
   openViews = () => {
-    this.setState((state, props) => {
+    this.setState((_state, _props) => {
       return {
         modal: CalendarModals.Views
       };
     });
   };
   openOptions = () => {
-    this.setState((state, props) => {
+    this.setState((_state, _props) => {
       return {
         modal: CalendarModals.Config
       };
     });
   };
   openAccount = () => {
-    this.setState((state, props) => {
+    this.setState((_state, _props) => {
       return {
         modal: CalendarModals.Account
       };
     });
   };
   closeModal = () => {
-    this.setState((state, props) => {
+    this.setState((_state, _props) => {
       return {
         modal: CalendarModals.None
       };
@@ -101,18 +102,36 @@ export default class Calendar extends React.Component<
   };
   logOut = () => {};
 
+  addShift = (date: DateTime) => {
+    let newShift = new Shift();
+    newShift.start = date;
+    newShift.end = date;
+    this.setState((state, _props) => {
+      return {shifts: state.shifts.add(newShift)}
+    });
+    return newShift;
+  }
+
   updateShift = (shift: Shift) => {
-    this.setState((state, props) => {
+    this.setState((state, _props) => {
       return {shifts: state.shifts.update(shift)}
     });
   };
 
   removeShift = (shift: Shift) => {
-    this.setState((state, props) => {
+    this.setState((state, _props) => {
       return {shifts: state.shifts.remove(shift)}
     });
     this.state.shifts.remove(shift);
   }
+
+  visibleEmployees = (visibleEmployeeIds: number[]) => {
+    return visibleEmployeeIds.map((id: number) => {
+      return this.state.employees.get().find((emp: Employee) => {
+        return emp.id === id;
+      });
+    });
+  };
 
   chooseView(viewType: ViewType) {
     let configs = this.state.configs.get();
@@ -135,7 +154,9 @@ export default class Calendar extends React.Component<
                 shifts={this.state.shifts.get()}
                 employees={this.state.employees.get()}
                 current_employee={curr}
+                visible_employees={this.visibleEmployees(active_cfg.view_employees)}
                 active_config={active_cfg}
+                addShift={this.addShift}
                 updateShift={this.updateShift}
                 removeShift={this.removeShift}
               />

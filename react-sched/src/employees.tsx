@@ -1,4 +1,4 @@
-import Employee from "./employee";
+  import { Employee } from "./employee";
 import { EmployeeLevel } from "./employee_level";
 import { EmployeeColor } from "./employee_color";
 import { ICRUD } from "./icrud";
@@ -11,7 +11,6 @@ const test_data: Employee[] = [
     first: "Jeff",
     last: "Wright",
     default_color: EmployeeColor.LightBlue,
-    printName: Employee.prototype.printName
   },
   {
     id: 1,
@@ -20,7 +19,6 @@ const test_data: Employee[] = [
     first: "Tim",
     last: "Baker",
     default_color: EmployeeColor.Red,
-    printName: Employee.prototype.printName
   }
 ];
 
